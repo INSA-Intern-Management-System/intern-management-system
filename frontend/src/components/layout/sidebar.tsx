@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 
 interface SidebarProps {
-  userRole: string
-  userName: string
-  onLogout: () => void
+  userRole: string;
+  userName: string;
+  onLogout: () => void;
 }
 
 export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
@@ -17,9 +17,15 @@ export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
       </div>
       <nav className="flex-1 p-6">
         {/* Add your navigation links here */}
-        <a href="/dashboard" className="block mb-4">Dashboard</a>
-        <a href="#" className="block mb-4">Profile</a>
-        <a href="#" className="block mb-4">Settings</a>
+        <a href="/dashboard" className="block mb-4">
+          Dashboard
+        </a>
+        <a href="#" className="block mb-4">
+          Profile
+        </a>
+        <a href="#" className="block mb-4">
+          Settings
+        </a>
       </nav>
       <button
         className="m-6 p-2 bg-red-500 text-white rounded"
@@ -28,5 +34,5 @@ export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
         Logout
       </button>
     </aside>
-  )
-} 
+  );
+}
