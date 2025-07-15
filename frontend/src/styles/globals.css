@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 /* @tailwind base;
-=======
-@tailwind base;
->>>>>>> 539ff0ae11b68bc35483d4dd702c36cc5df696aa
 @tailwind components;
 @tailwind utilities;
 
@@ -95,8 +91,4 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-<<<<<<< HEAD
 } */
-=======
-}
->>>>>>> 539ff0ae11b68bc35483d4dd702c36cc5df696aa
