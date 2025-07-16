@@ -1,20 +1,17 @@
 package com.example.userservice.dto;
 
-import com.example.userservice.model.User;
-
 public class AuthResponse {
     private String message;
     private String token;
-    private User user;
+    private UserDto user;
 
-    public AuthResponse(String message, String token, User user) {
+    public AuthResponse(String message, String token, UserDto user) {
         this.message = message;
         this.token = token;
         this.user = user;
     }
 
     // Getters and setters
-
     public String getMessage() {
         return message;
     }
@@ -31,11 +28,11 @@ public class AuthResponse {
         this.token = token;
     }
 
-    public User getUser() {
+    public UserDto getUser() {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(UserDto user) {
         this.user = user;
     }
 }

@@ -4,6 +4,7 @@ package com.example.userservice.controller;
 import com.example.userservice.dto.AuthResponse;
 import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.RegisterRequest;
+import com.example.userservice.dto.UserDto;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.CustomUserDetailsService;
@@ -27,7 +28,11 @@ public class AuthController {
     private final  JwtUtil jwtUtil;
 
 
-    public AuthController(UserService userService, JwtUtil jwtUtil, CustomUserDetailsService customUserDetailsService) {
+
+    public AuthController(UserService userService,
+
+                          JwtUtil jwtUtil,
+                          CustomUserDetailsService customUserDetailsService) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.customUserDetailsService = customUserDetailsService;
@@ -40,8 +45,7 @@ public class AuthController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User registered successfully");
-            response.put("user", user);
-
+            response.put("user", new UserDto(user));
             return ResponseEntity.status(201).body(response);
 
         } catch (RuntimeException e) {
@@ -68,7 +72,7 @@ public class AuthController {
             AuthResponse authResponse = new AuthResponse(
                     "User logged in successfully",
                     token,
-                    user
+                    new UserDto(user)
             );
 
             return ResponseEntity.status(201).body(authResponse);
