@@ -38,7 +38,7 @@ const sidebarItems = {
     {
       icon: FileText,
       label: "Plan & Tasks",
-      href: "/dashboard/student/applications",
+      href: "/dashboard/student/plans",
     },
     { icon: Send, label: "Reports", href: "/dashboard/student/reports" },
     {
