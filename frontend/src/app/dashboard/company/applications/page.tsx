@@ -112,7 +112,7 @@ export default function CompanyApplicationsPage() {
 
   return (
     <DashboardLayout requiredRole="company">
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -129,7 +129,7 @@ export default function CompanyApplicationsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -142,7 +142,7 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -157,7 +157,7 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -173,7 +173,7 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -192,7 +192,7 @@ export default function CompanyApplicationsPage() {
         </div>
 
         {/* Search and Filter */}
-        <Card>
+        <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="flex-1">
@@ -201,6 +201,7 @@ export default function CompanyApplicationsPage() {
                   <Input
                     placeholder="Search by student name, university, or skills..."
                     className="pl-10"
+
                   />
                 </div>
               </div>
@@ -234,6 +235,7 @@ export default function CompanyApplicationsPage() {
                 }}
               >
                 <SelectTrigger className="w-48">
+
                   <SelectValue placeholder="Filter by university" />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,7 +254,7 @@ export default function CompanyApplicationsPage() {
         {/* Applications List */}
         <div className="space-y-4">
           {paginatedApplications.map((app) => (
-            <Card key={app.id} className="hover:shadow-md transition-shadow">
+            <Card key={app.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
@@ -287,7 +289,7 @@ export default function CompanyApplicationsPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="mb-3">
+                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-2">
                           <strong>Skills:</strong>
                         </p>
@@ -314,7 +316,7 @@ export default function CompanyApplicationsPage() {
                       <>
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-black text-white hover:bg-gray-900"
                         >
                           <Check className="h-4 w-4 mr-2" />
                           Accept
@@ -375,7 +377,7 @@ export default function CompanyApplicationsPage() {
         </Pagination>
 
         {/* Application Guidelines */}
-        <Card>
+        <Card className="bg-white border border-gray-200 rounded-lg mt-6 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Application Review Guidelines</CardTitle>
           </CardHeader>
