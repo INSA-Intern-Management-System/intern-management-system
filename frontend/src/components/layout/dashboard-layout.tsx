@@ -25,12 +25,11 @@ export function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (!localStorage.getItem("user")) {
       localStorage.setItem(
         "user",
-        JSON.stringify({ name: "Company User", role: "company" })
+        JSON.stringify({ name: "Company User", role: "student" })
       );
-    }
+    
     const userData = localStorage.getItem("user");
     if (userData) {
       const parsedUser = JSON.parse(userData);
