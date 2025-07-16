@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Send, CheckCircle, Clock, FileText, Calendar } from "lucide-react"
+import { Send, CheckCircle, Clock, FileText, Calendar, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination"
 import React from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -59,9 +61,20 @@ export default function ReportsPage() {
   const totalPages = Math.ceil(reports.length / pageSize);
   const paginatedReports = reports.slice((page - 1) * pageSize, page * pageSize);
 
+  const submittedReports = reports.filter((r) => r.submitted);
+  const pendingReports = reports.filter((r) => !r.submitted);
+  const avgGrade = (() => {
+    const grades = reports.filter(r => r.grade).map(r => r.grade === "A+" ? 4.3 : r.grade === "A" ? 4.0 : r.grade === "B" ? 3.0 : 0);
+    return grades.length ? (grades.reduce((a: number, b: number) => a + b, 0) / grades.length).toFixed(2) : "-";
+  })();
+  // Search/filter state (UI only, not functional)
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [weekFilter, setWeekFilter] = React.useState("all");
+
   return (
     <DashboardLayout requiredRole="student">
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -70,62 +83,120 @@ export default function ReportsPage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button className="bg-black text-white hover:bg-gray-900" onClick={() => setDialogOpen(true)}>
                 <Send className="h-4 w-4 mr-2" />
                 Submit New Report
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Submit New Report</DialogTitle>
-              </DialogHeader>
-              <form className="space-y-4" onSubmit={handleFormSubmit}>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  name="week"
-                  placeholder="Week (e.g., Week 4)"
-                  value={form.week}
-                  onChange={handleFormChange}
-                  required
-                />
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  name="date"
-                  type="date"
-                  placeholder="Date"
-                  value={form.date}
-                  onChange={handleFormChange}
-                  required
-                />
-                <textarea
-                  className="w-full border rounded px-3 py-2"
-                  name="content"
-                  placeholder="Report Content"
-                  value={form.content}
-                  onChange={handleFormChange}
-                  rows={4}
-                  required
-                />
-                <div className="flex space-x-2">
-                  <Button type="submit">Submit</Button>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                </div>
-              </form>
+            <DialogContent className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full border-none">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Submit New Report</h2>
+                <form className="space-y-4" onSubmit={handleFormSubmit}>
+                  <input
+                    className="w-full border border-black rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    name="week"
+                    placeholder="Week (e.g., Week 4)"
+                    value={form.week}
+                    onChange={handleFormChange}
+                    required
+                  />
+                  <input
+                    className="w-full border border-black rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    name="date"
+                    type="date"
+                    placeholder="mm/dd/yyyy"
+                    value={form.date}
+                    onChange={handleFormChange}
+                    required
+                  />
+                  <textarea
+                    className="w-full border border-black rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    name="content"
+                    placeholder="Report Content"
+                    value={form.content}
+                    onChange={handleFormChange}
+                    rows={4}
+                    required
+                  />
+                  <div className="flex space-x-2 mt-2">
+                    <Button type="submit" className="bg-black text-white hover:bg-gray-900 px-6">Submit</Button>
+                    <Button type="button" variant="outline" className="border-black text-black px-6" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                  </div>
+                </form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
 
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Submitted</p>
+                  <p className="text-2xl font-bold text-green-600">{submittedReports.length}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Avg. Grade</p>
+                  <p className="text-2xl font-bold text-purple-600">{avgGrade}</p>
+                </div>
+                <Star className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search and Filter */}
+        <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Send className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input placeholder="Search by week or feedback..." className="pl-10 rounded-md bg-white border border-gray-200" value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48 border border-gray-200 bg-white text-gray-700 rounded-md">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reports</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={weekFilter} onValueChange={setWeekFilter}>
+                <SelectTrigger className="w-48 border border-gray-200 bg-white text-gray-700 rounded-md">
+                  <SelectValue placeholder="Filter by week" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Weeks</SelectItem>
+                  <SelectItem value="current">Current Week</SelectItem>
+                  <SelectItem value="last">Last Week</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Reports List */}
         <div className="space-y-4">
-          {reports.slice(0, 3).map((report) => (
-            <Card key={report.id} className="hover:shadow-md transition-shadow">
+          {paginatedReports.map((report) => (
+            <Card key={report.id} className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow`}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        report.submitted ? "bg-green-100" : "bg-yellow-100"
-                      }`}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center ${report.submitted ? "bg-green-100" : "bg-yellow-100"}`}
                     >
                       {report.submitted ? (
                         <CheckCircle className="h-6 w-6 text-green-600" />
@@ -134,7 +205,7 @@ export default function ReportsPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold">{report.week}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{report.week}</h3>
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
                         <span className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
@@ -181,7 +252,7 @@ export default function ReportsPage() {
         </Pagination>
 
         {/* Report Guidelines */}
-        <Card>
+        <Card className="bg-white border border-gray-200 rounded-lg mt-6 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Report Guidelines</CardTitle>
             <CardDescription>What to include in your weekly reports</CardDescription>

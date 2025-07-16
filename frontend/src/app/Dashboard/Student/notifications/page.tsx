@@ -118,21 +118,17 @@ export default function NotificationsPage() {
           {paginatedNotifications.map((notification) => (
             <Card
               key={notification.id}
-              className={`hover:shadow-md transition-shadow ${
-                !notification.read ? "border-l-4 border-l-blue-500 bg-blue-50/30" : ""
-              }`}
+              className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow ${!notification.read ? "border-l-4 border-l-blue-500 bg-blue-50/30" : ""}`}
             >
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between relative">
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className={`font-semibold ${!notification.read ? "text-gray-900" : "text-gray-700"}`}>
-                          {notification.title}
-                        </h3>
+                        <h3 className={`font-semibold ${!notification.read ? "text-gray-900" : "text-gray-700"}`}>{notification.title}</h3>
                         {!notification.read && <div className="w-2 h-2 bg-blue-600 rounded-full"></div>}
                       </div>
                       <p className="text-gray-600 mb-2">{notification.message}</p>
@@ -141,9 +137,7 @@ export default function NotificationsPage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     {!notification.read && (
-                      <Button variant="outline" size="sm">
-                        Mark Read
-                      </Button>
+                      <Button variant="outline" size="sm" className="border-gray-300">Mark Read</Button>
                     )}
                   </div>
                 </div>
@@ -174,8 +168,36 @@ export default function NotificationsPage() {
           </PaginationContent>
         </Pagination>
 
+        {/* Quick Actions */}
+        <Card className="bg-white border border-gray-200 rounded-lg">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common actions based on your notifications</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+                <FileText className="h-6 w-6" />
+                <span>View Reports</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+                <CheckCircle className="h-6 w-6" />
+                <span>Check Feedback</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+                <Calendar className="h-6 w-6" />
+                <span>Upcoming Meetings</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+                <MessageSquare className="h-6 w-6" />
+                <span>Contact Mentor</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Notification Preferences */}
-        <Card ref={preferencesRef}>
+        <Card ref={preferencesRef} className="bg-white border border-gray-200 rounded-lg">
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
             <CardDescription>Choose how you want to be notified</CardDescription>

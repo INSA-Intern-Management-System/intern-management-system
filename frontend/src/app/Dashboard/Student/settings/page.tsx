@@ -14,7 +14,7 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout requiredRole="student">
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
@@ -23,7 +23,7 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Settings Navigation */}
-          <Card className="lg:col-span-1">
+          <Card className="lg:col-span-1 bg-white border-2 border-gray-200 rounded-xl">
             <CardHeader>
               <CardTitle className="text-lg">Settings Menu</CardTitle>
             </CardHeader>
@@ -54,7 +54,7 @@ export default function SettingsPage() {
           {/* Settings Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Profile Settings */}
-            <Card id="profile">
+            <Card id="profile" className="border border-gray-200 rounded-xl bg-white">
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
                 <CardDescription>Update your personal information and profile details</CardDescription>
@@ -95,12 +95,12 @@ export default function SettingsPage() {
                     rows={3}
                   />
                 </div>
-                <Button>Save Profile</Button>
+                <Button className="bg-black text-white hover:bg-gray-900">Save Profile</Button>
               </CardContent>
             </Card>
 
             {/* Notification Settings */}
-            <Card id="notifications">
+            <Card id="notifications" className="border-2 border-gray-200 rounded-xl bg-white">
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
                 <CardDescription>Choose how you want to be notified</CardDescription>
@@ -158,12 +158,12 @@ export default function SettingsPage() {
                     </label>
                   </div>
                 </div>
-                <Button>Save Notification Settings</Button>
+                <Button className="bg-black text-white hover:bg-gray-900">Save Notification Settings</Button>
               </CardContent>
             </Card>
 
             {/* Security Settings */}
-            <Card id="security">
+            <Card id="security" className="border-2 border-gray-200 rounded-xl bg-white">
               <CardHeader>
                 <CardTitle>Security Settings</CardTitle>
                 <CardDescription>Manage your account security and privacy</CardDescription>
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                       <Label htmlFor="confirmPassword">Confirm New Password</Label>
                       <Input id="confirmPassword" type="password" placeholder="Confirm new password" />
                     </div>
-                    <Button>Update Password</Button>
+                    <Button className="bg-black text-white hover:bg-gray-900">Update Password</Button>
                   </div>
                 </div>
 
@@ -241,6 +241,7 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
+
               </CardContent>
             </Card>
           </div>

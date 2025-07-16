@@ -56,7 +56,7 @@ export default function PlanTasksPage() {
 
   return (
     <DashboardLayout requiredRole="student">
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -65,40 +65,40 @@ export default function PlanTasksPage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button className="bg-black text-white hover:bg-gray-900" onClick={() => setDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Plan & Task
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Plan & Task</DialogTitle>
-              </DialogHeader>
-              <form className="space-y-4" onSubmit={e => { handleCreatePlan(e); setDialogOpen(false); }}>
-                <Input
-                  placeholder="Title"
-                  value={newPlan.title}
-                  onChange={e => setNewPlan({ ...newPlan, title: e.target.value })}
-                  required
-                />
-                <Input
-                  placeholder="Due Date (YYYY-MM-DD)"
-                  type="date"
-                  value={newPlan.due}
-                  onChange={e => setNewPlan({ ...newPlan, due: e.target.value })}
-                  required
-                />
-                <Input
-                  placeholder="Description"
-                  value={newPlan.description}
-                  onChange={e => setNewPlan({ ...newPlan, description: e.target.value })}
-                  required
-                />
-                <div className="flex space-x-2">
-                  <Button type="submit">Create</Button>
-                  <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); setNewPlan({ title: "", description: "", due: "" }); }}>Cancel</Button>
-                </div>
-              </form>
+            <DialogContent className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full border-none">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Create New Plan & Task</h2>
+                <form className="space-y-4" onSubmit={e => { handleCreatePlan(e); setDialogOpen(false); }}>
+                  <Input
+                    placeholder="Title"
+                    value={newPlan.title}
+                    onChange={e => setNewPlan({ ...newPlan, title: e.target.value })}
+                    required
+                  />
+                  <Input
+                    placeholder="Due Date (YYYY-MM-DD)"
+                    type="date"
+                    value={newPlan.due}
+                    onChange={e => setNewPlan({ ...newPlan, due: e.target.value })}
+                    required
+                  />
+                  <Input
+                    placeholder="Description"
+                    value={newPlan.description}
+                    onChange={e => setNewPlan({ ...newPlan, description: e.target.value })}
+                    required
+                  />
+                  <div className="flex space-x-2 mt-2">
+                    <Button type="submit" className="bg-black text-white hover:bg-gray-900 px-6">Create</Button>
+                    <Button type="button" variant="outline" className="border-black text-black px-6" onClick={() => { setDialogOpen(false); setNewPlan({ title: "", description: "", due: "" }); }}>Cancel</Button>
+                  </div>
+                </form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -106,7 +106,7 @@ export default function PlanTasksPage() {
         {/* Plans & Tasks List */}
         <div className="space-y-4">
           {paginatedPlans.map((plan) => (
-            <Card key={plan.id} className="hover:shadow-md transition-shadow">
+            <Card key={plan.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -148,7 +148,7 @@ export default function PlanTasksPage() {
           </PaginationContent>
         </Pagination>
         {/* Plan & Tasks Guidelines */}
-        <Card>
+        <Card className="bg-white border border-gray-200 rounded-lg mt-6 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Plan & Tasks Guidelines</CardTitle>
             <CardDescription>What to include in your plans and tasks</CardDescription>
