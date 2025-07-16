@@ -1,15 +1,48 @@
-"use client"
+"use client";
 
-import React, { useRef } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Bell, CheckCircle, Clock, MessageSquare, FileText, Calendar, Settings, AlertTriangle, Trash2 } from "lucide-react"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination"
+import React, { useRef, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  Bell,
+  CheckCircle,
+  // Clock,
+  MessageSquare,
+  FileText,
+  Calendar,
+  Settings,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
+
+type Notification = {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  priority: string;
+  actionRequired: boolean;
+};
 
 export default function CompanyNotificationsPage() {
-  const notifications = [
+  const notifications: Notification[] = [
     {
       id: 1,
       type: "application",
@@ -24,7 +57,8 @@ export default function CompanyNotificationsPage() {
       id: 2,
       type: "report",
       title: "Weekly Report Submitted",
-      message: "Sophie Laurent submitted Week 8 report for Mobile App Redesign project",
+      message:
+        "Sophie Laurent submitted Week 8 report for Mobile App Redesign project",
       time: "2 hours ago",
       read: false,
       priority: "medium",
@@ -54,7 +88,8 @@ export default function CompanyNotificationsPage() {
       id: 5,
       type: "system",
       title: "Intern Onboarding Reminder",
-      message: "Lucas Bernard's internship starts tomorrow - prepare onboarding materials",
+      message:
+        "Lucas Bernard's internship starts tomorrow - prepare onboarding materials",
       time: "1 day ago",
       read: true,
       priority: "medium",
@@ -70,52 +105,57 @@ export default function CompanyNotificationsPage() {
       priority: "low",
       actionRequired: false,
     },
-  ]
+  ];
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "application":
-        return <FileText className="h-5 w-5 text-blue-600" />
+        return <FileText className="h-5 w-5 text-blue-600" />;
       case "report":
-        return <CheckCircle className="h-5 w-5 text-green-600" />
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
       case "leave":
-        return <Calendar className="h-5 w-5 text-purple-600" />
+        return <Calendar className="h-5 w-5 text-purple-600" />;
       case "deadline":
-        return <AlertTriangle className="h-5 w-5 text-red-600" />
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
       case "message":
-        return <MessageSquare className="h-5 w-5 text-blue-600" />
+        return <MessageSquare className="h-5 w-5 text-blue-600" />;
       case "system":
-        return <Settings className="h-5 w-5 text-gray-600" />
+        return <Settings className="h-5 w-5 text-gray-600" />;
       default:
-        return <Bell className="h-5 w-5 text-gray-600" />
+        return <Bell className="h-5 w-5 text-gray-600" />;
     }
-  }
+  };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "high":
-        return <Badge className="bg-red-100 text-red-800">High Priority</Badge>
+        return <Badge className="bg-red-100 text-red-800">High Priority</Badge>;
       case "medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium Priority</Badge>
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">
+            Medium Priority
+          </Badge>
+        );
       case "low":
-        return <Badge className="bg-green-100 text-green-800">Low Priority</Badge>
+        return (
+          <Badge className="bg-green-100 text-green-800">Low Priority</Badge>
+        );
       default:
-        return <Badge variant="secondary">{priority}</Badge>
+        return <Badge variant="secondary">{priority}</Badge>;
     }
-  }
-
-  const unreadCount = notifications.filter((n) => !n.read).length
-  const actionRequiredCount = notifications.filter((n) => n.actionRequired).length
-  const highPriorityCount = notifications.filter((n) => n.priority === "high").length
+  };
 
   const preferencesRef = useRef<HTMLDivElement>(null);
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = useState(1);
   const pageSize = 3;
   const totalPages = Math.ceil(notifications.length / pageSize);
-  const paginatedNotifications = notifications.slice((page - 1) * pageSize, page * pageSize);
-  const handleSettingsClick = () => {
-    preferencesRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const paginatedNotifications = notifications.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+  // const handleSettingsClick = () => {
+  //   preferencesRef.current?.scrollIntoView({ behavior: "smooth" });
+  // };
 
   return (
     <DashboardLayout requiredRole="company">
@@ -124,7 +164,9 @@ export default function CompanyNotificationsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-            <p className="text-gray-600">Stay updated with intern activities and important events</p>
+            <p className="text-gray-600">
+              Stay updated with intern activities and important events
+            </p>
           </div>
           <div className="flex items-center space-x-3">
             <Button variant="outline">Mark All Read</Button>
@@ -136,7 +178,11 @@ export default function CompanyNotificationsPage() {
           {paginatedNotifications.map((notification) => (
             <Card
               key={notification.id}
-              className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow ${!notification.read ? "border-l-4 border-l-blue-500 bg-blue-50/30" : ""}`}
+              className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow ${
+                !notification.read
+                  ? "border-l-4 border-l-blue-500 bg-blue-50/30"
+                  : ""
+              }`}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between relative">
@@ -146,18 +192,38 @@ export default function CompanyNotificationsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className={`font-semibold ${!notification.read ? "text-gray-900" : "text-gray-700"}`}>
+                        <h3
+                          className={`font-semibold ${
+                            !notification.read
+                              ? "text-gray-900"
+                              : "text-gray-700"
+                          }`}
+                        >
                           {notification.title}
                         </h3>
-                        {!notification.read && <div className="w-2 h-2 bg-blue-600 rounded-full"></div>}
+                        {!notification.read && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        )}
+                        {getPriorityBadge(notification.priority)}
                       </div>
-                      <p className="text-gray-600 mb-2">{notification.message}</p>
-                      <p className="text-sm text-gray-500">{notification.time}</p>
+                      <p className="text-gray-600 mb-2">
+                        {notification.message}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {notification.time}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     {!notification.read && (
-                      <Button variant="outline" size="sm" className="border-gray-300">Mark Read</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-300"
+                        aria-label="Mark as read"
+                      >
+                        Mark Read
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -169,21 +235,39 @@ export default function CompanyNotificationsPage() {
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+                aria-label="Previous page"
+              />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
                   href="#"
                   isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
+                  aria-label={`Page ${i + 1}`}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+                aria-label="Next page"
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
@@ -192,23 +276,37 @@ export default function CompanyNotificationsPage() {
         <Card className="bg-white border border-gray-200 rounded-lg">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common actions based on your notifications</CardDescription>
+            <CardDescription>
+              Common actions based on your notifications
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+              <Button
+                variant="outline"
+                className="h-20 flex-col space-y-2 bg-transparent"
+              >
                 <FileText className="h-6 w-6" />
                 <span>Review Applications</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+              <Button
+                variant="outline"
+                className="h-20 flex-col space-y-2 bg-transparent"
+              >
                 <CheckCircle className="h-6 w-6" />
                 <span>Evaluate Reports</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+              <Button
+                variant="outline"
+                className="h-20 flex-col space-y-2 bg-transparent"
+              >
                 <Calendar className="h-6 w-6" />
                 <span>Approve Leave</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2 bg-transparent">
+              <Button
+                variant="outline"
+                className="h-20 flex-col space-y-2 bg-transparent"
+              >
                 <MessageSquare className="h-6 w-6" />
                 <span>Send Messages</span>
               </Button>
@@ -217,10 +315,15 @@ export default function CompanyNotificationsPage() {
         </Card>
 
         {/* Notification Preferences */}
-        <Card ref={preferencesRef} className="bg-white border border-gray-200 rounded-lg">
+        <Card
+          ref={preferencesRef}
+          className="bg-white border border-gray-200 rounded-lg"
+        >
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
-            <CardDescription>Choose how you want to be notified</CardDescription>
+            <CardDescription>
+              Choose how you want to be notified
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
@@ -245,5 +348,5 @@ export default function CompanyNotificationsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }

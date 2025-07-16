@@ -1,22 +1,67 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Progress } from "@/components/ui/progress"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Building2, Search, Plus, Users, CheckCircle, Clock, AlertCircle } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useState } from "react"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  Building2,
+  Search,
+  Plus,
+  Users,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+type Intern = { name: string; role: string };
+type Milestone = { name: string; completed: boolean };
+type Project = {
+  id: number;
+  name: string;
+  description: string;
+  status: string;
+  priority: string;
+  startDate: string;
+  endDate: string;
+  progress: number;
+  budget: string;
+  interns: Intern[];
+  mentor: string;
+  technologies: string[];
+  milestones: Milestone[];
+};
 
 export default function CompanyProjectsPage() {
-  const initialProjects = [
+  const initialProjects: Project[] = [
     {
       id: 1,
       name: "E-commerce Platform Redesign",
-      description: "Complete redesign of the company's e-commerce platform with modern UI/UX",
+      description:
+        "Complete redesign of the company's e-commerce platform with modern UI/UX",
       status: "active",
       priority: "high",
       startDate: "2024-01-15",
@@ -40,7 +85,8 @@ export default function CompanyProjectsPage() {
     {
       id: 2,
       name: "Customer Analytics Dashboard",
-      description: "Development of a comprehensive analytics dashboard for customer insights",
+      description:
+        "Development of a comprehensive analytics dashboard for customer insights",
       status: "active",
       priority: "medium",
       startDate: "2024-02-01",
@@ -82,7 +128,8 @@ export default function CompanyProjectsPage() {
     {
       id: 4,
       name: "Internal Tools Optimization",
-      description: "Optimization and modernization of internal development tools",
+      description:
+        "Optimization and modernization of internal development tools",
       status: "completed",
       priority: "medium",
       startDate: "2023-09-01",
@@ -100,8 +147,8 @@ export default function CompanyProjectsPage() {
         { name: "Deployment", completed: true },
       ],
     },
-  ]
-  const [projects, setProjects] = useState(initialProjects);
+  ];
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [showCreate, setShowCreate] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
@@ -113,7 +160,7 @@ export default function CompanyProjectsPage() {
     budget: "",
     mentor: "",
     technologies: "",
-    milestones: ""
+    milestones: "",
   });
   // Filter state
   const [statusFilter, setStatusFilter] = useState("all");
@@ -121,21 +168,26 @@ export default function CompanyProjectsPage() {
   const [mentorFilter, setMentorFilter] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = 3;
-  const mentors = Array.from(new Set(projects.map(p => p.mentor)));
+  const mentors = Array.from(new Set(projects.map((p) => p.mentor)));
   const [searchValue, setSearchValue] = useState("");
-  const filteredProjects = projects.filter(p =>
-    (statusFilter === "all" || p.status === statusFilter) &&
-    (priorityFilter === "all" || p.priority === priorityFilter) &&
-    (mentorFilter === "all" || p.mentor === mentorFilter)
-    && (
-      searchValue.trim() === "" ||
-      p.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      p.mentor.toLowerCase().includes(searchValue.toLowerCase()) ||
-      (Array.isArray(p.technologies) && p.technologies.some(t => t.toLowerCase().includes(searchValue.toLowerCase())))
-    )
+  const filteredProjects = projects.filter(
+    (p) =>
+      (statusFilter === "all" || p.status === statusFilter) &&
+      (priorityFilter === "all" || p.priority === priorityFilter) &&
+      (mentorFilter === "all" || p.mentor === mentorFilter) &&
+      (searchValue.trim() === "" ||
+        p.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        p.mentor.toLowerCase().includes(searchValue.toLowerCase()) ||
+        (Array.isArray(p.technologies) &&
+          p.technologies.some((t) =>
+            t.toLowerCase().includes(searchValue.toLowerCase())
+          )))
   );
   const totalPages = Math.ceil(filteredProjects.length / pageSize);
-  const paginatedProjects = filteredProjects.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedProjects = filteredProjects.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
   // Create project handler
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,8 +202,14 @@ export default function CompanyProjectsPage() {
         endDate: newProject.endDate,
         budget: newProject.budget,
         mentor: newProject.mentor,
-        technologies: newProject.technologies.split(",").map(t => t.trim()).filter(Boolean),
-        milestones: newProject.milestones.split(",").map(m => ({ name: m.trim(), completed: false })).filter(m => m.name),
+        technologies: newProject.technologies
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        milestones: newProject.milestones
+          .split(",")
+          .map((m) => ({ name: m.trim(), completed: false }))
+          .filter((m) => m.name),
         progress: 0,
         interns: [],
       },
@@ -168,7 +226,7 @@ export default function CompanyProjectsPage() {
       budget: "",
       mentor: "",
       technologies: "",
-      milestones: ""
+      milestones: "",
     });
     setPage(1);
   };
@@ -176,50 +234,84 @@ export default function CompanyProjectsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case "completed":
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>
+        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
       case "planning":
-        return <Badge className="bg-yellow-100 text-yellow-800">Planning</Badge>
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">Planning</Badge>
+        );
       case "on-hold":
-        return <Badge className="bg-gray-100 text-gray-800">On Hold</Badge>
+        return <Badge className="bg-gray-100 text-gray-800">On Hold</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "high":
-        return <Badge className="bg-red-100 text-red-800">High Priority</Badge>
+        return <Badge className="bg-red-100 text-red-800">High Priority</Badge>;
       case "medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium Priority</Badge>
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">
+            Medium Priority
+          </Badge>
+        );
       case "low":
-        return <Badge className="bg-green-100 text-green-800">Low Priority</Badge>
+        return (
+          <Badge className="bg-green-100 text-green-800">Low Priority</Badge>
+        );
       default:
-        return <Badge variant="secondary">{priority}</Badge>
+        return <Badge variant="secondary">{priority}</Badge>;
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "active":
-        return <CheckCircle className="h-5 w-5 text-green-600" />
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
       case "completed":
-        return <CheckCircle className="h-5 w-5 text-blue-600" />
+        return <CheckCircle className="h-5 w-5 text-blue-600" />;
       case "planning":
-        return <Clock className="h-5 w-5 text-yellow-600" />
+        return <Clock className="h-5 w-5 text-yellow-600" />;
       case "on-hold":
-        return <AlertCircle className="h-5 w-5 text-gray-600" />
+        return <AlertCircle className="h-5 w-5 text-gray-600" />;
       default:
-        return <Building2 className="h-5 w-5 text-gray-600" />
+        return <Building2 className="h-5 w-5 text-gray-600" />;
     }
-  }
+  };
 
-  const activeProjects = projects.filter((project) => project.status === "active")
-  const completedProjects = projects.filter((project) => project.status === "completed")
+  const activeProjects = projects.filter(
+    (project) => project.status === "active"
+  );
+  const completedProjects = projects.filter(
+    (project) => project.status === "completed"
+  );
   const [manageOpen, setManageOpen] = useState<number | null>(null);
-  const [editProject, setEditProject] = useState<any>(null);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+
+  // Save changes in manage dialog
+  const handleSaveEdit = () => {
+    if (!editProject) return;
+    setProjects((prev) =>
+      prev.map((p) => (p.id === editProject.id ? { ...editProject } : p))
+    );
+    setManageOpen(null);
+    setEditProject(null);
+  };
+
+  // Reset page on filter/search change
+  const handleFilterChange =
+    (setter: (v: string) => void) =>
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setter(e.target.value);
+      setPage(1);
+    };
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+    setPage(1);
+  };
 
   return (
     <DashboardLayout requiredRole="company">
@@ -228,7 +320,9 @@ export default function CompanyProjectsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-            <p className="text-gray-600">Manage internship projects and track progress</p>
+            <p className="text-gray-600">
+              Manage internship projects and track progress
+            </p>
           </div>
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
@@ -242,32 +336,127 @@ export default function CompanyProjectsPage() {
                 <DialogTitle>Create New Project</DialogTitle>
               </DialogHeader>
               <form className="space-y-4" onSubmit={handleCreateProject}>
-                <Input className="border border-gray-200 rounded w-full" placeholder="Project Name" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} required />
-                <Input className="border border-gray-200 rounded w-full" placeholder="Description" value={newProject.description} onChange={e => setNewProject({ ...newProject, description: e.target.value })} required />
+                <Input
+                  className="border border-gray-200 rounded w-full"
+                  placeholder="Project Name"
+                  value={newProject.name}
+                  onChange={(e) =>
+                    setNewProject({ ...newProject, name: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  className="border border-gray-200 rounded w-full"
+                  placeholder="Description"
+                  value={newProject.description}
+                  onChange={(e) =>
+                    setNewProject({
+                      ...newProject,
+                      description: e.target.value,
+                    })
+                  }
+                  required
+                />
                 <div className="flex space-x-2 w-full">
-                  <select className="border border-gray-200 rounded px-2 py-2 w-full" value={newProject.status} onChange={e => setNewProject({ ...newProject, status: e.target.value })}>
+                  <select
+                    className="border border-gray-200 rounded px-2 py-2 w-full"
+                    value={newProject.status}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, status: e.target.value })
+                    }
+                  >
                     <option value="active">Active</option>
                     <option value="completed">Completed</option>
                     <option value="planning">Planning</option>
                     <option value="on-hold">On Hold</option>
                   </select>
-                  <select className="border border-gray-200 rounded px-2 py-2 w-full" value={newProject.priority} onChange={e => setNewProject({ ...newProject, priority: e.target.value })}>
+                  <select
+                    className="border border-gray-200 rounded px-2 py-2 w-full"
+                    value={newProject.priority}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, priority: e.target.value })
+                    }
+                  >
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
                   </select>
                 </div>
                 <div className="flex space-x-2 w-full">
-                  <Input className="border border-gray-200 rounded w-full" placeholder="Start Date" type="date" value={newProject.startDate} onChange={e => setNewProject({ ...newProject, startDate: e.target.value })} required />
-                  <Input className="border border-gray-200 rounded w-full" placeholder="End Date" type="date" value={newProject.endDate} onChange={e => setNewProject({ ...newProject, endDate: e.target.value })} required />
+                  <Input
+                    className="border border-gray-200 rounded w-full"
+                    placeholder="Start Date"
+                    type="date"
+                    value={newProject.startDate}
+                    onChange={(e) =>
+                      setNewProject({
+                        ...newProject,
+                        startDate: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  <Input
+                    className="border border-gray-200 rounded w-full"
+                    placeholder="End Date"
+                    type="date"
+                    value={newProject.endDate}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, endDate: e.target.value })
+                    }
+                    required
+                  />
                 </div>
-                <Input className="border border-gray-200 rounded w-full" placeholder="Budget" value={newProject.budget} onChange={e => setNewProject({ ...newProject, budget: e.target.value })} />
-                <Input className="border border-gray-200 rounded w-full" placeholder="Mentor" value={newProject.mentor} onChange={e => setNewProject({ ...newProject, mentor: e.target.value })} />
-                <Input className="border border-gray-200 rounded w-full" placeholder="Technologies (comma separated)" value={newProject.technologies} onChange={e => setNewProject({ ...newProject, technologies: e.target.value })} />
-                <Input className="border border-gray-200 rounded w-full" placeholder="Milestones (comma separated)" value={newProject.milestones} onChange={e => setNewProject({ ...newProject, milestones: e.target.value })} />
+                <Input
+                  className="border border-gray-200 rounded w-full"
+                  placeholder="Budget"
+                  value={newProject.budget}
+                  onChange={(e) =>
+                    setNewProject({ ...newProject, budget: e.target.value })
+                  }
+                />
+                <Input
+                  className="border border-gray-200 rounded w-full"
+                  placeholder="Mentor"
+                  value={newProject.mentor}
+                  onChange={(e) =>
+                    setNewProject({ ...newProject, mentor: e.target.value })
+                  }
+                />
+                <Input
+                  className="border border-gray-200 rounded w-full"
+                  placeholder="Technologies (comma separated)"
+                  value={newProject.technologies}
+                  onChange={(e) =>
+                    setNewProject({
+                      ...newProject,
+                      technologies: e.target.value,
+                    })
+                  }
+                />
+                <Input
+                  className="border border-gray-200 rounded w-full"
+                  placeholder="Milestones (comma separated)"
+                  value={newProject.milestones}
+                  onChange={(e) =>
+                    setNewProject({ ...newProject, milestones: e.target.value })
+                  }
+                />
                 <div className="flex space-x-2 w-full">
-                  <Button type="submit" className="bg-black text-white hover:bg-gray-900 w-full">Create</Button>
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setShowCreate(false)}>Cancel</Button>
+                  <Button
+                    type="submit"
+                    className="bg-black text-white hover:bg-gray-900 w-full"
+                  >
+                    Create
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setShowCreate(false)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -280,7 +469,9 @@ export default function CompanyProjectsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Projects</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Projects
+                  </p>
                   <p className="text-2xl font-bold">{projects.length}</p>
                 </div>
                 <Building2 className="h-8 w-8 text-blue-600" />
@@ -291,8 +482,12 @@ export default function CompanyProjectsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Projects</p>
-                  <p className="text-2xl font-bold text-green-600">{activeProjects.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Projects
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {activeProjects.length}
+                  </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
@@ -303,7 +498,9 @@ export default function CompanyProjectsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-purple-600">{completedProjects.length}</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {completedProjects.length}
+                  </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-purple-600" />
               </div>
@@ -313,10 +510,15 @@ export default function CompanyProjectsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Progress</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg. Progress
+                  </p>
                   <p className="text-2xl font-bold text-orange-600">
                     {Math.round(
-                      activeProjects.reduce((sum, project) => sum + project.progress, 0) / activeProjects.length || 0,
+                      activeProjects.reduce(
+                        (sum, project) => sum + project.progress,
+                        0
+                      ) / activeProjects.length || 0
                     )}
                     %
                   </p>
@@ -338,27 +540,41 @@ export default function CompanyProjectsPage() {
                     placeholder="Search projects by name, technology, or mentor..."
                     className="pl-10"
                     value={searchValue}
-                    onChange={e => { setSearchValue(e.target.value); setPage(1); }}
+                    onChange={handleSearchChange}
                   />
                 </div>
               </div>
-              <select className="border border-gray-200 rounded px-2 py-1" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border border-gray-200 rounded px-2 py-1"
+                value={statusFilter}
+                onChange={handleFilterChange(setStatusFilter)}
+              >
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="planning">Planning</option>
                 <option value="on-hold">On Hold</option>
               </select>
-              <select className="border border-gray-200 rounded px-2 py-1" value={priorityFilter} onChange={e => { setPriorityFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border border-gray-200 rounded px-2 py-1"
+                value={priorityFilter}
+                onChange={handleFilterChange(setPriorityFilter)}
+              >
                 <option value="all">All Priorities</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
-              <select className="border border-gray-200 rounded px-2 py-1" value={mentorFilter} onChange={e => { setMentorFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border border-gray-200 rounded px-2 py-1"
+                value={mentorFilter}
+                onChange={handleFilterChange(setMentorFilter)}
+              >
                 <option value="all">All Mentors</option>
-                {mentors.map(m => (
-                  <option key={m} value={m}>{m}</option>
+                {mentors.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
               <Button variant="outline">Export</Button>
@@ -369,7 +585,10 @@ export default function CompanyProjectsPage() {
         {/* Projects List */}
         <div className="space-y-6">
           {paginatedProjects.map((project) => (
-            <Card key={project.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              key={project.id}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start space-x-4">
@@ -378,29 +597,55 @@ export default function CompanyProjectsPage() {
                     </div>
                     <div>
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-semibold text-gray-900">{project.name}</h3>
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {project.name}
+                        </h3>
                         {getStatusBadge(project.status)}
                         {getPriorityBadge(project.priority)}
                       </div>
-                      <p className="text-gray-600 mb-3">{project.description}</p>
+                      <p className="text-gray-600 mb-3">
+                        {project.description}
+                      </p>
                     </div>
                   </div>
-                  <Dialog open={manageOpen === project.id} onOpenChange={open => {
-                    setManageOpen(open ? project.id : null);
-                    setEditProject(open ? { ...project } : null);
-                  }}>
+                  <Dialog
+                    open={manageOpen === project.id}
+                    onOpenChange={(open) => {
+                      setManageOpen(open ? project.id : null);
+                      setEditProject(open ? { ...project } : null);
+                    }}
+                  >
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">Manage Project</Button>
+                      <Button variant="outline" size="sm">
+                        Manage Project
+                      </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-white border border-gray-200 shadow-lg max-w-2xl rounded-xl">
                       <DialogHeader>
                         <DialogTitle>Manage Project</DialogTitle>
                       </DialogHeader>
                       {editProject && (
-                        <form className="space-y-4">
+                        <form
+                          className="space-y-4"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSaveEdit();
+                          }}
+                        >
                           <div>
-                            <label className="block text-sm font-medium mb-1">Project Status</label>
-                            <select className="border border-gray-200 rounded w-full px-2 py-2" value={editProject.status} onChange={e => setEditProject({ ...editProject, status: e.target.value })}>
+                            <label className="block text-sm font-medium mb-1">
+                              Project Status
+                            </label>
+                            <select
+                              className="border border-gray-200 rounded w-full px-2 py-2"
+                              value={editProject.status}
+                              onChange={(e) =>
+                                setEditProject({
+                                  ...editProject,
+                                  status: e.target.value,
+                                })
+                              }
+                            >
                               <option value="active">Active</option>
                               <option value="completed">Completed</option>
                               <option value="planning">Planning</option>
@@ -408,30 +653,77 @@ export default function CompanyProjectsPage() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">Milestones</label>
+                            <label className="block text-sm font-medium mb-1">
+                              Milestones
+                            </label>
                             <div className="space-y-2">
-                              {editProject.milestones.map((m: any, idx: number) => (
-                                <label key={idx} className="flex items-center space-x-2">
+                              {editProject.milestones.map((m, idx) => (
+                                <label
+                                  key={idx}
+                                  className="flex items-center space-x-2"
+                                >
                                   <input
                                     type="checkbox"
                                     checked={m.completed}
-                                    onChange={e => {
-                                      const newMilestones = editProject.milestones.map((mil: any, i: number) => i === idx ? { ...mil, completed: e.target.checked } : mil);
-                                      setEditProject({ ...editProject, milestones: newMilestones });
+                                    onChange={(e) => {
+                                      const newMilestones =
+                                        editProject.milestones.map((mil, i) =>
+                                          i === idx
+                                            ? {
+                                                ...mil,
+                                                completed: e.target.checked,
+                                              }
+                                            : mil
+                                        );
+                                      setEditProject({
+                                        ...editProject,
+                                        milestones: newMilestones,
+                                      });
                                     }}
                                   />
-                                  <span className={m.completed ? "line-through text-gray-500" : ""}>{m.name}</span>
+                                  <span
+                                    className={
+                                      m.completed
+                                        ? "line-through text-gray-500"
+                                        : ""
+                                    }
+                                  >
+                                    {m.name}
+                                  </span>
                                 </label>
                               ))}
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">Description</label>
-                            <textarea className="border border-gray-200 rounded w-full px-2 py-2" value={editProject.description} onChange={e => setEditProject({ ...editProject, description: e.target.value })} />
+                            <label className="block text-sm font-medium mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              className="border border-gray-200 rounded w-full px-2 py-2"
+                              value={editProject.description}
+                              onChange={(e) =>
+                                setEditProject({
+                                  ...editProject,
+                                  description: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div className="flex space-x-2 w-full">
-                            <Button type="button" className="bg-black text-white hover:bg-gray-900 w-full" onClick={() => { setManageOpen(null); }}>Save</Button>
-                            <Button type="button" variant="outline" className="w-full" onClick={() => setManageOpen(null)}>Cancel</Button>
+                            <Button
+                              type="submit"
+                              className="bg-black text-white hover:bg-gray-900 w-full"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => setManageOpen(null)}
+                            >
+                              Cancel
+                            </Button>
                           </div>
                         </form>
                       )}
@@ -463,7 +755,10 @@ export default function CompanyProjectsPage() {
                     {project.interns.length > 0 ? (
                       <div className="space-y-1">
                         {project.interns.map((intern, index) => (
-                          <div key={index} className="flex items-center space-x-2 text-sm">
+                          <div
+                            key={index}
+                            className="flex items-center space-x-2 text-sm"
+                          >
                             <Users className="h-4 w-4 text-gray-400" />
                             <span>{intern.name}</span>
                             <Badge variant="outline" className="text-xs">
@@ -473,7 +768,9 @@ export default function CompanyProjectsPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No interns assigned</p>
+                      <p className="text-sm text-gray-500">
+                        No interns assigned
+                      </p>
                     )}
                   </div>
 
@@ -481,7 +778,11 @@ export default function CompanyProjectsPage() {
                     <h4 className="font-semibold mb-2">Technologies</h4>
                     <div className="flex flex-wrap gap-1">
                       {project.technologies.map((tech, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs"
+                        >
                           {tech}
                         </Badge>
                       ))}
@@ -492,11 +793,18 @@ export default function CompanyProjectsPage() {
                 {/* Progress */}
                 <div className="mb-4 mt-6">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-black text-base">Progress</span>
-                    <span className="text-base font-semibold text-black">{project.progress}%</span>
+                    <span className="font-bold text-black text-base">
+                      Progress
+                    </span>
+                    <span className="text-base font-semibold text-black">
+                      {project.progress}%
+                    </span>
                   </div>
                   <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
-                    <div className="h-3 rounded-full bg-black transition-all" style={{ width: `${project.progress}%` }}></div>
+                    <div
+                      className="h-3 rounded-full bg-black transition-all"
+                      style={{ width: `${project.progress}%` }}
+                    ></div>
                   </div>
                 </div>
 
@@ -507,11 +815,17 @@ export default function CompanyProjectsPage() {
                       <div
                         key={index}
                         className={`p-2 rounded-lg text-xs text-center ${
-                          milestone.completed ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                          milestone.completed
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-600"
                         }`}
                       >
                         <div className="flex items-center justify-center mb-1">
-                          {milestone.completed ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                          {milestone.completed ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <Clock className="h-3 w-3" />
+                          )}
                         </div>
                         {milestone.name}
                       </div>
@@ -524,33 +838,50 @@ export default function CompanyProjectsPage() {
         </div>
 
         {/* Pagination */}
-       <Pagination className="mt-6">
-         <PaginationContent>
-           <PaginationItem>
-             <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
-           </PaginationItem>
-           {[...Array(totalPages)].map((_, i) => (
-             <PaginationItem key={i}>
-               <PaginationLink
-                 href="#"
-                 isActive={page === i + 1}
-                 onClick={e => { e.preventDefault(); setPage(i + 1); }}
-               >
-                 {i + 1}
-               </PaginationLink>
-             </PaginationItem>
-           ))}
-           <PaginationItem>
-             <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
-           </PaginationItem>
-         </PaginationContent>
-       </Pagination>
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
+            </PaginationItem>
+            {[...Array(totalPages)].map((_, i) => (
+              <PaginationItem key={i}>
+                <PaginationLink
+                  href="#"
+                  isActive={page === i + 1}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
+                >
+                  {i + 1}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
 
         {/* Project Management Tips */}
         <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Project Management Best Practices</CardTitle>
-            <CardDescription>Tips for successful project execution with interns</CardDescription>
+            <CardDescription>
+              Tips for successful project execution with interns
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
@@ -559,7 +890,9 @@ export default function CompanyProjectsPage() {
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li>• Define clear project objectives and deliverables</li>
                   <li>• Break down tasks into manageable milestones</li>
-                  <li>• Assign appropriate skill levels to intern capabilities</li>
+                  <li>
+                    • Assign appropriate skill levels to intern capabilities
+                  </li>
                   <li>• Set realistic timelines with buffer for learning</li>
                 </ul>
               </div>
@@ -577,5 +910,5 @@ export default function CompanyProjectsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }
