@@ -36,4 +36,5 @@ public interface LeaveReposInterface {
 
     // Update leave status
     Leave updateLeaveStatus(Long leaveId, String newStatus);
+    
 }
