@@ -6,7 +6,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-
+import com.example.userservice.model.User;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -31,9 +31,11 @@ public class JwtUtil {
     }
 
     // Generate token using UserDetails
-    public String generateToken(UserDetails userDetails, Date lastLogin) {
+    public String generateToken(User userDetails, Date lastLogin) {
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
+                .setSubject(userDetails.getEmail())
+                .claim("role", userDetails.getRole().toString())
+                .claim("userId", userDetails.getId())
                 .claim("lastLogin", lastLogin.getTime())// Usually email
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hrs

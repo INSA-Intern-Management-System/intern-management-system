@@ -10,10 +10,7 @@ import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.CustomUserDetailsService;
 import com.example.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
-import java.util.Collections;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -64,8 +61,8 @@ public class AuthController {
             user.setLastLogin(new Date());
             userService.saveUser(user);
 
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
-            String token = jwtUtil.generateToken(userDetails, user.getLastLogin());
+            //UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
+            String token = jwtUtil.generateToken(user, user.getLastLogin());
 
             System.out.println("JWT Token generated: " + token);
 

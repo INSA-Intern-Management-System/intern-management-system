@@ -4,10 +4,8 @@ import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.RegisterRequest;
 import com.example.userservice.model.User;
 import com.example.userservice.repository.UserRepository;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.example.userservice.security.SecurityConfig.*;
 
 import java.util.Date;
 import java.util.List;
