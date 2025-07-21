@@ -112,7 +112,7 @@ export default function CompanyApplicationsPage() {
 
   return (
     <DashboardLayout requiredRole="company">
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -129,22 +129,20 @@ export default function CompanyApplicationsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">
                     Total Applications
                   </p>
-                  <p className="text-2xl font-bold  text-blue-600">
-                    {applications.length}
-                  </p>
+                  <p className="text-2xl font-bold">{applications.length}</p>
                 </div>
                 <User className="h-8 w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -159,7 +157,7 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -175,7 +173,7 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -194,7 +192,7 @@ export default function CompanyApplicationsPage() {
         </div>
 
         {/* Search and Filter */}
-        <Card>
+        <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="flex-1">
@@ -202,46 +200,30 @@ export default function CompanyApplicationsPage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     placeholder="Search by student name, university, or skills..."
-                    className="pl-10 border-0 bg-gray-100 text-gray-600"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <Select>
-                <SelectTrigger className="w-48 border-0 bg-gray-100 text-gray-600">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent className="w-48 border-0 bg-white text-gray-600 ">
-                  <SelectItem className="hover:bg-gray-100" value="all">
-                    All Applications
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-100" value="pending">
-                    Pending Review
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-100" value="accepted">
-                    Accepted
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-100" value="rejected">
-                    Rejected
-                  </SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">All Applications</SelectItem>
+                  <SelectItem value="pending">Pending Review</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
               <Select>
-                <SelectTrigger className="w-48 border-0 bg-gray-100 text-gray-600">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filter by position" />
                 </SelectTrigger>
-                <SelectContent className="w-48 border-0 bg-white text-gray-600 ">
-                  <SelectItem className="hover:bg-gray-100" value="all">
-                    All Positions
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-100" value="software">
-                    Software Developer
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-100" value="data">
-                    Data Analyst
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-100" value="design">
-                    UI/UX Designer
-                  </SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">All Positions</SelectItem>
+                  <SelectItem value="software">Software Developer</SelectItem>
+                  <SelectItem value="data">Data Analyst</SelectItem>
+                  <SelectItem value="design">UI/UX Designer</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -251,13 +233,13 @@ export default function CompanyApplicationsPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-48 border-0 bg-gray-100 text-gray-600">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filter by university" />
                 </SelectTrigger>
-                <SelectContent className="w-48 border-0 bg-white text-gray-600 ">
+                <SelectContent>
                   <SelectItem value="all">All Universities</SelectItem>
                   {universities.map((u) => (
-                    <SelectItem className="hover:bg-gray-100" key={u} value={u}>
+                    <SelectItem key={u} value={u}>
                       {u}
                     </SelectItem>
                   ))}
@@ -270,7 +252,10 @@ export default function CompanyApplicationsPage() {
         {/* Applications List */}
         <div className="space-y-4">
           {paginatedApplications.map((app) => (
-            <Card key={app.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={app.id}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
@@ -305,7 +290,7 @@ export default function CompanyApplicationsPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="mb-3">
+                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-2">
                           <strong>Skills:</strong>
                         </p>
@@ -332,7 +317,7 @@ export default function CompanyApplicationsPage() {
                       <>
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-black text-white hover:bg-gray-900"
                         >
                           <Check className="h-4 w-4 mr-2" />
                           Accept
@@ -393,7 +378,7 @@ export default function CompanyApplicationsPage() {
         </Pagination>
 
         {/* Application Guidelines */}
-        <Card>
+        <Card className="bg-white border border-gray-200 rounded-lg mt-6 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Application Review Guidelines</CardTitle>
           </CardHeader>
