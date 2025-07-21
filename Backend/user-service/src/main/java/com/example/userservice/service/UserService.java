@@ -3,7 +3,7 @@ package com.example.userservice.service;
 import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.RegisterRequest;
 import com.example.userservice.model.User;
-import org.springframework.security.core.userdetails.UserDetails;
+
 
 import java.util.List;
 

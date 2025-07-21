@@ -1,7 +1,7 @@
 package com.example.userservice.controller;
 
 
-import com.example.userservice.dto.UserDto;
+import com.example.userservice.dto.UserResponseDto;
 import com.example.userservice.model.User;
 import com.example.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +26,8 @@ public class UserController {
         try{
            List<User> users  = userService.getAllUsers();
 
-            List<UserDto> userDtos = users.stream()
-                    .map(UserDto::new)
+            List<UserResponseDto> userDtos = users.stream()
+                    .map(UserResponseDto::new)
                     .toList();
 
             return ResponseEntity.ok(userDtos);
@@ -57,7 +57,7 @@ public class UserController {
     public ResponseEntity<?> getUserById(@PathVariable Long id){
         try{
             User user = userService.getUserById(id);
-            return ResponseEntity.ok(new UserDto(user));
+            return ResponseEntity.ok(new UserResponseDto(user));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -69,7 +69,7 @@ public class UserController {
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
         try {
             User updatedUser = userService.updateUser(id, user);
-            return ResponseEntity.ok(new UserDto(updatedUser));
+            return ResponseEntity.ok(new UserResponseDto(updatedUser));
         } catch (Exception e) {
             // You can customize error response here
             return ResponseEntity

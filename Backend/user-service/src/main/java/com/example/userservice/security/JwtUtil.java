@@ -1,5 +1,6 @@
 package com.example.userservice.security;
 
+import com.example.userservice.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -31,21 +32,35 @@ public class JwtUtil {
     }
 
     // Generate token using UserDetails
-    public String generateToken(UserDetails userDetails, Date lastLogin) {
+    public String generateToken(User user, Date lastLogin) {
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .claim("lastLogin", lastLogin.getTime())// Usually email
+                .setSubject(user.getEmail())
+                .claim("lastLogin", lastLogin.getTime())
+                .claim("userId", user.getId())  // use getter
+                .claim("email", user.getEmail())
+                .claim("role", user.getRole()) // assuming enum or String
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hrs
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+
+
     }
 
     // Extract username/email from token
-    public String extractEmail(String token) {
-        return extractClaim(token, Claims::getSubject);
+    public Long extractUserId(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("userId", Long.class);
     }
 
+    public String extractRole(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("role", String.class);
+    }
+
+    public String extractEmail(String token) {
+        return extractClaim(token, Claims::getSubject); // or get("email", String.class);
+    }
     // Check if token is valid
 
     public boolean isTokenExpired(String token) {

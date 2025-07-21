@@ -4,10 +4,9 @@ package com.example.userservice.controller;
 import com.example.userservice.dto.AuthResponse;
 import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.RegisterRequest;
-import com.example.userservice.dto.UserDto;
+import com.example.userservice.dto.UserResponseDto;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
-import com.example.userservice.service.CustomUserDetailsService;
 import com.example.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,18 +23,16 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
-    private final CustomUserDetailsService customUserDetailsService;
     private final  JwtUtil jwtUtil;
 
 
 
     public AuthController(UserService userService,
 
-                          JwtUtil jwtUtil,
-                          CustomUserDetailsService customUserDetailsService) {
+                          JwtUtil jwtUtil
+                           ) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
-        this.customUserDetailsService = customUserDetailsService;
     }
 
     @PostMapping("/register")
@@ -45,7 +42,7 @@ public class AuthController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User registered successfully");
-            response.put("user", new UserDto(user));
+            response.put("user", new UserResponseDto(user));
             return ResponseEntity.status(201).body(response);
 
         } catch (RuntimeException e) {
@@ -64,15 +61,23 @@ public class AuthController {
             user.setLastLogin(new Date());
             userService.saveUser(user);
 
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
-            String token = jwtUtil.generateToken(userDetails, user.getLastLogin());
+            User singleUser = userService.loadUserByEmail(user.getEmail());
+            String token = jwtUtil.generateToken(singleUser, user.getLastLogin());
 
-            System.out.println("JWT Token generated: " + token);
+            // ✅ Extract data from the token
+            Long userIdFromToken = jwtUtil.extractUserId(token);
+            String roleFromToken = jwtUtil.extractRole(token);
+            String emailFromToken = jwtUtil.extractEmail(token);
+
+            // ✅ Print values
+            System.out.println("User ID from token: " + userIdFromToken);
+            System.out.println("Role from token: " + roleFromToken);
+            System.out.println("Email from token: " + emailFromToken);
 
             AuthResponse authResponse = new AuthResponse(
                     "User logged in successfully",
                     token,
-                    new UserDto(user)
+                    new UserResponseDto(user)
             );
 
             return ResponseEntity.status(201).body(authResponse);
@@ -84,6 +89,7 @@ public class AuthController {
             return ResponseEntity.status(400).body(error);
         }
     }
+
 
 
 }

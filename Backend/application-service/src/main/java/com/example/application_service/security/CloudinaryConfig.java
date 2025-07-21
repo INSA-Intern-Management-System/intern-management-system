@@ -1,5 +1,11 @@
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
+package com.example.application_service.security;
+
+import com.cloudinary.Cloudinary;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
 
 @Configuration
 public class CloudinaryConfig {

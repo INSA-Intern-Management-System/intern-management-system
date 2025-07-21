@@ -4,4 +4,6 @@ public enum Role {
     Student,
     Project_Manager,
     HR,
+    University,
+    Supervisor
 }

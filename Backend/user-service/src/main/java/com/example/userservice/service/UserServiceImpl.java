@@ -4,7 +4,7 @@ import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.RegisterRequest;
 import com.example.userservice.model.User;
 import com.example.userservice.repository.UserRepository;
-import org.springframework.security.core.userdetails.UserDetails;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.example.userservice.security.SecurityConfig.*;
@@ -36,13 +36,23 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.email);
 
         String hashedPassword = passwordEncoder.encode(request.password);
+
         user.setPassword(hashedPassword);
         user.setPhoneNumber(request.phoneNumber);
         user.setAddress(request.address);
         user.setGender(request.gender);
         user.setFieldOfStudy(request.fieldOfStudy);
-        user.setUniversity(request.university);
+        user.setInstitution(request.institution);
         user.setRole(request.role);
+        user.setBio(request.bio);
+        user.setNotifyEmail(request.notifyEmail);
+        user.setVisibility(request.visibility);
+        user.setDuration(request.duration);
+        user.setLinkedInUrl(request.linkedInUrl);
+        user.setGithubUrl(request.githubUrl);
+        user.setCvUrl(request.cvUrl);
+        user.setProfilePicUrl(request.profilePicUrl);
+        user.setLastReadNotificationAt(request.lastReadNotificationAt);
         user.setCreatedAt(new Date());
         user.setUpdatedAt(new Date());
 
@@ -71,12 +81,6 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("User not found");
         }
         userRepo.deleteById(id);
-    }
-
-    @Override
-    public User loadUserByEmail(String email) {
-        User user = userRepo.findByEmail(email);
-        return user;
     }
 
     @Override
@@ -114,8 +118,8 @@ public class UserServiceImpl implements UserService {
         if (updatedUser.getFieldOfStudy() != null) {
             existingUser.setFieldOfStudy(updatedUser.getFieldOfStudy());
         }
-        if (updatedUser.getUniversity() != null) {
-            existingUser.setUniversity(updatedUser.getUniversity());
+        if (updatedUser.getInstitution() != null) {
+            existingUser.setInstitution(updatedUser.getInstitution());
         }
         if (updatedUser.getCreatedAt() != null) {
             existingUser.setCreatedAt(updatedUser.getCreatedAt());
@@ -138,6 +142,12 @@ public class UserServiceImpl implements UserService {
     public User saveUser(User user) {
         return userRepo.save(user);
     }
+
+    @Override
+    public User loadUserByEmail(String email){
+        return userRepo.findByEmail(email);
+    }
+
 
 
 
