@@ -14,6 +14,11 @@ public class Leave {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "receiver_id", nullable = true)
+    private User receiver;
+
+
     @Column(name = "leave_type", nullable = false)
     private String leaveType;
 
@@ -55,6 +60,14 @@ public class Leave {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public User getReceiver() {
+        return receiver;
+    }
+
+    public void setReceiver(User receiver) {
+        this.receiver = receiver;
     }
 
     public String getLeaveType() {
