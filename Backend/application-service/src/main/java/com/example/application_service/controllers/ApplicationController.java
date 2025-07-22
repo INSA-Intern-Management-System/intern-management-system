@@ -9,6 +9,7 @@ import com.example.application_service.model.Application;
 import com.example.application_service.model.ApplicationStatus;
 import com.example.application_service.services.ApplicationService;
 import com.example.application_service.services.UserServiceClient;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,7 +37,7 @@ public class ApplicationController {
 
     @PostMapping(value = "/applicant/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<?> createApplicant(
-            @RequestHeader("Authorization") String token,
+            HttpServletRequest request,
             @RequestPart("firstName") String firstName,
             @RequestPart("lastName") String lastName,
             @RequestPart("email") String email,
@@ -52,11 +53,12 @@ public class ApplicationController {
     ) throws IOException {
         try {
 
-            UserResponseDTO user = userServiceClient.validateToken(token);
+            String role = (String) request.getAttribute("role");
 
-            if (!"University".equals(user.getRole())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only universities can create applications.");
+            if (!"University".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only University can create application");
             }
+
             // Manually create ApplicantDTO
             ApplicantDTO applicantDTO = ApplicantDTO.builder()
                     .firstName(firstName)
@@ -70,13 +72,12 @@ public class ApplicationController {
                     .linkedInUrl(linkedInUrl)
                     .githubUrl(githubUrl)
                     .status(ApplicationStatus.valueOf(status != null ? status : "Pending"))  // default or convert properly
-
                     .build();
 
             ApplicantDTO created = applicationService.createApplicant(applicantDTO, cvFile);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Applicant created successfully");
+            response.put("message", "Application created successfully");
             response.put("applicant", created);
             return ResponseEntity.status(201).body(response);
 
@@ -115,6 +116,7 @@ public class ApplicationController {
         }
     }
 
+
     @GetMapping("/applications/all")
     public ResponseEntity<List<ApplicationResponseDTO>> getAllApplications() {
         List<Application> applications = applicationService.getAllApplications();
@@ -144,4 +146,14 @@ public class ApplicationController {
         List<ApplicationDTO> application = applicationService.getApplicationByApplicantId(applicantId);
         return ResponseEntity.ok(application);
     }
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
 }
+
+
+
+

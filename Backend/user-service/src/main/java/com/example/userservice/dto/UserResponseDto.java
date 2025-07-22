@@ -4,6 +4,7 @@ import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import jakarta.validation.constraints.NotBlank;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 public class UserResponseDto {
@@ -31,6 +32,7 @@ public class UserResponseDto {
     private Date updatedAt;
     private String fieldOfStudy;
     private String institution;
+    private LocalDateTime lastLogin;
 
     @NotBlank(message = "Role is required")
     private Role role;

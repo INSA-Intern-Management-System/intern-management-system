@@ -22,8 +22,6 @@ public class AuthController {
     private final UserService userService;
     private final  JwtUtil jwtUtil;
 
-
-
     public AuthController(UserService userService,
 
                           JwtUtil jwtUtil
@@ -55,11 +53,11 @@ public class AuthController {
         try {
             User user = userService.loginUser(request);
 
-            user.setLastLogin(new Date());
+            Date loginTime = new Date();
+            user.setLastLogin(loginTime);
             userService.saveUser(user);
 
-            User singleUser = userService.loadUserByEmail(user.getEmail());
-            String token = jwtUtil.generateToken(singleUser, user.getLastLogin());
+            String token = jwtUtil.generateToken(user, loginTime);
 
             // ✅ Extract data from the token
             Long userIdFromToken = jwtUtil.extractUserId(token);

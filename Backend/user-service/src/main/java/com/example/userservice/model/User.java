@@ -86,6 +86,7 @@ public class User implements UserDetails {
     String cvUrl,
     String profilePicUrl,
     Date lastReadNotificationAt,
+    Date lastLogin,
     Role role,
     Date createdAt, 
     Date updatedAt
@@ -109,6 +110,7 @@ public class User implements UserDetails {
         this.cvUrl = cvUrl;
         this.profilePicUrl = profilePicUrl;
         this.lastReadNotificationAt = lastReadNotificationAt;
+        this.lastLogin = lastLogin;
         this.role = role;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -299,6 +301,7 @@ public class User implements UserDetails {
     public void setLastReadNotificationAt(Date lastReadNotificationAt ) {
         this.lastReadNotificationAt = lastReadNotificationAt;
     }
+
 
     public Date getCreatedAt() {
         return createdAt;

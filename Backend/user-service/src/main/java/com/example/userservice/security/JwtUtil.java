@@ -43,8 +43,6 @@ public class JwtUtil {
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hrs
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
-
-
     }
 
     // Extract username/email from token
