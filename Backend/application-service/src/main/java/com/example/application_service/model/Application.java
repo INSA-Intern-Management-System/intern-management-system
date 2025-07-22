@@ -1,17 +1,25 @@
 package com.example.application_service.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "applications")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Application {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @OneToOne
     @JoinColumn(name = "applicant_id", unique = true, nullable = false)
@@ -32,27 +40,20 @@ public class Application {
         this.id = id;
     }
 
-    public Integer getApplicantId() {
-        return applicantId;
+    public Applicant getApplicant() {
+        return applicant;
     }
 
-    public void setApplicantId(Integer applicantId) {
-        this.applicantId = applicantId;
+    public void setApplicant(Applicant applicant) {
+        this.applicant = applicant;
     }
 
     public ApplicationStatus getStatus() {
         return status;
     }
 
-    public void setStatus(ApplcationStatus status) {
+    public void setStatus(ApplicationStatus status) {
         this.status = status;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

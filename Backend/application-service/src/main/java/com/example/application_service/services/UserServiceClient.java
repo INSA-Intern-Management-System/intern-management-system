@@ -1,14 +1,34 @@
-package com.example.application_service.client;
+package com.example.application_service.services;
 
-import com.example.application_service.client.dto.UserResponseDto;
 import com.example.application_service.dto.UserResponseDTO;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-@FeignClient(name = "user-service", url = "${user.service.url}") // configure in application.properties
-public interface UserServiceClient {
+@Service
+public class UserServiceClient {
 
-    @GetMapping("/api/users/{id}")
-    UserResponseDTO getUserById(@PathVariable("id") Integer id);
+    private final RestTemplate restTemplate;
+
+    @Autowired
+    public UserServiceClient(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    public UserResponseDTO validateToken(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", token);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<UserResponseDTO> response = restTemplate.exchange(
+                "http://localhost:8082/api/auth/validate", // Replace with actual URL or service name if using Eureka
+                HttpMethod.GET,
+                entity,
+                UserResponseDTO.class
+        );
+
+        return response.getBody();
+    }
 }

@@ -1,10 +1,7 @@
 package com.example.userservice.controller;
 
 
-import com.example.userservice.dto.AuthResponse;
-import com.example.userservice.dto.LoginRequest;
-import com.example.userservice.dto.RegisterRequest;
-import com.example.userservice.dto.UserResponseDto;
+import com.example.userservice.dto.*;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
@@ -90,6 +87,14 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/validate")
+    public ResponseEntity<UserInfoDTO> validateToken(@RequestHeader("Authorization") String token) {
+        String jwt = token.substring(7); // Remove "Bearer "
+        String role = jwtUtil.extractRole(jwt);
+        Long userId = jwtUtil.extractUserId(jwt);
 
+        UserInfoDTO userInfo = new UserInfoDTO(userId, role);
+        return ResponseEntity.ok(userInfo);
+    }
 
 }

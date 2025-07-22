@@ -2,6 +2,7 @@ package com.example.application_service.services;
 
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
+import com.example.application_service.model.Applicant;
 import com.example.application_service.model.Application;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +18,7 @@ public interface ApplicationService {
 
     List<Application> getAllApplications();
 
-    Optional<ApplicantDTO> getApplicantByUserId(Integer userId);
+//    Optional<ApplicantDTO> getApplicantByUserId(Long userId);
 
-    ApplicationDTO getApplicationByApplicantId( Integer applicantId);
+    List<ApplicationDTO> getApplicationByApplicantId( Long applicantId);
 }

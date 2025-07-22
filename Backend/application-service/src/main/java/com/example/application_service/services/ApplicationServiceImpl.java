@@ -1,6 +1,5 @@
 package com.example.application_service.services;
 
-import com.example.application_service.client.UserServiceClient;
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.model.Applicant;
@@ -12,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,24 +23,19 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     private final ApplicantRepository applicantRepository;
     private final ApplicationRepository applicationRepository;
-    private final UserServiceClient userServiceClient;
+//    private final UserServiceClient userServiceClient;
     private final CloudinaryService cloudinaryService;
 
     public ApplicationServiceImpl(ApplicantRepository applicantRepository,
                               ApplicationRepository applicationRepository,
-                              UserServiceClient userServiceClient,
                               CloudinaryService cloudinaryService) {
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
-        this.userServiceClient = userServiceClient;
         this.cloudinaryService = cloudinaryService;
     }
 
     @Override
     public ApplicantDTO createApplicant(ApplicantDTO dto, MultipartFile cvFile) throws IOException {
-        // Verify user exists via user-service
-        userServiceClient.getUserById(dto.getUserId());
-
         // Upload CV to Cloudinary
         String cvUrl = null;
         if (cvFile != null && !cvFile.isEmpty()) {
@@ -48,7 +44,7 @@ public class ApplicationServiceImpl implements ApplicationService{
         dto.setCvUrl(cvUrl);
 
         Applicant applicant = Applicant.builder()
-                .userId(dto.getUserId())
+                .id(dto.getId())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .email(dto.getEmail())
@@ -57,22 +53,42 @@ public class ApplicationServiceImpl implements ApplicationService{
                 .fieldOfStudy(dto.getFieldOfStudy())
                 .gender(dto.getGender())
                 .duration(dto.getDuration())
-                .linkedinUrl(dto.getLinkedinUrl())
+                .linkedInUrl(dto.getLinkedInUrl())
                 .githubUrl(dto.getGithubUrl())
                 .cvUrl(dto.getCvUrl())
-                .applicationStatus(dto.getApplicationStatus())
+                .status(dto.getApplicationStatus())
                 .build();
 
         Applicant saved = applicantRepository.save(applicant);
-        dto.setId(saved.getId());
-        return dto;
+
+        ApplicantDTO savedDto = ApplicantDTO.builder()
+                .id(saved.getId())
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .email(saved.getEmail())
+                .phoneNumber(saved.getPhoneNumber())
+                .institution(saved.getInstitution())
+                .fieldOfStudy(saved.getFieldOfStudy())
+                .gender(saved.getGender())
+                .duration(saved.getDuration())
+                .linkedInUrl(saved.getLinkedInUrl())
+                .githubUrl(saved.getGithubUrl())
+                .cvUrl(saved.getCvUrl())
+                .status(saved.getApplicationStatus())
+                .build();
+
+        return savedDto;
     }
 
     @Override
     public ApplicationDTO createApplication(ApplicationDTO dto) {
+        Applicant applicant = applicantRepository.findById(dto.getApplicantId())
+                .orElseThrow(() -> new RuntimeException("Applicant not found"));
+
         Application application = Application.builder()
-                .applicantId(dto.getApplicantId())
+                .applicant(applicant)
                 .status(dto.getStatus())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         Application saved = applicationRepository.save(application);
@@ -86,35 +102,34 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public ApplicationDTO getApplicationByApplicantId(Integer applicantId) {
+    public List<ApplicationDTO> getApplicationByApplicantId(Long applicantId) {
         return applicationRepository.findByApplicantId(applicantId)
                 .stream()
-                .map(a -> ApplicationDTO.builder()
-                        .id(a.getId())
-                        .applicantId(a.getApplicantId())
-                        .status(a.getStatus())
+                .map(application -> ApplicationDTO.builder()
+                        .id(application.getId())
+                        .applicantId(application.getApplicant().getId())
+                        .status(application.getStatus())
                         .build())
                 .collect(Collectors.toList());
     }
-
-    @Override
-    public Optional<ApplicantDTO> getApplicantByUserId(Integer userId) {
-        return applicantRepository.findByUserId(userId)
-                .map(a -> ApplicantDTO.builder()
-                        .id(a.getId())
-                        .userId(a.getUserId())
-                        .firstName(a.getFirstName())
-                        .lastName(a.getLastName())
-                        .email(a.getEmail())
-                        .phoneNumber(a.getPhoneNumber())
-                        .institution(a.getInstitution())
-                        .fieldOfStudy(a.getFieldOfStudy())
-                        .gender(a.getGender())
-                        .duration(a.getDuration())
-                        .linkedinUrl(a.getLinkedinUrl())
-                        .githubUrl(a.getGithubUrl())
-                        .cvUrl(a.getCvUrl())
-                        .applicationStatus(a.getApplicationStatus())
-                        .build());
-    }
+//
+//    @Override
+//    public Optional<ApplicantDTO> getApplicantByUserId(Integer userId) {
+//        return applicantRepository.findByUserId(userId)
+//                .map(a -> ApplicantDTO.builder()
+//                        .id(a.getId())
+//                        .firstName(a.getFirstName())
+//                        .lastName(a.getLastName())
+//                        .email(a.getEmail())
+//                        .phoneNumber(a.getPhoneNumber())
+//                        .institution(a.getInstitution())
+//                        .fieldOfStudy(a.getFieldOfStudy())
+//                        .gender(a.getGender())
+//                        .duration(a.getDuration())
+//                        .linkedinUrl(a.getLinkedinUrl())
+//                        .githubUrl(a.getGithubUrl())
+//                        .cvUrl(a.getCvUrl())
+//                        .applicationStatus(a.getApplicationStatus())
+//                        .build());
+//    }
 }

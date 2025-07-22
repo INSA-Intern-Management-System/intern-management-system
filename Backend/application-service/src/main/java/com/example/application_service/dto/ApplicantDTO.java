@@ -1,15 +1,23 @@
 package com.example.application_service.dto;
 
+import com.example.application_service.model.ApplicationStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 
+@Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ApplicantDTO {
 
-    private Integer id;
-
-    @NotBlank
-    private Integer userId;
+    private Long id;
 
     @NotBlank
     private String firstName;
@@ -26,26 +34,19 @@ public class ApplicantDTO {
     private String fieldOfStudy;
     private String gender;
     private String duration;
-    private String linkedinUrl;
+    private String linkedInUrl;
     private String githubUrl;
     private String cvUrl;
     private ApplicationStatus status;
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public Integer getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Integer userId) {
-        this.userId = userId;
-    }
 
     public String getFirstName() {
         return firstName;
@@ -103,12 +104,12 @@ public class ApplicantDTO {
         this.gender = gender;
     }
 
-    public String getLinkedinUrl() {
-        return linkedinUrl;
+    public String getLinkedInUrl() {
+        return linkedInUrl;
     }
 
-    public void setLinkedinUrl(String linkedinUrl) {
-        this.linkedinUrl = linkedinUrl;
+    public void setLinkedInUrl(String linkedInUrl) {
+        this.linkedInUrl = linkedInUrl;
     }
 
     public String getDuration() {
@@ -139,7 +140,7 @@ public class ApplicantDTO {
         return status;
     }
 
-    public void setApplicationStatus(ApplicaionStatus status) {
+    public void setApplicationStatus(ApplicationStatus status) {
         this.status = status;
     }
 }

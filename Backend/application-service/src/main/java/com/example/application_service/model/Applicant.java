@@ -3,14 +3,20 @@ package com.example.application_service.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Data
+@Builder
 @Table(name = "applicants")
-
+@NoArgsConstructor
+@AllArgsConstructor
 public class Applicant {
 
 
@@ -34,37 +40,33 @@ public class Applicant {
     @Column(nullable = false)
     private String email;
 
-    @Column(name = "phone_number")
+
     private String phoneNumber;
 
     private String institution;
 
-    @Column(name = "field_of_study")
     private String fieldOfStudy;
 
     private String gender;
 
     private String duration;
 
-    @Column(name = "linkedin_url")
-    private String linkedinUrl;
 
-    @Column(name = "github_url")
+    private String linkedInUrl;
+
+
     private String githubUrl;
 
-    @Column(name = "cv_url")
+
     private String cvUrl;
 
     @Enumerated(EnumType.STRING)
-    private ApplicationStatus applicationStatus;
+    private ApplicationStatus status;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    ;
 
 
     public Long getId() {
@@ -139,12 +141,12 @@ public class Applicant {
         this.duration = duration;
     }
 
-    public String getLinkedinUrl() {
-        return linkedinUrl;
+    public String getLinkedInUrl() {
+        return linkedInUrl;
     }
 
-    public void setLinkedinUrl(String linkedinUrl) {
-        this.linkedinUrl = linkedinUrl;
+    public void setLinkedInUrl(String linkedInUrl) {
+        this.linkedInUrl = linkedInUrl;
     }
 
     public String getGithubUrl() {
@@ -164,11 +166,11 @@ public class Applicant {
     }
 
     public ApplicationStatus getApplicationStatus() {
-        return applicationStatus;
+        return status;
     }
 
-    public void setApplicationStatus(ApplicationStatus applicationStatus) {
-        this.applicationStatus = applicationStatus;
+    public void setApplicationStatus(ApplicationStatus status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -179,12 +181,6 @@ public class Applicant {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 
 }
