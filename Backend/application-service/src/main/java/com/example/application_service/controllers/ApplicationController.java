@@ -24,9 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api")
@@ -110,7 +108,7 @@ public class ApplicationController {
                 return errorResponse("Unauthorized: Only University can create application");
             }
 
-            ApplicationDTO created = applicationService.createApplication(dto);
+            Application created = applicationService.createApplication(dto);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Applied successfully");
@@ -124,6 +122,70 @@ public class ApplicationController {
             return ResponseEntity.status(400).body(error);
         }
     }
+
+
+    @PostMapping(value = "/apply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> apply(
+            HttpServletRequest request,
+            @RequestPart("firstName") String firstName,
+            @RequestPart("lastName") String lastName,
+            @RequestPart("email") String email,
+            @RequestPart(value = "phoneNumber", required = false) String phoneNumber,
+            @RequestPart(value = "institution", required = false) String institution,
+            @RequestPart(value = "fieldOfStudy", required = false) String fieldOfStudy,
+            @RequestPart(value = "gender", required = false) String gender,
+            @RequestPart(value = "duration", required = false) String duration,
+            @RequestPart(value = "linkedInUrl", required = false) String linkedInUrl,
+            @RequestPart(value = "githubUrl", required = false) String githubUrl,
+            @RequestPart(value = "cvFile", required = false) MultipartFile cvFile
+    ) throws IOException {
+
+        String role = (String) request.getAttribute("role");
+        if (!"University".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("message", "Unauthorized: Only University can apply"));
+        }
+
+        // ✅ Check if email already exists
+        Optional<Applicant> existingApplicant = applicantRepository.findByEmail(email);
+        if (existingApplicant.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Collections.singletonMap("message", "An applicant with this email already applied."));
+        }
+
+        // ✅ Create new Applicant DTO
+        ApplicantDTO applicantDTO = ApplicantDTO.builder()
+                .firstName(firstName)
+                .lastName(lastName)
+                .email(email)
+                .phoneNumber(phoneNumber)
+                .institution(institution)
+                .fieldOfStudy(fieldOfStudy)
+                .gender(gender)
+                .duration(duration)
+                .linkedInUrl(linkedInUrl)
+                .githubUrl(githubUrl)
+                .build();
+
+        // ✅ Save the applicant (with CV file) and application
+        ApplicantDTO savedApplicant = applicationService.createApplicant(applicantDTO, cvFile);
+
+        ApplicationDTO applicationDTO = new ApplicationDTO();
+        applicationDTO.setApplicantId(savedApplicant.getId());
+        applicationDTO.setStatus(ApplicationStatus.Pending);
+
+        Application createdApplication = applicationService.createApplication(applicationDTO);
+
+        // ✅ Use mapToDTO to convert to response DTO
+        ApplicationResponseDTO responseDTO = mapToDTO(createdApplication);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Applied successfully");
+        response.put("application", responseDTO);
+        return ResponseEntity.status(201).body(response);
+    }
+
+
 
 
     @GetMapping("/applications/all")

@@ -86,7 +86,7 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public ApplicationDTO createApplication(ApplicationDTO dto) {
+    public Application createApplication(ApplicationDTO dto) {
         Applicant applicant = applicantRepository.findById(dto.getApplicantId())
                 .orElseThrow(() -> new RuntimeException("Applicant not found"));
 
@@ -97,8 +97,8 @@ public class ApplicationServiceImpl implements ApplicationService{
                 .build();
 
         Application saved = applicationRepository.save(application);
-        dto.setId(saved.getId());
-        return dto;
+//        dto.setId(saved.getId());
+        return saved;
     }
 
     @Override

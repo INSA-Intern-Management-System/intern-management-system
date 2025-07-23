@@ -15,7 +15,7 @@ public interface ApplicationService {
 
     ApplicantDTO createApplicant(ApplicantDTO dto, MultipartFile cvFile) throws IOException;
 
-    ApplicationDTO createApplication(ApplicationDTO dto);
+    Application createApplication(ApplicationDTO dto);
 
     List<Application> getAllApplications();
 
