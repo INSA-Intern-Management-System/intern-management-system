@@ -27,7 +27,7 @@ export function DashboardLayout({
   useEffect(() => {
     localStorage.setItem(
       "user",
-      JSON.stringify({ name: "Company User", role: "university" })
+      JSON.stringify({ name: "Company User", role: "student" })
     );
 
     const userData = localStorage.getItem("user");
