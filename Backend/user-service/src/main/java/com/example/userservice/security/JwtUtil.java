@@ -32,10 +32,10 @@ public class JwtUtil {
     }
 
     // Generate token using UserDetails
-    public String generateToken(User user, Date lastLogin) {
+    public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmail())
-                .claim("lastLogin", lastLogin.getTime())
+//                .claim("lastLogin", lastLogin.getTime())
                 .claim("userId", user.getId())  // use getter
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole()) // assuming enum or String

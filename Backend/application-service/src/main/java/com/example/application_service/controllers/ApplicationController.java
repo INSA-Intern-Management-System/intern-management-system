@@ -7,10 +7,15 @@ import com.example.application_service.dto.UserResponseDTO;
 import com.example.application_service.model.Applicant;
 import com.example.application_service.model.Application;
 import com.example.application_service.model.ApplicationStatus;
+import com.example.application_service.repository.ApplicantRepository;
+import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.services.ApplicationService;
 import com.example.application_service.services.UserServiceClient;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,10 +34,14 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
     private final UserServiceClient userServiceClient;
+    private final ApplicantRepository applicantRepository;
+    private final ApplicationRepository applicationRepository;
 
-    public ApplicationController(ApplicationService applicationService, UserServiceClient userServiceClient) {
+    public ApplicationController(ApplicationService applicationService, UserServiceClient userServiceClient, ApplicantRepository applicantRepository, ApplicationRepository applicationRepository) {
         this.applicationService = applicationService;
         this.userServiceClient = userServiceClient;
+        this.applicantRepository = applicantRepository;
+        this.applicationRepository = applicationRepository;
     }
 
     @PostMapping(value = "/applicant/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -91,14 +100,14 @@ public class ApplicationController {
 
     @PostMapping(value = "/application/apply")
     public ResponseEntity<?> createApplication(
-            @Valid @RequestBody ApplicationDTO dto,
-            @RequestHeader("Authorization") String token) {
+            HttpServletRequest request,
+            @Valid @RequestBody ApplicationDTO dto
+            ) {
         try{
+            String role = (String) request.getAttribute("role");
 
-            UserResponseDTO user = userServiceClient.validateToken(token);
-
-            if (!"University".equals(user.getRole())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only universities can create applications.");
+            if (!"University".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only University can create application");
             }
 
             ApplicationDTO created = applicationService.createApplication(dto);
@@ -123,23 +132,35 @@ public class ApplicationController {
 
         List<ApplicationResponseDTO> response = applications.stream().map(application -> {
             Applicant applicant = application.getApplicant();
-            return ApplicationResponseDTO.builder()
-                    .applicationId(application.getId())
-                    .status(application.getStatus())
-                    .createdAt(application.getCreatedAt())
+
+            ApplicantDTO applicantDTO = ApplicantDTO.builder()
+                    .id(applicant.getId())
                     .firstName(applicant.getFirstName())
                     .lastName(applicant.getLastName())
                     .email(applicant.getEmail())
-                    .insitution(applicant.getInstitution())
+                    .phoneNumber(applicant.getPhoneNumber())
+                    .gender(applicant.getGender())
+                    .duration(applicant.getDuration())
+                    .cvUrl(applicant.getCvUrl())
+                    .institution(applicant.getInstitution())
                     .fieldOfStudy(applicant.getFieldOfStudy())
                     .githubUrl(applicant.getGithubUrl())
-                    .phoneNumber(applicant.getPhoneNumber())
-                    .cvUrl(applicant.getCvUrl())
+                    .linkedInUrl(applicant.getLinkedInUrl())
+                    .status(applicant.getStatus())
+                    .createdAt(applicant.getCreatedAt())
+                    .build();
+
+            return ApplicationResponseDTO.builder()
+                    .id(application.getId())
+                    .status(application.getStatus())
+                    .createdAt(application.getCreatedAt())
+                    .applicant(applicantDTO)
                     .build();
         }).toList();
 
         return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/applications/applicant/{applicantId}")
     public ResponseEntity<List<ApplicationDTO>> getApplicationsByApplicantId(@PathVariable Long applicantId) {
@@ -152,6 +173,166 @@ public class ApplicationController {
         error.put("error", message);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
+
+    @PostMapping(value = "/application/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> batchImport(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+
+        try {
+            String role = (String) request.getAttribute("role");
+
+            if (!"University".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only University can create batch application");
+            }
+
+            List<ApplicantDTO> savedApplicants = applicationService.batchApplication(file);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Batch import created successfully");
+            response.put("applicants", savedApplicants);
+
+            return ResponseEntity.status(201).body(response);
+
+        } catch (RuntimeException | IOException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
+
+    @PutMapping("/applications/{id}/status")
+    public ResponseEntity<?> updateStatus(
+            @PathVariable Long id,
+            @RequestParam("status") String status,
+            HttpServletRequest request )
+    {
+        try {
+            String role = (String) request.getAttribute("role");
+
+            if (!"HR".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only HR can Update status of application");
+            }
+
+            ApplicationDTO updated = applicationService.updateApplicationStatus(id, ApplicationStatus.valueOf(status));
+            return ResponseEntity.ok(updated);
+
+        }catch(RuntimeException e){
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(error);
+
+        }
+    }
+
+    @GetMapping("/applicants/search")
+    public ResponseEntity<?> searchApplicants(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Application> applicationsPage = applicationRepository.searchApplicationsByApplicant(query, pageable);
+
+        List<ApplicationResponseDTO> content = applicationsPage.getContent()
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", applicationsPage.getNumber(),
+                "totalPages", applicationsPage.getTotalPages(),
+                "totalElements", applicationsPage.getTotalElements()
+        ));
+    }
+
+
+    @GetMapping("/applications/filter/status")
+    public ResponseEntity<?> filterByStatus(@RequestParam("status") String status, HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+        }
+        List<Application> applications = applicationRepository.filterByStatus(ApplicationStatus.valueOf(status));
+        List<ApplicationResponseDTO> response = applications.stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/applications/filter/position")
+    public ResponseEntity<?> filterByPosition(@RequestParam("position") String position, HttpServletRequest request) {
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+        }
+
+        List<Application> applications = applicationRepository.filterByPosition(position);
+        List<ApplicationResponseDTO> response = applications.stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/applications/filter/university")
+    public ResponseEntity<?> filterByUniversity(@RequestParam("university") String university, HttpServletRequest request) {
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+        }
+
+        List<Application> applications = applicationRepository.filterByUniversity(university);
+        List<ApplicationResponseDTO> response = applications.stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    private ApplicationResponseDTO mapToDTO(Application application) {
+        return ApplicationResponseDTO.builder()
+                .id(application.getId())
+                .status(application.getStatus())
+                .createdAt(application.getCreatedAt())
+                .applicant(
+                        ApplicantDTO.builder()
+                                .id(application.getApplicant().getId())
+                                .firstName(application.getApplicant().getFirstName())
+                                .lastName(application.getApplicant().getLastName())
+                                .email(application.getApplicant().getEmail())
+                                .phoneNumber(application.getApplicant().getPhoneNumber())
+                                .institution(application.getApplicant().getInstitution())
+                                .fieldOfStudy(application.getApplicant().getFieldOfStudy())
+                                .gender(application.getApplicant().getGender())
+                                .duration(application.getApplicant().getDuration())
+                                .linkedInUrl(application.getApplicant().getLinkedInUrl())
+                                .githubUrl(application.getApplicant().getGithubUrl())
+                                .cvUrl(application.getApplicant().getCvUrl())
+                                .createdAt(application.getApplicant().getCreatedAt())
+                                .status(application.getApplicant().getStatus())
+                                .build()
+                )
+                .build();
+    }
+
 }
 
 

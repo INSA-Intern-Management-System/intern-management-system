@@ -11,18 +11,11 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 public class ApplicationResponseDTO {
-    private Long applicationId;
+    private Long id;
     private ApplicationStatus status;
     private LocalDateTime createdAt;
 
     // Applicant details
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phoneNumber;
-    private String cvUrl;
-    private String insitution;
-    private String fieldOfStudy;
-    private String githubUrl;
+    private ApplicantDTO applicant;
 
 }

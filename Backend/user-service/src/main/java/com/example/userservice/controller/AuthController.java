@@ -57,7 +57,7 @@ public class AuthController {
             user.setLastLogin(loginTime);
             userService.saveUser(user);
 
-            String token = jwtUtil.generateToken(user, loginTime);
+            String token = jwtUtil.generateToken(user);
 
             // ✅ Extract data from the token
             Long userIdFromToken = jwtUtil.extractUserId(token);

@@ -22,7 +22,7 @@ public class Application {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "applicant_id", unique = true, nullable = false)
+    @JoinColumn(name = "applicant_id",  referencedColumnName = "id", unique = true, nullable = false)
     private Applicant applicant;
 
     @Enumerated(EnumType.STRING)
