@@ -11,13 +11,14 @@ public class LeaveResponse {
     private Date toDate;
     private String reason;
     private String leaveStatus;
+    private Long receiverID;
     private Date createdAt;
 
     public LeaveResponse() {
     }
 
     public LeaveResponse(Long leaveId, Long userId, String leaveType, Date fromDate,
-                         Date toDate, String reason, String leaveStatus, Date createdAt) {
+                         Date toDate, String reason, String leaveStatus,Long receiverID, Date createdAt) {
         this.leaveId = leaveId;
         this.userId = userId;
         this.leaveType = leaveType;
@@ -25,6 +26,7 @@ public class LeaveResponse {
         this.toDate = toDate;
         this.reason = reason;
         this.leaveStatus = leaveStatus;
+        this.receiverID = receiverID;
         this.createdAt = createdAt;
     }
 
@@ -87,6 +89,15 @@ public class LeaveResponse {
     public Date getCreatedAt() {
         return createdAt;
     }
+
+    public Long getReceiverID() {
+        return receiverID;
+    }
+
+    public void setReceiverID(Long receiverID) {
+        this.receiverID = receiverID;
+    }
+
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;

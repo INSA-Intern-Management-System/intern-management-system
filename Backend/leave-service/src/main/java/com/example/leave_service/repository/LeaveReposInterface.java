@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Optional;
 
 public interface LeaveReposInterface {
@@ -16,25 +15,46 @@ public interface LeaveReposInterface {
     // Get leaves with pagination
     Page<Leave> findByUserId(Long userId, Pageable pageable);
 
+    // Get Leaves with pagination
+    Page<Leave> findByReceiverId(Long receiverId, Pageable pageable);
+
+
     // Get leave by ID
     Optional<Leave> getLeaveById(Long leaveId);
 
     // Search leaves by type and/or reason
-    List<Leave> searchLeaves(String leaveType, String reason);
+    Page<Leave> searchLeaves(String leaveType, String reason,Pageable pageable);
+    Page<Leave> searchLeaves(Long userID,String leaveType, String reason,Pageable pageable);
+
+
 
     // Filter leaves by type and status
-    List<Leave> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus);
+    Page<Leave> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus,Pageable pageable);
+
+
+    Page<Leave> filterLeavesByTypeAndStatus(Long receiverId,String leaveType, String leaveStatus,Pageable pageable);
 
     // Delete leave by ID
-    void deleteLeaveById(Long leaveId);
+    void deleteLeaveById(Long leaveId, Long userId);
 
-    // Delete all leaves
-    void deleteAllLeaves();
+    // Delete all leaves with given userID
+    void deleteAllLeaves(Long userID);
 
     // Get leave status counts (total, accepted, rejected, pending)
     HashMap<String, Long> getLeaveStatusCounts();
 
+    // Get leave status counts (total, accepted, rejected, pending)
+    HashMap<String, Long> getLeaveStatusCountsPm(Long receiverId);
+
+
+
     // Update leave status
     Leave updateLeaveStatus(Long leaveId, String newStatus);
+
+    // Delete leave of self
+    void deleteLeaveOfSelf(Long leaveId, Long userId);
+
+    //Get all leaves 
+    Page<Leave> getAllLeaves(Pageable pageable);
     
 }

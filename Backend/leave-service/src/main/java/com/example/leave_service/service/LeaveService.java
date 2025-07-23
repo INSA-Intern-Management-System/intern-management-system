@@ -4,27 +4,34 @@ import com.example.leave_service.dto.LeaveRequest;
 import com.example.leave_service.dto.LeaveResponse;
 import com.example.leave_service.model.Leave;
 import com.example.leave_service.model.User;
+import com.example.leave_service.repository.InternManagerReposInterface;
 import com.example.leave_service.repository.LeaveReposInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class LeaveService {
 
     private final LeaveReposInterface leaveRepository;
+    private final InternManagerReposInterface internManagerRepos;
 
     @Autowired
-    public LeaveService(LeaveReposInterface leaveRepository) {
+    public LeaveService(LeaveReposInterface leaveRepository,
+                        InternManagerReposInterface internManagerRepos) {
         this.leaveRepository = leaveRepository;
+        this.internManagerRepos = internManagerRepos;
     }
 
     // Create a leave
+  
+    @Transactional
     public LeaveResponse createLeave(Long userId, LeaveRequest leaveRequest) {
+        // Create Leave object
         Leave leave = new Leave();
         leave.setLeaveType(leaveRequest.getLeaveType());
         leave.setFromDate(leaveRequest.getFromDate());
@@ -32,15 +39,26 @@ public class LeaveService {
         leave.setReason(leaveRequest.getReason());
         leave.setLeaveStatus("PENDING");
         leave.setCreatedAt(new Date());
-
         User user = new User();
         user.setId(userId);
         leave.setUser(user);
 
-        Leave savedLeave = leaveRepository.createLeave(leave);
+        //Get manager id by user id
+        Long managerId = internManagerRepos.getManagerIdByUserId(userId);
+        if (managerId != null) {
+            User manager = new User();
+            manager.setId(managerId);
+            leave.setReceiver(manager);
+        } else {
+            // Optionally handle case when manager not found
+            System.err.println("Manager not found for user with id: " + userId);
+            throw new RuntimeException("Manager not found for user with id: " + userId);
+        }
 
+        Leave savedLeave = leaveRepository.createLeave(leave);
         return mapToResponse(savedLeave);
     }
+
 
     // Get leaves with pagination
    public Page<LeaveResponse> getLeavesByUserId(Long userId, Pageable pageable) {
@@ -58,6 +76,7 @@ public class LeaveService {
             leave.getToDate(),
             leave.getReason(),
             leave.getLeaveStatus(),
+            leave.getReceiver().getId(),
             leave.getCreatedAt()
         );
     }
@@ -69,30 +88,46 @@ public class LeaveService {
         return mapToResponse(leave);
     }
 
+
+
+
     // Search leaves by type and/or reason
-    public List<LeaveResponse> searchLeaves(String leaveType, String reason) {
-        List<Leave> leaves = leaveRepository.searchLeaves(leaveType, reason);
-        return leaves.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<LeaveResponse> searchLeaves(String leaveType, String reason, Pageable pageable) {
+        Page<Leave> leavesPage = leaveRepository.searchLeaves(leaveType, reason, pageable);
+        return leavesPage.map(this::mapToResponse);
+    }
+
+    public Page<LeaveResponse> searchLeaves(Long userID,String leaveType, String reason,Pageable pageable) {
+        Page<Leave> leavesPage = leaveRepository.searchLeaves(userID,leaveType, reason, pageable);
+        return leavesPage.map(this::mapToResponse);
     }
 
     // Filter leaves by type and status
-    public List<LeaveResponse> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus) {
-        List<Leave> leaves = leaveRepository.filterLeavesByTypeAndStatus(leaveType, leaveStatus);
-        return leaves.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<LeaveResponse> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus, Pageable pageable) {
+        Page<Leave> leavesPage = leaveRepository.filterLeavesByTypeAndStatus(leaveType, leaveStatus, pageable);
+        Page<LeaveResponse> responsePage = leavesPage.map(this::mapToResponse);
+
+        return responsePage;
     }
 
+    public Page<LeaveResponse> filterLeavesByTypeAndStatus(Long receiverId, String leaveType, String leaveStatus, Pageable pageable) {
+
+        Page<Leave> leavesPage = leaveRepository.filterLeavesByTypeAndStatus(receiverId, leaveType, leaveStatus, pageable);
+        Page<LeaveResponse> responsePage = leavesPage.map(this::mapToResponse);
+
+        return responsePage;
+    }
+
+
+
     // Delete leave by ID
-    public void deleteLeaveById(Long leaveId) {
-        leaveRepository.deleteLeaveById(leaveId);
+    public void deleteLeaveById(Long leaveId, Long userId) {
+        leaveRepository.deleteLeaveById(leaveId,userId);
     }
 
     // Delete all leaves
-    public void deleteAllLeaves() {
-        leaveRepository.deleteAllLeaves();
+    public void deleteAllLeaves(Long userId) {
+        leaveRepository.deleteAllLeaves(userId);
     }
 
     // Get leave status counts
@@ -100,11 +135,49 @@ public class LeaveService {
         return leaveRepository.getLeaveStatusCounts();
     }
 
+    //get status count for pm
+    public Map<String, Long> getLeaveStatusCounts(Long receiverId) {
+        return leaveRepository.getLeaveStatusCountsPm(receiverId);
+    }
+
+
     // Update leave status
-    public LeaveResponse updateLeaveStatus(Long leaveId, String newStatus) {
+    @Transactional
+    public LeaveResponse updateLeaveStatus(Long leaveId,long receiver_id, String newStatus) {
+        //Get by using leave id
+        Optional<Leave> leave = leaveRepository.getLeaveById(leaveId);
+        if (leave.isEmpty()) {
+            throw new RuntimeException("Leave not found with ID: " + leaveId);
+        }
+
+        //check if it correct reciver id
+        if (!leave.get().getReceiver().getId().equals(receiver_id)) {
+            throw new RuntimeException("Unauthorized: You can only update your own leaves");
+        }
+
         Leave updatedLeave = leaveRepository.updateLeaveStatus(leaveId, newStatus);
         return mapToResponse(updatedLeave);
     }
+    // Delete leave of self
+    public void deleteLeaveOfSelf(Long leaveId, Long userId) {
+        leaveRepository.deleteLeaveOfSelf(leaveId, userId);
+    }
+
+    //get leaves by recevier id 
+    public Page<LeaveResponse> getLeavesByManager(Long userId, Pageable pageable) {
+        Page<Leave> leavesPage = leaveRepository.findByReceiverId(userId, pageable);
+        return leavesPage.map(this::mapToResponse);
+    }
+
+    //get all leaves
+    public Page<LeaveResponse> getAllLeaves(Pageable pageable) {
+        Page<Leave> leavesPage = leaveRepository.getAllLeaves(pageable);
+        return leavesPage.map(this::mapToResponse);
+    }
+
+    
+
+
 
     // Helper: map Leave → LeaveResponse
     private LeaveResponse mapToResponse(Leave leave) {
@@ -116,6 +189,7 @@ public class LeaveService {
         response.setToDate(leave.getToDate());
         response.setReason(leave.getReason());
         response.setLeaveStatus(leave.getLeaveStatus());
+        response.setReceiverID(leave.getReceiver().getId());
         response.setCreatedAt(leave.getCreatedAt());
         return response;
     }
