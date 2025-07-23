@@ -6,7 +6,6 @@ import com.example.project_service.service.ProjectServiceInterface;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
-//import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,8 +23,6 @@ public class ProjectController {
     }
 
     // -------------------- PROJECTS --------------------
-
-    // Create a project - only PM
     @PostMapping
     public ResponseEntity<?> createProject(@RequestBody ProjectRequest request,
                                            HttpServletRequest httpRequest) {
@@ -33,7 +30,7 @@ public class ProjectController {
             String role = (String) httpRequest.getAttribute("role");
             Long userId = (Long) httpRequest.getAttribute("userId");
 
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can create projects");
             }
 
@@ -44,13 +41,12 @@ public class ProjectController {
         }
     }
 
-    // Get project stats - PM & HR
     @GetMapping("/stats")
     public ResponseEntity<?> getProjectStats(HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
             Long user_id = (Long) httpRequest.getAttribute("userId");
-            if (!"Project_Manager".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM and HR can view stats");
             }
             if (("HR".equalsIgnoreCase(role))) {
@@ -63,14 +59,13 @@ public class ProjectController {
         }
     }
 
-    // Search projects - PM & HR
     @GetMapping("/search")
     public ResponseEntity<?> searchProjects(@RequestParam String keyword, Pageable pageable,
                                             HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
             Long userId = (Long) httpRequest.getAttribute("userId");
-            if (!"Project_Manager".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM and HR can search projects");
             }
             if (("HR".equalsIgnoreCase(role))) {
@@ -84,7 +79,6 @@ public class ProjectController {
         }
     }
 
-    // Get project details - different for HR & PM
     @GetMapping
     public ResponseEntity<?> getProjects(Pageable pageable, HttpServletRequest httpRequest) {
         try {
@@ -93,7 +87,7 @@ public class ProjectController {
 
             if ("HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.ok(projectService.getDetailedProjectsForHr(pageable));
-            } else if ("Project_Manager".equalsIgnoreCase(role)) {
+            } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return ResponseEntity.ok(projectService.getDetailedProjectsForPm(userId, pageable));
             } else {
                 return errorResponse("Unauthorized: Only PM and HR can view projects");
@@ -103,14 +97,13 @@ public class ProjectController {
         }
     }
 
-    // Change project status - only PM
     @PatchMapping("/{projectId}/status")
     public ResponseEntity<?> updateProjectStatus(@PathVariable Long projectId,
                                                  @RequestParam ProjectStatus newStatus,
                                                  HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can change project status");
             }
             ProjectResponse updated = projectService.updateProjectStatus(projectId, newStatus);
@@ -122,12 +115,11 @@ public class ProjectController {
 
     // -------------------- TEAMS --------------------
 
-    // Create a team - only PM
     @PostMapping("/teams")
     public ResponseEntity<?> createTeam(@RequestBody TeamRequest request, HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can create teams");
             }
             TeamDetailsResponse created = projectService.createTeam(request);
@@ -137,7 +129,6 @@ public class ProjectController {
         }
     }
 
-    // Get teams - different for HR & PM
     @GetMapping("/teams")
     public ResponseEntity<?> getTeams(Pageable pageable, HttpServletRequest httpRequest) {
         try {
@@ -146,7 +137,7 @@ public class ProjectController {
 
             if ("HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.ok(projectService.getDetailedTeamsForHr(pageable));
-            } else if ("Project_Manager".equalsIgnoreCase(role)) {
+            } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return ResponseEntity.ok(projectService.getDetailedTeamsForPm(userId, pageable));
             } else {
                 return errorResponse("Unauthorized: Only PM and HR can view teams");
@@ -158,32 +149,35 @@ public class ProjectController {
 
     // -------------------- TEAM MEMBERS --------------------
 
-    // Add member - only PM
     @PostMapping("/teams/members")
     public ResponseEntity<?> addTeamMember(@RequestBody TeamMemberRequest request,
                                            HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can add team members");
             }
-            List<TeamMemberResponse> added = projectService.addTeamMember(request);
+
+            List<TeamMemberResponse> added = projectService.addTeamMember(userId,request);
             return ResponseEntity.ok(added);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
         }
     }
 
-    // Remove member - only PM
+  
     @DeleteMapping("/teams/members/{memberId}")
     public ResponseEntity<?> removeTeamMember(@PathVariable Long memberId,
                                               HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can remove team members");
             }
-            projectService.removeTeamMember(memberId);
+            projectService.removeTeamMember(userId,memberId);
             return successResponse("Team member removed");
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -197,10 +191,11 @@ public class ProjectController {
                                            HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can assign projects");
             }
-            TeamDetailsResponse updated = projectService.assignProjectToTeam(teamId, projectId);
+            TeamDetailsResponse updated = projectService.assignProjectToTeam(userId,teamId, projectId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -211,10 +206,11 @@ public class ProjectController {
     public ResponseEntity<?> removeProject(@PathVariable Long teamId, HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can remove projects");
             }
-            TeamDetailsResponse updated = projectService.removeAssignedProjectFromTeam(teamId);
+            TeamDetailsResponse updated = projectService.removeAssignedProjectFromTeam(userId,teamId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -222,64 +218,67 @@ public class ProjectController {
     }
 
     // -------------------- MILESTONES --------------------
-
-    // Add milestone - only PM
     @PostMapping("/milestones")
     public ResponseEntity<?> addMilestone(@RequestBody MilestoneRequest request, HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can add milestones");
             }
-            MilestoneResponse added = projectService.addMilestone(request);
+
+            MilestoneResponse added = projectService.addMilestone(userId,request);
             return ResponseEntity.ok(added);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
         }
     }
 
-    // Update milestone status - only PM
+
     @PatchMapping("/milestones/{milestoneId}/status")
     public ResponseEntity<?> updateMilestoneStatus(@PathVariable Long milestoneId,
                                                    @RequestParam MilestoneStatus newStatus,
                                                    HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can update milestone status");
             }
-            MilestoneResponse updated = projectService.updateMilestoneStatus(milestoneId, newStatus);
+            MilestoneResponse updated = projectService.updateMilestoneStatus(userId,milestoneId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
         }
     }
 
-    // Delete milestone - only PM
     @DeleteMapping("/milestones/{milestoneId}")
     public ResponseEntity<?> deleteMilestone(@PathVariable Long milestoneId, HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can delete milestones");
             }
-            projectService.deleteMilestone(milestoneId);
+            projectService.deleteMilestone(userId,milestoneId);
             return successResponse("Milestone deleted");
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
         }
     }
 
-    // Get milestones by project ID - PM & HR
+    
     @GetMapping("/{projectId}/milestones")
     public ResponseEntity<?> getMilestonesByProjectId(@PathVariable Long projectId,
                                                       HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
-            if (!"Project_Manager".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM and HR can view milestones");
             }
-            List<MilestoneResponse> milestones = projectService.getMilestonesByProjectId(projectId);
+            List<MilestoneResponse> milestones = projectService.getMilestonesByProjectId(userId,projectId);
             return ResponseEntity.ok(milestones);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());

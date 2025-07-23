@@ -20,10 +20,10 @@ public interface ProjectServiceInterface {
     ProjectResponse updateProjectStatus(Long projectId, ProjectStatus newStatus);
 
     // Milestones
-    MilestoneResponse addMilestone(MilestoneRequest request);
-    MilestoneResponse updateMilestoneStatus(Long milestoneId, MilestoneStatus newStatus);
-    void deleteMilestone(Long milestoneId);
-    List<MilestoneResponse> getMilestonesByProjectId(Long projectId);
+    MilestoneResponse addMilestone(Long user_id,MilestoneRequest request);
+    MilestoneResponse updateMilestoneStatus(Long user_id,Long milestoneId, MilestoneStatus newStatus);
+    void deleteMilestone(Long user_id,Long milestoneId);
+    List<MilestoneResponse> getMilestonesByProjectId(Long userID,Long projectId);
 
     // Teams
     TeamDetailsResponse createTeam(TeamRequest request);
@@ -32,13 +32,13 @@ public interface ProjectServiceInterface {
     void deleteTeam(Long teamId);
 
     // Team members
-    List<TeamMemberResponse> addTeamMember(TeamMemberRequest request);
-    void removeTeamMember(Long memberId);
+    List<TeamMemberResponse> addTeamMember(Long menagerId,TeamMemberRequest request);
+    void removeTeamMember(Long userID,Long memberId);
     void removeAllTeamMembers(Long teamId);
 
     // Assign/remove project
-    TeamDetailsResponse assignProjectToTeam(Long teamId, Long projectId);
-    TeamDetailsResponse removeAssignedProjectFromTeam(Long teamId);
+    TeamDetailsResponse assignProjectToTeam(Long user_id,Long teamId, Long projectId);
+    TeamDetailsResponse removeAssignedProjectFromTeam(Long user_id,Long teamId);
 
     // Getters
     Page<ProjectDetailsResponse> getDetailedProjectsForHr(Pageable pageable);
