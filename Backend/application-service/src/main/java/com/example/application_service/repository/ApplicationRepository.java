@@ -14,21 +14,18 @@ import java.util.List;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     List<Application> findByApplicantId(Long applicantId);
 
-    List<Application> findByStatus(ApplicationStatus status);
 
-    @Query("SELECT a FROM Application a JOIN a.applicant ap WHERE " +
-            "LOWER(ap.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(ap.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(ap.institution) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(ap.fieldOfStudy) LIKE LOWER(CONCAT('%', :query, '%'))")
-    Page<Application> searchApplicationsByApplicant(@Param("query") String query, Pageable pageable);
+    // Search by first name or last name or email (case-insensitive contains)
+    Page<Application> findByApplicant_FirstNameContainingIgnoreCaseOrApplicant_InstitutionContainingIgnoreCaseOrApplicant_FieldOfStudyContainingIgnoreCase(
+            String firstName, String institution, String fieldOfStudy, Pageable pageable
+    );;
 
-    @Query("SELECT a FROM Application a WHERE a.status = :status")
-    List<Application> filterByStatus(@Param("status") ApplicationStatus status);
+    // Filter by status
+    Page<Application> findByStatus(ApplicationStatus status, Pageable pageable);
 
-    @Query("SELECT a FROM Application a WHERE a.applicant.fieldOfStudy = :position")
-    List<Application> filterByPosition(@Param("position") String position);
+    // Filter by position
+    Page<Application> findByApplicant_FieldOfStudyContainingIgnoreCase(String fieldOfStudy, Pageable pageable);
 
-    @Query("SELECT a FROM Application a WHERE a.applicant.institution = :university")
-    List<Application> filterByUniversity(@Param("university") String university);
+    // Filter by university
+    Page<Application> findByApplicant_InstitutionContainingIgnoreCase(String institution, Pageable pageable);
 }

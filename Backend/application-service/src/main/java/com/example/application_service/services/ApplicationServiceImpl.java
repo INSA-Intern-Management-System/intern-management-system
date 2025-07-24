@@ -8,6 +8,8 @@ import com.example.application_service.model.ApplicationStatus;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,7 +62,6 @@ public class ApplicationServiceImpl implements ApplicationService{
                 .linkedInUrl(dto.getLinkedInUrl())
                 .githubUrl(dto.getGithubUrl())
                 .cvUrl(dto.getCvUrl())
-                .status(dto.getStatus())
                 .build();
 
         Applicant saved = applicantRepository.save(applicant);
@@ -79,7 +80,6 @@ public class ApplicationServiceImpl implements ApplicationService{
                 .githubUrl(saved.getGithubUrl())
                 .cvUrl(saved.getCvUrl())
                 .createdAt(saved.getCreatedAt())
-                .status(saved.getApplicationStatus())
                 .build();
 
         return savedDto;
@@ -102,8 +102,9 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public List<Application> getAllApplications() {
-        return applicationRepository.findAll();
+    public Page<Application> getAllApplications(Pageable pageable
+    ) {
+        return applicationRepository.findAll(pageable);
     }
 
     @Override
@@ -148,7 +149,6 @@ public class ApplicationServiceImpl implements ApplicationService{
                         .linkedInUrl(data[8].trim())
                         .githubUrl(data[9].trim())
                         .cvUrl(data.length > 10 ? data[10].trim() : null)
-                        .status(ApplicationStatus.Pending)
                         .build();
 
                 Applicant saved = applicantRepository.save(applicant);
@@ -166,7 +166,6 @@ public class ApplicationServiceImpl implements ApplicationService{
                         .linkedInUrl(saved.getLinkedInUrl())
                         .githubUrl(saved.getGithubUrl())
                         .cvUrl(saved.getCvUrl())
-                        .status(saved.getStatus())
                         .createdAt(saved.getCreatedAt())
                         .build();
 
@@ -176,7 +175,6 @@ public class ApplicationServiceImpl implements ApplicationService{
 
         return applicantDTOs;
     }
-
 
     @Override
     public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status) {
@@ -191,6 +189,29 @@ public class ApplicationServiceImpl implements ApplicationService{
                 .status(application.getStatus())
                 .applicantId(application.getApplicant().getId())
                 .build();
+    }
+
+    @Override
+    public Page<Application> searchApplicants(String query, Pageable pageable) {
+        return applicationRepository
+                .findByApplicant_FirstNameContainingIgnoreCaseOrApplicant_InstitutionContainingIgnoreCaseOrApplicant_FieldOfStudyContainingIgnoreCase(
+                        query, query, query, pageable);
+
+    }
+
+    @Override
+    public Page<Application> filterByStatus(ApplicationStatus status, Pageable pageable) {
+        return applicationRepository.findByStatus(status, pageable);
+    }
+
+    @Override
+    public Page<Application> filterByPosition(String position, Pageable pageable) {
+        return applicationRepository.findByApplicant_FieldOfStudyContainingIgnoreCase(position, pageable);
+    }
+
+    @Override
+    public Page<Application> filterByUniversity(String university, Pageable pageable) {
+        return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
     }
 
 }

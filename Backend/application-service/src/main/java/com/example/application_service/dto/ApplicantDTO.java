@@ -39,5 +39,4 @@ public class ApplicantDTO {
 
     private LocalDateTime createdAt;
 
-    private ApplicationStatus status;
 }

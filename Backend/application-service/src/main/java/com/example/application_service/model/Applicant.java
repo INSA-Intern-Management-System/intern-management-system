@@ -60,8 +60,8 @@ public class Applicant {
 
     private String cvUrl;
 
-    @Enumerated(EnumType.STRING)
-    private ApplicationStatus status;
+//    @Enumerated(EnumType.STRING)
+//    private ApplicationStatus status;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -165,13 +165,13 @@ public class Applicant {
         this.cvUrl = cvUrl;
     }
 
-    public ApplicationStatus getApplicationStatus() {
-        return status;
-    }
-
-    public void setApplicationStatus(ApplicationStatus status) {
-        this.status = status;
-    }
+//    public ApplicationStatus getApplicationStatus() {
+//        return status;
+//    }
+//
+//    public void setApplicationStatus(ApplicationStatus status) {
+//        this.status = status;
+//    }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;

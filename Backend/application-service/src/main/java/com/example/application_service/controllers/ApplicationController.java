@@ -78,7 +78,6 @@ public class ApplicationController {
                     .duration(duration)
                     .linkedInUrl(linkedInUrl)
                     .githubUrl(githubUrl)
-                    .status(ApplicationStatus.valueOf(status != null ? status : "Pending"))  // default or convert properly
                     .build();
 
             ApplicantDTO created = applicationService.createApplicant(applicantDTO, cvFile);
@@ -189,38 +188,17 @@ public class ApplicationController {
 
 
     @GetMapping("/applications/all")
-    public ResponseEntity<List<ApplicationResponseDTO>> getAllApplications() {
-        List<Application> applications = applicationService.getAllApplications();
+    public ResponseEntity<Page<ApplicationResponseDTO>> getAllApplications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            ) {
 
-        List<ApplicationResponseDTO> response = applications.stream().map(application -> {
-            Applicant applicant = application.getApplicant();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Application> applicationsPage = applicationService.getAllApplications(pageable);
 
-            ApplicantDTO applicantDTO = ApplicantDTO.builder()
-                    .id(applicant.getId())
-                    .firstName(applicant.getFirstName())
-                    .lastName(applicant.getLastName())
-                    .email(applicant.getEmail())
-                    .phoneNumber(applicant.getPhoneNumber())
-                    .gender(applicant.getGender())
-                    .duration(applicant.getDuration())
-                    .cvUrl(applicant.getCvUrl())
-                    .institution(applicant.getInstitution())
-                    .fieldOfStudy(applicant.getFieldOfStudy())
-                    .githubUrl(applicant.getGithubUrl())
-                    .linkedInUrl(applicant.getLinkedInUrl())
-                    .status(applicant.getStatus())
-                    .createdAt(applicant.getCreatedAt())
-                    .build();
+        Page<ApplicationResponseDTO> responsePage = applicationsPage.map(this::mapToDTO);
 
-            return ApplicationResponseDTO.builder()
-                    .id(application.getId())
-                    .status(application.getStatus())
-                    .createdAt(application.getCreatedAt())
-                    .applicant(applicantDTO)
-                    .build();
-        }).toList();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(responsePage);
     }
 
 
@@ -302,39 +280,48 @@ public class ApplicationController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Application> applicationsPage = applicationRepository.searchApplicationsByApplicant(query, pageable);
+        Page<Application> pageResult = applicationService.searchApplicants(query, pageable);
 
-        List<ApplicationResponseDTO> content = applicationsPage.getContent()
-                .stream()
+        List<ApplicationResponseDTO> content = pageResult.getContent().stream()
                 .map(this::mapToDTO)
                 .toList();
 
         return ResponseEntity.ok(Map.of(
                 "content", content,
-                "currentPage", applicationsPage.getNumber(),
-                "totalPages", applicationsPage.getTotalPages(),
-                "totalElements", applicationsPage.getTotalElements()
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
         ));
     }
 
 
+
     @GetMapping("/applications/filter/status")
-    public ResponseEntity<?> filterByStatus(@RequestParam("status") String status, HttpServletRequest request) {
+    public ResponseEntity<?> filterByStatus(@RequestParam("status") String status,
+                                            @RequestParam(defaultValue = "0") int page,
+                                            @RequestParam(defaultValue = "10") int size,
+                                            HttpServletRequest request) {
+
         String role = (String) request.getAttribute("role");
 
         if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
             return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
         }
-        List<Application> applications = applicationRepository.filterByStatus(ApplicationStatus.valueOf(status));
-        List<ApplicationResponseDTO> response = applications.stream()
-                .map(this::mapToDTO)
-                .toList();
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Application> result = applicationService.filterByStatus(ApplicationStatus.valueOf(status), pageable);
+
+        List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
 
         return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/applications/filter/position")
-    public ResponseEntity<?> filterByPosition(@RequestParam("position") String position, HttpServletRequest request) {
+    public ResponseEntity<?> filterByPosition(@RequestParam("position") String position,
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size,
+                                              HttpServletRequest request) {
 
         String role = (String) request.getAttribute("role");
 
@@ -342,17 +329,21 @@ public class ApplicationController {
             return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
         }
 
-        List<Application> applications = applicationRepository.filterByPosition(position);
-        List<ApplicationResponseDTO> response = applications.stream()
-                .map(this::mapToDTO)
-                .toList();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Application> result = applicationService.filterByPosition(position, pageable);
+
+        List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
 
         return ResponseEntity.ok(response);
     }
+
 
 
     @GetMapping("/applications/filter/university")
-    public ResponseEntity<?> filterByUniversity(@RequestParam("university") String university, HttpServletRequest request) {
+    public ResponseEntity<?> filterByUniversity(@RequestParam("university") String university,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "10") int size,
+                                                HttpServletRequest request) {
 
         String role = (String) request.getAttribute("role");
 
@@ -360,13 +351,14 @@ public class ApplicationController {
             return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
         }
 
-        List<Application> applications = applicationRepository.filterByUniversity(university);
-        List<ApplicationResponseDTO> response = applications.stream()
-                .map(this::mapToDTO)
-                .toList();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Application> result = applicationService.filterByUniversity(university, pageable);
+
+        List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
 
         return ResponseEntity.ok(response);
     }
+
 
 
     private ApplicationResponseDTO mapToDTO(Application application) {
@@ -389,7 +381,6 @@ public class ApplicationController {
                                 .githubUrl(application.getApplicant().getGithubUrl())
                                 .cvUrl(application.getApplicant().getCvUrl())
                                 .createdAt(application.getApplicant().getCreatedAt())
-                                .status(application.getApplicant().getStatus())
                                 .build()
                 )
                 .build();
