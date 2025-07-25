@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
+  ChevronLeft,
+  ChevronRight,
   Send,
   CheckCircle,
   Star,
@@ -29,17 +30,14 @@ import {
 interface SidebarProps {
   userRole: string;
   userName: string;
+  userEmail?: string;
   onLogout: () => void;
 }
 
 const sidebarItems = {
   student: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/student" },
-    {
-      icon: FileText,
-      label: "Plan & Tasks",
-      href: "/dashboard/student/plans",
-    },
+    { icon: FileText, label: "Plan & Tasks", href: "/dashboard/student/plans" },
     { icon: Send, label: "Reports", href: "/dashboard/student/reports" },
     {
       icon: MessageSquare,
@@ -159,75 +157,119 @@ const roleIcons = {
 };
 
 const roleColors = {
-  student: "text-blue-600",
-  company: "text-green-600",
-  university: "text-purple-600",
-  admin: "text-red-600",
+  student: "text-blue-600 bg-blue-50",
+  company: "text-green-600 bg-green-50",
+  university: "text-purple-600 bg-purple-50",
+  admin: "text-red-600 bg-red-50",
 };
 
-export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
+export function Sidebar({
+  userRole,
+  userName,
+  userEmail,
+  onLogout,
+}: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      setIsCollapsed(mobile);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const items = sidebarItems[userRole as keyof typeof sidebarItems] || [];
   const RoleIcon = roleIcons[userRole as keyof typeof roleIcons] || User;
   const roleColor =
-    roleColors[userRole as keyof typeof roleColors] || "text-gray-600";
+    roleColors[userRole as keyof typeof roleColors] ||
+    "text-gray-600 bg-gray-50";
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="fixed top-4 left-4 z-50 md:hidden"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        {isCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
-      </Button>
-
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed left-0 top-0 z-40 h-full bg-white border-r border-gray-200 transition-all duration-300 flex flex-col",
-          isCollapsed ? "-translate-x-full md:translate-x-0 md:w-16" : "w-64",
-          "md:translate-x-0"
+          "fixed left-0 top-0 z-40 h-screen bg-white border-r border-gray-200 transition-all duration-300 flex flex-col",
+          isCollapsed ? "w-20" : "w-64",
+          isCollapsed && isMobile ? "-translate-x-full" : "translate-x-0"
         )}
       >
+        {/* Collapse Toggle Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute -right-5 lg:-right-2 top-4 z-50 md:flex items-center justify-center p-1 rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-100"
+          onClick={toggleSidebar}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </Button>
+
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <RoleIcon className={cn("h-8 w-8", roleColor)} />
-            {!isCollapsed && (
-              <div>
-                <h2 className="font-semibold text-gray-900 capitalize">
-                  {userRole} Portal
-                </h2>
-                <p className="text-sm text-gray-600">{userName}</p>
-              </div>
-            )}
+        <div
+          className={cn(
+            "p-4 border-b border-gray-200 flex items-center",
+            isCollapsed ? "justify-center" : "space-x-3"
+          )}
+        >
+          <div className={cn("p-2 rounded-lg", roleColor)}>
+            <RoleIcon className="h-6 w-6" />
           </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <h2 className="font-semibold text-gray-900 truncate capitalize">
+                {userRole} Portal
+              </h2>
+              <p className="text-sm text-gray-600 truncate">{userName}</p>
+              {userEmail && (
+                <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {items.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard/" + userRole &&
+                  pathname.startsWith(item.href));
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
+                      "flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors",
                       isActive
-                        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                        ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:bg-gray-100",
                       isCollapsed && "justify-center"
                     )}
                   >
                     <Icon className="h-5 w-5" />
-                    {!isCollapsed && <span>{item.label}</span>}
+                    {!isCollapsed && (
+                      <span className="text-sm font-medium">{item.label}</span>
+                    )}
+                    {isActive && !isCollapsed && (
+                      <span className="ml-auto w-1.5 h-1.5 bg-blue-700 rounded-full"></span>
+                    )}
                   </Link>
                 </li>
               );
@@ -240,24 +282,16 @@ export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
           <Button
             variant="ghost"
             className={cn(
-              "w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50",
+              "w-full justify-start text-gray-700 hover:bg-gray-100",
               isCollapsed && "justify-center"
             )}
             onClick={onLogout}
           >
             <LogOut className="h-5 w-5" />
-            {!isCollapsed && <span className="ml-3">Logout</span>}
+            {!isCollapsed && <span className="ml-2 text-sm">Logout</span>}
           </Button>
         </div>
       </div>
-
-      {/* Mobile Overlay */}
-      {!isCollapsed && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          onClick={() => setIsCollapsed(true)}
-        />
-      )}
     </>
   );
 }
