@@ -1,4 +1,5 @@
 "use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,10 +30,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 
-// Separate interfaces as requested
 interface Applicant {
   id: number
-  user_id?: number
   first_name: string
   last_name: string
   email: string
@@ -55,12 +54,10 @@ interface Application {
 }
 
 export default function CompanyApplicationsPage() {
-  // Updated sample data to use the new structure
   const [applications, setApplications] = useState<Application[]>([
     {
       applicant: {
         id: 1,
-        user_id: 101,
         first_name: "Mryem",
         last_name: "ahmed",
         email: "mryem.ahmed@insa-lyon.fr",
@@ -81,7 +78,6 @@ export default function CompanyApplicationsPage() {
     {
       applicant: {
         id: 2,
-        user_id: 102,
         first_name: "chala",
         last_name: "bayisa",
         email: "chala.bayisa@insa-toulouse.fr",
@@ -102,7 +98,6 @@ export default function CompanyApplicationsPage() {
     {
       applicant: {
         id: 3,
-        user_id: 103,
         first_name: "Sophia",
         last_name: "ali",
         email: "sophia.ali@insa-rennes.fr",
@@ -123,7 +118,6 @@ export default function CompanyApplicationsPage() {
     {
       applicant: {
         id: 4,
-        user_id: 104,
         first_name: "Lencho",
         last_name: "Beksisa",
         email: "lencho.beksisa@insa-lyon.fr",
@@ -207,8 +201,6 @@ export default function CompanyApplicationsPage() {
       "LinkedIn URL",
       "GitHub URL",
       "CV URL",
-      "User ID",
-      "Registered",
     ]
 
     const csvData = filteredApplications.map((app) => [
@@ -227,8 +219,6 @@ export default function CompanyApplicationsPage() {
       app.applicant.linkedin_url || "",
       app.applicant.github_url || "",
       app.applicant.cv_url || "",
-      app.applicant.user_id || "",
-      app.applicant.user_id ? "Yes" : "No",
     ])
 
     const csvContent = [
@@ -262,11 +252,6 @@ export default function CompanyApplicationsPage() {
               ...app,
               status: newStatus,
               updated_at: new Date().toISOString(),
-              applicant: {
-                ...app.applicant,
-                application_status: newStatus,
-                updated_at: new Date().toISOString(),
-              },
             }
           : app,
       ),
@@ -321,7 +306,6 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -333,7 +317,6 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -347,7 +330,6 @@ export default function CompanyApplicationsPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -376,7 +358,7 @@ export default function CompanyApplicationsPage() {
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value)
-                      setPage(1) // Reset to first page when searching
+                      setPage(1)
                     }}
                   />
                 </div>
@@ -385,7 +367,7 @@ export default function CompanyApplicationsPage() {
                 value={statusFilter}
                 onValueChange={(value) => {
                   setStatusFilter(value)
-                  setPage(1) // Reset to first page when filtering
+                  setPage(1)
                 }}
               >
                 <SelectTrigger className="w-48">
@@ -402,7 +384,7 @@ export default function CompanyApplicationsPage() {
                 value={fieldFilter}
                 onValueChange={(value) => {
                   setFieldFilter(value)
-                  setPage(1) // Reset to first page when filtering
+                  setPage(1)
                 }}
               >
                 <SelectTrigger className="w-48">
@@ -421,7 +403,7 @@ export default function CompanyApplicationsPage() {
                 value={institutionFilter}
                 onValueChange={(value) => {
                   setInstitutionFilter(value)
-                  setPage(1) // Reset to first page when filtering
+                  setPage(1)
                 }}
               >
                 <SelectTrigger className="w-48">
@@ -474,11 +456,6 @@ export default function CompanyApplicationsPage() {
                               {application.applicant.first_name} {application.applicant.last_name}
                             </h3>
                             {getStatusBadge(application.status)}
-                            {!application.applicant.user_id && (
-                              <Badge variant="outline" className="text-orange-600 border-orange-200">
-                                Not Registered
-                              </Badge>
-                            )}
                           </div>
                         </div>
 
@@ -622,7 +599,6 @@ export default function CompanyApplicationsPage() {
                               Accept
                             </Button>
                           )}
-
                           {confirmingAction?.applicantId === application.applicant.id &&
                           confirmingAction.action === "reject" ? (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
