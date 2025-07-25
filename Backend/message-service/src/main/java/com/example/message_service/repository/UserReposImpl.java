@@ -2,6 +2,8 @@ package com.example.message_service.repository;
 
 import com.example.message_service.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -22,5 +24,12 @@ public class UserReposImpl implements UserReposInterface {
     @Override
     public List<User> getUsersByIds(List<Long> ids) {
         return userJpaRepos.findAllByIdIn(ids);
+    }
+
+    @Override
+    public Page<User> searchByName(String keyword, Pageable pageable) {
+        // Use the same keyword for both firstName and lastName fields
+        return userJpaRepos.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+                keyword, keyword, pageable);
     }
 }

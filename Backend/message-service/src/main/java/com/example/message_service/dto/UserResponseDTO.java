@@ -19,7 +19,7 @@ public class UserResponseDTO {
 
     public UserResponseDTO () {}
 
-    public UserResponseDTO(Long id, String firstName, String lastName, String email, String address, String fieldOfStudy,
+    public UserResponseDTO(Long id, String firstName, String lastName,  String fieldOfStudy,
                 String university,Status status, Role role) {
         this.id = id;
         this.firstName = firstName;

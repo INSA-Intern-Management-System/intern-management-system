@@ -90,4 +90,7 @@ public class Message {
     public Date getUpdatedAt() { return updatedAt; }
 
     public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+    public Room getRoom() { return room; }
+
+    public void setRoom(Room room) { this.room = room; }
 }

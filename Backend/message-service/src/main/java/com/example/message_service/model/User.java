@@ -25,6 +25,10 @@ public class User implements UserDetails {
     private String gender;
     private String fieldOfStudy;
     private String university;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Status status;
+
     private Date createdAt;
     private Date updatedAt;
 
@@ -48,7 +52,7 @@ public class User implements UserDetails {
 
     public User(Long id, String firstName, String lastName, String email, String password,
                 String phoneNumber, String address, String gender, String fieldOfStudy,
-                String university, Date createdAt, Date updatedAt, Role role) {
+                String university,Status status, Date createdAt, Date updatedAt, Role role) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -59,6 +63,7 @@ public class User implements UserDetails {
         this.gender = gender;
         this.fieldOfStudy = fieldOfStudy;
         this.university = university;
+        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.role = role;
@@ -200,5 +205,12 @@ public class User implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 }
