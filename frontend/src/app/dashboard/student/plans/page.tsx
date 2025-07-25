@@ -147,7 +147,7 @@ export default function PlanTasksPage() {
 
   return (
     <DashboardLayout requiredRole="student">
-      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -260,40 +260,44 @@ export default function PlanTasksPage() {
 
                       {/* status for done, edit and delete task functionality */}
                       <div className="flex items-center space-x-2 mt-2">
-                        <Button
-                          variant="outline"
-                          className="text-blue-600 hover:bg-blue-50"
-                          onClick={() => setDialogOpen(true)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="text-green-600 hover:bg-green-50"
-                          onClick={() => {
-                            setstudentonlyTasks(
-                              studentonlyTasks.map((p) =>
-                                p.id === task.id ? { ...p, status: "done" } : p
-                              )
-                            );
-                          }}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Mark as Done
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="text-red-600 hover:bg-red-50"
-                          onClick={() => {
-                            setstudentonlyTasks(
-                              studentonlyTasks.filter((p) => p.id !== task.id)
-                            );
-                          }}
-                        >
-                          <Delete className="h-4 w-4 mr-1" />
-                          Delete Task
-                        </Button>
+                        <div className="flex flex-col md:flex-row gap-2 w-full">
+                          <Button
+                            variant="outline"
+                            className="text-blue-600 hover:bg-blue-50 w-full md:w-auto"
+                            onClick={() => setDialogOpen(true)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="text-green-600 hover:bg-green-50 w-full md:w-auto"
+                            onClick={() => {
+                              setstudentonlyTasks(
+                                studentonlyTasks.map((p) =>
+                                  p.id === task.id
+                                    ? { ...p, status: "done" }
+                                    : p
+                                )
+                              );
+                            }}
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Mark as Done
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="text-red-600 hover:bg-red-50 w-full md:w-auto"
+                            onClick={() => {
+                              setstudentonlyTasks(
+                                studentonlyTasks.filter((p) => p.id !== task.id)
+                              );
+                            }}
+                          >
+                            <Delete className="h-4 w-4 mr-1" />
+                            Delete Task
+                          </Button>
+                        </div>
                       </div>
                     </>
                   )}

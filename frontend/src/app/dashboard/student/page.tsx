@@ -19,10 +19,10 @@ import {
   CheckCircle,
   TrendingUp,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function StudentDashboard() {
-  const router = useRouter();
+  // const router = useRouter();
   // Mock data
   const stats = {
     supervisor: "Dr. Smith",
@@ -260,38 +260,42 @@ export default function StudentDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button
-                variant="outline"
-                className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
-                onClick={() => router.push("/dashboard/student/plans")}
-              >
-                <FileText className="h-8 w-8 text-blue-600" />
-                <span>New Plan & Task</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
-                onClick={() => router.push("/dashboard/student/reports")}
-              >
-                <Send className="h-8 w-8 text-green-600" />
-                <span>Submit Report</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
-                onClick={() => router.push("/dashboard/student/messages")}
-              >
-                <MessageSquare className="h-8 w-8 text-purple-600" />
-                <span>Send Message</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
-                onClick={() => router.push("/dashboard/student/leave")}
-              >
-                <Calendar className="h-6 w-6 text-blue-600" />
-                <span>Request Leave</span>
-              </Button>
+              <Link href="/dashboard/student/plans" passHref legacyBehavior>
+                <Button
+                  variant="outline"
+                  className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
+                >
+                  <FileText className="h-8 w-8 text-blue-600" />
+                  <span>New Plan & Task</span>
+                </Button>
+              </Link>
+              <Link href="/dashboard/student/reports" passHref legacyBehavior>
+                <Button
+                  variant="outline"
+                  className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
+                >
+                  <Send className="h-8 w-8 text-green-600" />
+                  <span>Submit Report</span>
+                </Button>
+              </Link>
+              <Link href="/dashboard/student/messages" passHref legacyBehavior>
+                <Button
+                  variant="outline"
+                  className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
+                >
+                  <MessageSquare className="h-8 w-8 text-purple-600" />
+                  <span>Send Message</span>
+                </Button>
+              </Link>
+              <Link href="/dashboard/student/leave" passHref legacyBehavior>
+                <Button
+                  variant="outline"
+                  className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"
+                >
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                  <span>Request Leave</span>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
