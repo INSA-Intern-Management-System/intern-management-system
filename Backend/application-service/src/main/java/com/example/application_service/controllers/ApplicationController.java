@@ -1,6 +1,7 @@
 package com.example.application_service.controllers;
 
 import com.example.application_service.dto.ApplicantDTO;
+import com.example.application_service.gRPC.NotificationGrpcClient
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.ApplicationResponseDTO;
 import com.example.application_service.dto.UserResponseDTO;
@@ -34,6 +35,9 @@ public class ApplicationController {
     private final UserServiceClient userServiceClient;
     private final ApplicantRepository applicantRepository;
     private final ApplicationRepository applicationRepository;
+
+    @Autowired
+    private NotificationGrpcClient notificationGrpcClient
 
     public ApplicationController(ApplicationService applicationService, UserServiceClient userServiceClient, ApplicantRepository applicantRepository, ApplicationRepository applicationRepository) {
         this.applicationService = applicationService;
@@ -85,6 +89,16 @@ public class ApplicationController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Application created successfully");
             response.put("applicant", created);
+
+
+            // Send notification to STUDENT and COMPANY (example)
+            notificationGrpcClient.sendNotification(
+                    Set.of(RecipientRole.HR, RecipientRole.University, RecipientRole.Project_Manager),
+                    "New Internship Application",
+                    "A new internship application has been submitted.",
+                    Instant.now()
+            );
+
             return ResponseEntity.status(201).body(response);
 
         } catch (RuntimeException e) {
