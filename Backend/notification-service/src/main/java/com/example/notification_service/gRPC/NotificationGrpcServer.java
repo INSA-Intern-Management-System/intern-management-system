@@ -5,7 +5,6 @@ import com.example.grpc.NotificationResponse;
 import com.example.grpc.NotificationServiceGrpc;
 import com.example.grpc.RecipientRole;
 import com.example.notification_service.model.Notification;
-import com.example.notification_service.model.RecipientRole as JavaRecipientRole;
 import com.example.notification_service.repository.NotificationRepository;
 import com.example.notification_service.repository.NotificationRepository;
 import com.google.protobuf.Timestamp;
@@ -30,8 +29,8 @@ public class NotificationGrpcServer extends NotificationServiceGrpc.Notification
         Notification notification = new Notification();
 
         // Map proto enum list to Java enum set
-        Set<JavaRecipientRole> javaRoles = request.getRolesList().stream()
-                .map(protoRole -> JavaRecipientRole.valueOf(protoRole.name()))
+        Set<com.example.notification_service.model.RecipientRole> javaRoles = request.getRolesList().stream()
+                .map(protoRole -> com.example.notification_service.model.RecipientRole.valueOf(protoRole.name()))
                 .collect(Collectors.toSet());
 
         notification.setRoles(javaRoles);
@@ -52,4 +51,6 @@ public class NotificationGrpcServer extends NotificationServiceGrpc.Notification
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
+
+
 }

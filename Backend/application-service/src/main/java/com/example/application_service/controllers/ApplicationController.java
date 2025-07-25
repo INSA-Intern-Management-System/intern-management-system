@@ -1,7 +1,7 @@
 package com.example.application_service.controllers;
 
 import com.example.application_service.dto.ApplicantDTO;
-import com.example.application_service.gRPC.NotificationGrpcClient
+import com.example.application_service.gRPC.NotificationGrpcClient;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.ApplicationResponseDTO;
 import com.example.application_service.dto.UserResponseDTO;
@@ -12,8 +12,10 @@ import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.services.ApplicationService;
 import com.example.application_service.services.UserServiceClient;
+import com.example.grpc.RecipientRole;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -37,13 +40,19 @@ public class ApplicationController {
     private final ApplicationRepository applicationRepository;
 
     @Autowired
-    private NotificationGrpcClient notificationGrpcClient
+    private NotificationGrpcClient notificationGrpcClient;
 
-    public ApplicationController(ApplicationService applicationService, UserServiceClient userServiceClient, ApplicantRepository applicantRepository, ApplicationRepository applicationRepository) {
+    public ApplicationController(ApplicationService applicationService,
+                                 UserServiceClient userServiceClient,
+                                 ApplicantRepository applicantRepository,
+                                 ApplicationRepository applicationRepository,
+                                 NotificationGrpcClient notificationGrpcClient
+                                 ) {
         this.applicationService = applicationService;
         this.userServiceClient = userServiceClient;
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
+        this.notificationGrpcClient = notificationGrpcClient;
     }
 
     @PostMapping(value = "/applicant/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -89,15 +98,6 @@ public class ApplicationController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Application created successfully");
             response.put("applicant", created);
-
-
-            // Send notification to STUDENT and COMPANY (example)
-            notificationGrpcClient.sendNotification(
-                    Set.of(RecipientRole.HR, RecipientRole.University, RecipientRole.Project_Manager),
-                    "New Internship Application",
-                    "A new internship application has been submitted.",
-                    Instant.now()
-            );
 
             return ResponseEntity.status(201).body(response);
 
@@ -195,6 +195,15 @@ public class ApplicationController {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Applied successfully");
         response.put("application", responseDTO);
+
+        // Send notification to UNIVERSITY and COMPANY (example)
+        notificationGrpcClient.sendNotification(
+                Set.of(RecipientRole.HR, RecipientRole.University, RecipientRole.Project_Manager),
+                "New Internship Application",
+                "A new internship application has been submitted.",
+                Instant.now()
+        );
+
         return ResponseEntity.status(201).body(response);
     }
 
