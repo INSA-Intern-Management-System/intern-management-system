@@ -198,7 +198,7 @@ public class ApplicationController {
 
         // Send notification to UNIVERSITY and COMPANY (example)
         notificationGrpcClient.sendNotification(
-                Set.of(RecipientRole.HR, RecipientRole.University, RecipientRole.Project_Manager),
+                Set.of(RecipientRole.HR),
                 "New Internship Application",
                 "A new internship application has been submitted.",
                 Instant.now()
@@ -206,7 +206,6 @@ public class ApplicationController {
 
         return ResponseEntity.status(201).body(response);
     }
-
 
 
 
@@ -269,25 +268,48 @@ public class ApplicationController {
     public ResponseEntity<?> updateStatus(
             @PathVariable Long id,
             @RequestParam("status") String status,
-            HttpServletRequest request )
-    {
+            HttpServletRequest request) {
+
         try {
             String role = (String) request.getAttribute("role");
 
             if (!"HR".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only HR can Update status of application");
+                return errorResponse("Unauthorized: Only HR can update application status.");
             }
 
+            // ✅ Update the application status and get the updated data
             ApplicationDTO updated = applicationService.updateApplicationStatus(id, ApplicationStatus.valueOf(status));
+
+            // ✅ Fetch applicant info using application ID
+            Application application = applicationRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Application not found"));
+
+            Applicant applicant = application.getApplicant();
+
+            // ✅ Create a dynamic message based on status
+            String message = String.format("Application for %s %s (%s) has been %s.",
+                    applicant.getFirstName(),
+                    applicant.getLastName(),
+                    applicant.getEmail(),
+                    status.toUpperCase());
+
+            // ✅ Send notification to the applicant(University)
+            notificationGrpcClient.sendNotification(
+                    Set.of(RecipientRole.University),
+                    "Application Status Update",
+                    message,
+                    Instant.now()
+            );
+
             return ResponseEntity.ok(updated);
 
-        }catch(RuntimeException e){
+        } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(400).body(error);
-
         }
     }
+
 
     @GetMapping("/applicants/search")
     public ResponseEntity<?> searchApplicants(

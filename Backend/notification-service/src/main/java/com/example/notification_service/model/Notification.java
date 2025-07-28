@@ -21,6 +21,8 @@ public class Notification {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+
+
     @ElementCollection(targetClass = RecipientRole.class)
     @CollectionTable(name = "notification_roles", joinColumns = @JoinColumn(name = "notification_id"))
     @Enumerated(EnumType.STRING)

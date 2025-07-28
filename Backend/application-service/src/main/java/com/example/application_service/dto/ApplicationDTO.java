@@ -27,7 +27,6 @@ public class ApplicationDTO {
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
 
-
     public Long getId() {
         return id;
     }

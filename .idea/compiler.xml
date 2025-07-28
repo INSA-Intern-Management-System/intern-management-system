@@ -7,16 +7,17 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="notification-service" />
+        <module name="user-service" />
       </profile>
       <profile name="Annotation profile for notification-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/unknown/lombok-unknown.jar" />
         </processorPath>
-        <module name="notification-service" />
-        <module name="user-service" />
+        <module name="notification-service (2)" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -27,7 +28,8 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="application-service" options="-parameters" />
       <module name="notification-service" options="-parameters" />
-      <module name="user-service" options="-parameters" />
+      <module name="notification-service (2)" options="-parameters" />
+      <module name="user-service" options="" />
     </option>
   </component>
 </project>
