@@ -1,0 +1,14 @@
+# Start from an OpenJDK image
+FROM openjdk:17-jdk-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the built jar file into the container
+COPY target/user-service-0.0.1-SNAPSHOT.jar user-service.jar
+
+# Expose the port your Spring Boot app runs on
+EXPOSE 8082
+
+# Run the jar file
+ENTRYPOINT ["java", "-jar", "user-service.jar"]

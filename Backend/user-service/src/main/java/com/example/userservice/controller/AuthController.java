@@ -5,6 +5,8 @@ import com.example.userservice.dto.*;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,17 +24,21 @@ public class AuthController {
     private final UserService userService;
     private final  JwtUtil jwtUtil;
 
-    public AuthController(UserService userService,
-
-                          JwtUtil jwtUtil
-                           ) {
+    public AuthController(UserService userService, JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request, HttpServletRequest servletRequest) {
         try {
+
+            String role = (String) servletRequest.getAttribute("role");
+
+            if(role == null || !"Admin".equalsIgnoreCase(role)){
+                return errorResponse("Unauthorized: Only Admin Register Users!!");
+            }
+
             User user = userService.registerUser(request);
 
             Map<String, Object> response = new HashMap<>();
@@ -53,24 +59,23 @@ public class AuthController {
         try {
             User user = userService.loginUser(request);
 
-            Date loginTime = new Date();
-            user.setLastLogin(loginTime);
-            userService.saveUser(user);
-
             String token = jwtUtil.generateToken(user);
+
+            boolean forcePasswordChange = user.isFirstLogin();
 
             // ✅ Extract data from the token
             Long userIdFromToken = jwtUtil.extractUserId(token);
-            String roleFromToken = jwtUtil.extractRole(token);
+            String roleFromToken = jwtUtil.extractUserRole(token);
             String emailFromToken = jwtUtil.extractEmail(token);
 
             // ✅ Print values
-            System.out.println("User ID from token: " + userIdFromToken);
-            System.out.println("Role from token: " + roleFromToken);
-            System.out.println("Email from token: " + emailFromToken);
+            System.out.println("userId: " + userIdFromToken);
+            System.out.println("role: " + roleFromToken);
+            System.out.println("email: " + emailFromToken);
 
             AuthResponse authResponse = new AuthResponse(
                     "User logged in successfully",
+                    forcePasswordChange,
                     token,
                     new UserResponseDto(user)
             );
@@ -85,14 +90,59 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/validate")
-    public ResponseEntity<UserInfoDTO> validateToken(@RequestHeader("Authorization") String token) {
-        String jwt = token.substring(7); // Remove "Bearer "
-        String role = jwtUtil.extractRole(jwt);
-        Long userId = jwtUtil.extractUserId(jwt);
 
-        UserInfoDTO userInfo = new UserInfoDTO(userId, role);
-        return ResponseEntity.ok(userInfo);
+    // --- New Public Endpoints for OTP-based Password Change ---
+
+    @PostMapping("/request-password-change-otp") // ✅ Public: Request OTP
+    public ResponseEntity<?> requestPasswordChangeOtp(@RequestBody OtpRequest otpRequest) {
+        try {
+            if (otpRequest.getEmail() == null || otpRequest.getEmail().isEmpty()) {
+                return errorResponse("Email is required.");
+            }
+            userService.generateAndSendOtpForPasswordChange(otpRequest.getEmail());
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "If an account with that email exists, a verification code has been sent, check your email quickly!");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            // Be generic about error to avoid revealing user existence
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to send verification code. Please try again later.");
+            System.err.println("Error requesting OTP: " + e.getMessage()); // Log actual error for debug
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
+
+    @PostMapping("/confirm-password-change-otp") // ✅ Public: Confirm OTP and Set New Password
+    public ResponseEntity<?> confirmPasswordChangeOtp(@RequestBody PasswordResetOtpConfirmRequest confirmRequest) {
+        try {
+            if (confirmRequest.getEmail() == null || confirmRequest.getEmail().isEmpty() ||
+                    confirmRequest.getOtp() == null || confirmRequest.getOtp().isEmpty() ||
+                    confirmRequest.getNewPassword() == null || confirmRequest.getNewPassword().isEmpty()) {
+                return errorResponse("Email, OTP, and new password are required.");
+            }
+
+            userService.verifyOtpAndSetNewPassword(
+                    confirmRequest.getEmail(),
+                    confirmRequest.getOtp(),
+                    confirmRequest.getNewPassword()
+            );
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Password has been successfully updated.");
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return errorResponse(e.getMessage());
+        }
+    }
+
+
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
 }

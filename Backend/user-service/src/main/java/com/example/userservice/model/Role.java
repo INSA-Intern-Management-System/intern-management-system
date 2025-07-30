@@ -5,5 +5,6 @@ public enum Role {
     Project_Manager,
     HR,
     University,
-    Supervisor
+    Supervisor,
+    Admin
 }

@@ -208,7 +208,6 @@ public class ApplicationController {
     }
 
 
-
     @GetMapping("/applications/all")
     public ResponseEntity<Page<ApplicationResponseDTO>> getAllApplications(
             @RequestParam(defaultValue = "0") int page,

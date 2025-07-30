@@ -50,6 +50,10 @@ public class User implements UserDetails {
     @Column(name = "last_login")
     private Date lastLogin;
 
+    @Column(nullable = false) // Assuming it should always have a value
+    private Boolean isFirstLogin = true; // Initialize to true for new users
+
+
 
     @NotNull
     @Column(nullable = false)
@@ -89,7 +93,8 @@ public class User implements UserDetails {
     Date lastLogin,
     Role role,
     Date createdAt, 
-    Date updatedAt
+    Date updatedAt,
+    Boolean isFirstLogin
       ) {
         this.id = id;
         this.firstName = firstName;
@@ -114,6 +119,7 @@ public class User implements UserDetails {
         this.role = role;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.isFirstLogin = isFirstLogin;
     }
 
      @Override
@@ -148,7 +154,13 @@ public class User implements UserDetails {
      }
 
 
+    public Boolean isFirstLogin() {
+        return isFirstLogin;
+    }
 
+    public void setFirstLogin(Boolean firstLogin) {
+        isFirstLogin = firstLogin;
+    }
 
     public String getFirstName() {
         return firstName;

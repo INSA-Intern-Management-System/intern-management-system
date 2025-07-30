@@ -1,9 +1,16 @@
 package com.example.userservice.controller;
 
 
+import com.example.userservice.dto.AdminResetPasswordRequest;
 import com.example.userservice.dto.UserResponseDto;
+import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import com.example.userservice.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -77,4 +84,114 @@ public class UserController {
                     .body("Failed to update user: " + e.getMessage());
         }
     }
+
+    @GetMapping("/interns")
+    public ResponseEntity<?> getInterns(HttpServletRequest request,
+                                        @RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "10") int size){
+        try{
+
+            String role = (String) request.getAttribute("role");
+
+            if (role == null) {
+                return errorResponse("Unauthorized: Role not found in request");
+            }
+
+            if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+
+            Page<User> interns = userService.getInterns(Role.University, pageable);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Fetched interns successfully");
+            response.put("interns", interns);
+            return ResponseEntity.status(201).body(response);
+
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
+
+    @GetMapping("/supervisors")
+    public ResponseEntity<?> getSupervisors(HttpServletRequest request,
+                                        @RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "10") int size){
+        try{
+
+            String role = (String) request.getAttribute("role");
+
+            if (role == null) {
+                return errorResponse("Unauthorized: Role not found in request");
+            }
+
+            if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+
+            Page<User> supervisors = userService.getSupervisors(Role.Supervisor, pageable);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Fetched supervisors successfully");
+            response.put("interns", supervisors);
+            return ResponseEntity.status(201).body(response);
+
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
+
+
+    @PostMapping("/admin/reset-password")
+    public ResponseEntity<?> adminResetUserPassword(
+            HttpServletRequest request,
+            @RequestBody AdminResetPasswordRequest resetRequest) {
+        try {
+            String role = (String) request.getAttribute("role"); // Extracted by JwtAuthenticationFilter
+
+            if (role == null || !"Admin".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only Admin users can reset passwords.");
+            }
+
+            if (resetRequest.getNewPassword() == null || resetRequest.getNewPassword().length() < 6) {
+                return errorResponse("New password must be at least 6 characters long.");
+            }
+
+            User updatedUser = userService.adminResetUserPassword(
+                    resetRequest.getTargetUserEmail(),
+                    resetRequest.getNewPassword()
+            );
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Password for user " + updatedUser.getEmail() + " has been successfully reset by admin.");
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return errorResponse(e.getMessage());
+        }
+    }
+
+
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+
+
 }

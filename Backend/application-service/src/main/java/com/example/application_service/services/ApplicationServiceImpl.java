@@ -214,6 +214,4 @@ public class ApplicationServiceImpl implements ApplicationService{
         return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
     }
 
-
-
 }

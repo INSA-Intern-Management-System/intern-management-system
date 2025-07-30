@@ -1,0 +1,10 @@
+services:
+  user-service:
+    build: .
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ep-jolly-lab-abme4tiv-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channelBinding=require
+      - SPRING_DATASOURCE_USERNAME=neondb_owner
+      - SPRING_DATASOURCE_PASSWORD=npg_bC4KoPql7uWG
+      - JWT_SECRET=wPRm5TI2eJ+FnVuAdZkaT04+hdQuz6mcDhSYT8M92Lgshabfjdsbf
