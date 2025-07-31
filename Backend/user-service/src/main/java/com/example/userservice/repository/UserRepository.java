@@ -14,6 +14,15 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByEmail(String email);
     Page<User> findByRole(Role role, Pageable pageable);
+
+    Page<User> findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
+            Role role1, String firstName, Role role2, String fieldOfStudy, Pageable pageable
+    );
+
+   Page<User> findByRoleAndInstitutionContainingIgnoreCase( Role role ,String institution, Pageable pageable);
+
+
+
 }
 
 

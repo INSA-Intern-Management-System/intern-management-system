@@ -37,4 +37,9 @@ public interface UserService {
     Page<User> getInterns(Role role, Pageable pageable);
     Page<User> getSupervisors(Role role, Pageable pageable);
 
+    Page<User> searchInterns(String query, Pageable pageable);
+
+    Page<User> filterByInstitution(String institution, Pageable pageable);
+
+
 }

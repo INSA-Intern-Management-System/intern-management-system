@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/Backend/application-service/src/main/java/com/example/applicationservice/services" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Backend/application-service" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Backend/notification-service" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Backend/activity-service" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/Backend/application-service/src/main/java/com/example/applicationservice/controllers" />
     </content>
     <orderEntry type="inheritedJdk" />

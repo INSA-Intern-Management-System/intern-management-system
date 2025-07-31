@@ -186,12 +186,78 @@ public class UserController {
 
 
 
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchApplicants(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only HR or Project Manager can search users");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.searchInterns(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+
+    @GetMapping("/filter")
+    public ResponseEntity<?> filterByInstitution(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only HR or Project Manager can search users");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterByInstitution(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+
+
+
+
     private ResponseEntity<?> errorResponse(String message) {
         Map<String, String> error = new HashMap<>();
         error.put("error", message);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
+
+    private UserResponseDto mapToDTO(User user) {
+        return new UserResponseDto(user);
+    }
 
 
 }

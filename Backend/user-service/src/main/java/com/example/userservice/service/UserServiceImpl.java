@@ -282,6 +282,26 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    @Override
+    public Page<User> searchInterns(String query, Pageable pageable) {
+        Role internRole = Role.Student; // or however you represent it
+        return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
+                internRole, query, internRole, query, pageable
+        );
+    }
+
+    @Override
+    public Page<User> filterByInstitution(String institution, Pageable pageable) {
+        Role internRole = Role.Student;
+        return userRepo.findByRoleAndInstitutionContainingIgnoreCase(internRole, institution, pageable);
+    }
+
+
+
+
+
+
+
 
     // --- Helper Methods (no changes needed) ---
     private String generateRandomPassword(int length) {
