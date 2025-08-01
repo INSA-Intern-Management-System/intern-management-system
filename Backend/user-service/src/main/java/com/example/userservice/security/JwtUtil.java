@@ -38,7 +38,7 @@ public class JwtUtil {
                 .setSubject(user.getEmail())
                 .claim("userId", user.getId())  // use getter
                 .claim("email", user.getEmail())
-                .claim("role", user.getRole()) // assuming enum or String
+                .claim("role", user.getRole().getName()) // assuming enum or String
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hrs
                 .signWith(key, SignatureAlgorithm.HS256)

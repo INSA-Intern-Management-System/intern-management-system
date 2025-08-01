@@ -2,10 +2,16 @@ package com.example.userservice.controller;
 
 
 import com.example.userservice.dto.AdminResetPasswordRequest;
+import com.example.userservice.dto.RolesDTO;
+import com.example.userservice.dto.UpdatePasswordDTO;
 import com.example.userservice.dto.UserResponseDto;
 import com.example.userservice.model.Role;
+import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
+import com.example.userservice.model.UserStatusCount;
+import com.example.userservice.repository.RoleRepository;
 import com.example.userservice.service.UserService;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,21 +29,29 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final RoleRepository roleRepo;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, RoleRepository roleRepo) {
         this.userService = userService;
+        this.roleRepo = roleRepo;
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "10") int size) {
         try{
-           List<User> users  = userService.getAllUsers();
+            Pageable pageable = PageRequest.of(page,size);
 
-            List<UserResponseDto> userDtos = users.stream()
-                    .map(UserResponseDto::new)
-                    .toList();
+           Page<User> users  = userService.getAllUsers(pageable);
 
-            return ResponseEntity.ok(userDtos);
+           Long totalUser = userService.countAllUsers();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "All Users fetched successfully");
+            response.put("Users", users);
+            response.put("totalUser", totalUser);
+
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -46,8 +60,15 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUserById(@PathVariable Long id){
+    public ResponseEntity<?> deleteUserById(@PathVariable Long id, HttpServletRequest request){
         try{
+
+            String role = (String) request.getAttribute("role");
+
+            if (role == null || !"Admin".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only Admin users can delete user.");
+            }
+
             userService.deleteUser(id);
             Map<String, String> response = new HashMap<>();
             response.put("message", "User deleted successfully");
@@ -72,6 +93,28 @@ public class UserController {
         }
     }
 
+        @PutMapping("/update-password/{id}")
+        public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, @PathVariable Long id, HttpServletRequest request) {
+            String role = (String) request.getAttribute("role");
+
+            if (role == null || !(role.equalsIgnoreCase("HR") ||
+                    role.equalsIgnoreCase("Project_Manager") ||
+                    role.equalsIgnoreCase("Student") ||
+                    role.equalsIgnoreCase("Admin") ||
+                    role.equalsIgnoreCase("University"))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+            }
+
+            try {
+                userService.updateUserPassword(id, dto);
+
+                return ResponseEntity.ok("Password updated successfully");
+            } catch (RuntimeException e) {
+                return ResponseEntity.badRequest().body(e.getMessage());
+            }
+        }
+
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
         try {
@@ -88,9 +131,8 @@ public class UserController {
     @GetMapping("/interns")
     public ResponseEntity<?> getInterns(HttpServletRequest request,
                                         @RequestParam(defaultValue = "0") int page,
-                                        @RequestParam(defaultValue = "10") int size){
-        try{
-
+                                        @RequestParam(defaultValue = "10") int size) {
+        try {
             String role = (String) request.getAttribute("role");
 
             if (role == null) {
@@ -98,25 +140,32 @@ public class UserController {
             }
 
             if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+                return errorResponse("Unauthorized: Only HR or Project Manager can access interns");
             }
 
             Pageable pageable = PageRequest.of(page, size);
+            // Fetch the Roles entity for "STUDENT"
+            Role studentRole = roleRepo.findByNameIgnoreCase("STUDENT")
+                    .orElseThrow(() -> new RuntimeException("Student role not found"));
 
-            Page<User> interns = userService.getInterns(Role.University, pageable);
+            Page<User> interns = userService.getInterns(studentRole, pageable);
+
+            long totalInterns = userService.countInterns(); // count of all
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Fetched interns successfully");
-            response.put("interns", interns);
-            return ResponseEntity.status(201).body(response);
+            response.put("interns", interns.getContent()); // paginated data
+            response.put("totalPages", interns.getTotalPages()); // optional
+            response.put("currentPage", interns.getNumber());
+            response.put("totalInterns", totalInterns); // total count of all interns
+
+            return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-
-            return ResponseEntity.status(400).body(error);
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         }
     }
+
 
 
     @GetMapping("/supervisors")
@@ -137,7 +186,11 @@ public class UserController {
 
             Pageable pageable = PageRequest.of(page, size);
 
-            Page<User> supervisors = userService.getSupervisors(Role.Supervisor, pageable);
+            Role supervisorRole = roleRepo.findByNameIgnoreCase("SUPERVISOR")
+                    .orElseThrow(() -> new RuntimeException("Student role not found"));
+
+
+            Page<User> supervisors = userService.getSupervisors(supervisorRole, pageable);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Fetched supervisors successfully");
@@ -185,9 +238,29 @@ public class UserController {
     }
 
 
+    @GetMapping("/status-count")
+    public ResponseEntity<?> getUserStatusCounts() {
+        List<UserStatusCount> statusCounts = userService.countUsersByStatus();
+
+        Map<String, Long> response = new HashMap<>();
+        for (UserStatusCount sc : statusCounts) {
+            String key = sc.getUserStatus().name().toLowerCase() + "User"; // e.g., activeUser
+            response.put(key, sc.getCount());
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/role-counts")
+    public ResponseEntity<Map<String, Long>> getUserRoleCounts() {
+        Map<String, Long> roleCounts = userService.getUserRoleCounts();
+        return ResponseEntity.ok(roleCounts);
+    }
 
 
-    @GetMapping("/search")
+
+
+    @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
@@ -215,8 +288,29 @@ public class UserController {
         ));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<?> searchUsers(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-    @GetMapping("/filter")
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.searchUsers(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+
+    @GetMapping("/filter-by-institution")
     public ResponseEntity<?> filterByInstitution(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
@@ -245,7 +339,77 @@ public class UserController {
     }
 
 
+    @GetMapping("/filter-by-role")
+    public ResponseEntity<?> filterByRole(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            ) {
 
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterUserByRole(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+    @GetMapping("/filter-by-status")
+    public ResponseEntity<?> filterByStatus(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterByStatus(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+
+    @PostMapping("/role/create")
+    public ResponseEntity<?> createRole(HttpServletRequest request, @RequestBody RolesDTO dto){
+        try {
+            String userRole = (String) request.getAttribute("role");
+
+            if (userRole == null || !"Admin".equalsIgnoreCase(userRole)) {
+                return errorResponse("Unauthorized: Only Admin users can create roles.");
+            }
+
+            Role newRole = userService.createRole(dto);
+
+            Map<String,Object> response = new HashMap<>();
+            response.put("message", "New Role created successfully");
+            response.put("role", newRole);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(error);
+        }
+
+
+}
 
 
     private ResponseEntity<?> errorResponse(String message) {

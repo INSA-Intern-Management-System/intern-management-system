@@ -46,10 +46,9 @@ public class CompanySettingServiceImpl implements CompanySettingService{
         existingProfile.setMaxInternsAllowed(updatedProfile.getMaxInternsAllowed());
         existingProfile.setMinIntershipDuration(updatedProfile.getMinIntershipDuration());
         existingProfile.setCVRequired(updatedProfile.getCVRequired());
+        existingProfile.setGPARequired(updatedProfile.getGPARequired());
 
-        existingProfile.setNotifyNewApplicationEnabled(updatedProfile.getNotifyNewApplicationEnabled());
-        existingProfile.setNotifyWeeklyReportEnabled(updatedProfile.getNotifyWeeklyReportEnabled());
-        existingProfile.setNotifyLeaveRequestEnabled(updatedProfile.getNotifyLeaveRequestEnabled());
+        existingProfile.setEmailNotification(updatedProfile.getEmailNotification());
 
         existingProfile.setTwoFactorEnabled(updatedProfile.getTwoFactorEnabled());
 
@@ -69,11 +68,11 @@ public class CompanySettingServiceImpl implements CompanySettingService{
         setting.setMaxInternsAllowed(dto.getMaxInternsAllowed());
         setting.setMinIntershipDuration(dto.getMinIntershipDuration());
         setting.setCVRequired(dto.getCVRequired());
+        setting.setGPARequired(dto.getGPARequired());
 
         // Set defaults
-        setting.setNotifyNewApplicationEnabled(true);
-        setting.setNotifyWeeklyReportEnabled(true);
-        setting.setNotifyLeaveRequestEnabled(true); // or make this Boolean if preferred
+        setting.setEmailNotification(dto.getEmailNotification());
+         // or make this Boolean if preferred
         setting.setTwoFactorEnabled(false);
 
         return companySettingRepository.save(setting);

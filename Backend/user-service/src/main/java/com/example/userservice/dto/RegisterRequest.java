@@ -1,6 +1,8 @@
 package com.example.userservice.dto;
 
 import com.example.userservice.model.Role;
+import com.example.userservice.model.Role;
+import com.example.userservice.model.UserStatus;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.Date;
@@ -27,5 +29,6 @@ public class RegisterRequest {
 
     @NotNull
     public Role role;
+    public UserStatus userStatus;
 }
 

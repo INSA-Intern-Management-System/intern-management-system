@@ -39,7 +39,7 @@ message ActivityItem {
   google.protobuf.Timestamp created_at = 5;
 }
 
-message GetRecentActivitiesResponse {
+message GetRecentActivclearitiesResponse {
   repeated ActivityItem activities = 1;
 }
 

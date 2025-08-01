@@ -55,10 +55,18 @@ public class User implements UserDetails {
 
 
 
-    @NotNull
+//    @NotNull
+//    @Column(nullable = false)
+//    @Enumerated(EnumType.STRING)
+//    private Role role;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private UserStatus userStatus = UserStatus.PENDING;
 
     public Date getLastLogin() {
         return lastLogin;
@@ -92,6 +100,7 @@ public class User implements UserDetails {
     Date lastReadNotificationAt,
     Date lastLogin,
     Role role,
+    UserStatus userStatus,
     Date createdAt, 
     Date updatedAt,
     Boolean isFirstLogin
@@ -117,6 +126,7 @@ public class User implements UserDetails {
         this.lastReadNotificationAt = lastReadNotificationAt;
         this.lastLogin = lastLogin;
         this.role = role;
+        this.userStatus = userStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.isFirstLogin = isFirstLogin;
@@ -337,5 +347,13 @@ public class User implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public UserStatus getUserStatus() {
+        return userStatus;
+    }
+
+    public void setUserStatus(UserStatus userStatus) {
+        this.userStatus = userStatus;
     }
 }

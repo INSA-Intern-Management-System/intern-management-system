@@ -28,11 +28,11 @@ public class CompanySetting {
     private Integer maxInternsAllowed;
     private Integer minIntershipDuration;
     private Boolean isCVRequired = true;
+    private Boolean isGPARequired = true;
 
     // === Notification Settings ===
-    private Boolean notifyNewApplicationEnabled = true;
-    private Boolean notifyWeeklyReportEnabled = true;
-    private Boolean notifyLeaveRequestEnabled = true;
+    private Boolean emailNotification = true;
+
 
     // === Security Settings ===
     private Boolean twoFactorEnabled = false;
@@ -52,6 +52,23 @@ public class CompanySetting {
     }
 
     // Getters and setters...
+
+
+    public Boolean getGPARequired() {
+        return isGPARequired;
+    }
+
+    public void setGPARequired(Boolean GPARequired) {
+        isGPARequired = GPARequired;
+    }
+
+    public Boolean getEmailNotification() {
+        return emailNotification;
+    }
+
+    public void setEmailNotification(Boolean emailNotification) {
+        this.emailNotification = emailNotification;
+    }
 
     public Long getId() {
         return id;
@@ -131,30 +148,6 @@ public class CompanySetting {
 
     public void setCVRequired(Boolean CVRequired) {
         isCVRequired = CVRequired;
-    }
-
-    public Boolean getNotifyNewApplicationEnabled() {
-        return notifyNewApplicationEnabled;
-    }
-
-    public void setNotifyNewApplicationEnabled(Boolean notifyNewApplicationEnabled) {
-        this.notifyNewApplicationEnabled = notifyNewApplicationEnabled;
-    }
-
-    public Boolean getNotifyWeeklyReportEnabled() {
-        return notifyWeeklyReportEnabled;
-    }
-
-    public void setNotifyWeeklyReportEnabled(Boolean notifyWeeklyReportEnabled) {
-        this.notifyWeeklyReportEnabled = notifyWeeklyReportEnabled;
-    }
-
-    public Boolean getNotifyLeaveRequestEnabled() {
-        return notifyLeaveRequestEnabled;
-    }
-
-    public void setNotifyLeaveRequestEnabled(Boolean notifyLeaveRequestEnabled) {
-        this.notifyLeaveRequestEnabled = notifyLeaveRequestEnabled;
     }
 
     public Boolean getTwoFactorEnabled() {

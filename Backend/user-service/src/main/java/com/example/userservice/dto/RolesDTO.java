@@ -1,31 +1,27 @@
-package com.example.userservice.model;
+package com.example.userservice.dto;
 
-import jakarta.persistence.*;
+public class RolesDTO {
 
-@Entity
-@Table(name = "roles")
-public class Role {
+    private Long id;  // Optional, you can omit this if not needed on client side
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true)
     private String name;  // e.g. "Student", "Admin", "HR", etc.
 
     private String displayName;  // Optional, user-friendly display name
+
     private String description;  // Optional
 
-    // Constructors, getters, setters
+    // Constructors
 
-    public Role() {}
+    public RolesDTO() {}
 
-    public Role(String name) {
+    public RolesDTO(Long id, String name, String displayName, String description) {
+        this.id = id;
         this.name = name;
+        this.displayName = displayName;
+        this.description = description;
     }
 
-    // Getters and setters here
-
+    // Getters and setters
 
     public Long getId() {
         return id;

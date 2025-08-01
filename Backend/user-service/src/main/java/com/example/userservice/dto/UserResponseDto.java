@@ -1,7 +1,9 @@
 package com.example.userservice.dto;
 
 import com.example.userservice.model.Role;
+import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
+import com.example.userservice.model.UserStatus;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
@@ -37,6 +39,8 @@ public class UserResponseDto {
     @NotBlank(message = "Role is required")
     private Role role;
 
+    private UserStatus userStatus;
+
     public UserResponseDto(User user) {
         this.id = user.getId();
         this.firstName = user.getFirstName();
@@ -59,6 +63,7 @@ public class UserResponseDto {
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
         this.role = user.getRole();
+        this.userStatus = user.getUserStatus();
     }
 
     // Getters and Setters (generate with Alt+Insert or Lombok)
@@ -222,12 +227,22 @@ public class UserResponseDto {
         this.updatedAt = updatedAt;
     }
     
-    public Role getRole() {
+    public Role getRoles() {
         return role;
     }
-    public void setRole(Role role) {
+    public void setRoles(Role role) {
         this.role = role;
     }
+
+
+    public UserStatus getUserStatus() {
+        return userStatus;
+    }
+    public void setUserStatus(UserStatus userStatus) {
+        this.userStatus = userStatus;
+    }
+
+
 
 
 

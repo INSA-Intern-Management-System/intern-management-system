@@ -28,6 +28,11 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/universities/login",
                                 "/api/universities/register",
+                                "/api/users/*",
+                                "/api/users/status-count",
+                                "/api/users/role-counts",
+                                "/api/users/filter-by-role",
+                                "/api/users/filter-by-institution",
                                 "/api/auth/request-password-change-otp",
                                 "/api/auth/confirm-password-change-otp"
                         ).permitAll()

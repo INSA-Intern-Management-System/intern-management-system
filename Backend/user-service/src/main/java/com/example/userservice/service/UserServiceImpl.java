@@ -2,9 +2,10 @@ package com.example.userservice.service;
 
 import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.RegisterRequest;
-import com.example.userservice.model.Role;
-import com.example.userservice.model.User;
-import com.example.userservice.model.VerificationCode;
+import com.example.userservice.dto.RolesDTO;
+import com.example.userservice.dto.UpdatePasswordDTO;
+import com.example.userservice.model.*;
+import com.example.userservice.repository.RoleRepository;
 import com.example.userservice.repository.UserRepository;
 
 import com.example.userservice.repository.VerificationCodeRepository;
@@ -20,15 +21,13 @@ import com.example.userservice.security.SecurityConfig.*;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepo;
+    private final RoleRepository roleRepo;
     private final VerificationCodeRepository verificationCodeRepo;
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -36,10 +35,12 @@ public class UserServiceImpl implements UserService {
     private JavaMailSender mailSender;
 
     public UserServiceImpl(UserRepository userRepo,
+                           RoleRepository roleRepo,
                            BCryptPasswordEncoder passwordEncoder,
                            VerificationCodeRepository verificationCodeRepo
                            ) {
         this.userRepo = userRepo;
+        this.roleRepo = roleRepo;
         this.verificationCodeRepo = verificationCodeRepo;
         this.passwordEncoder = passwordEncoder;
     }
@@ -67,6 +68,7 @@ public class UserServiceImpl implements UserService {
         user.setFieldOfStudy(request.fieldOfStudy);
         user.setInstitution(request.institution);
         user.setRole(request.role);
+        user.setUserStatus(request.userStatus);
         user.setBio(request.bio);
         user.setNotifyEmail(request.notifyEmail);
         user.setVisibility(request.visibility);
@@ -95,6 +97,32 @@ public class UserServiceImpl implements UserService {
         }
         return user;
     }
+
+    @Override
+    public User updateUserPassword(Long userId, UpdatePasswordDTO dto) {
+        if (!dto.getNewPassword().equals(dto.getConfirmNewPassword())) {
+            throw new RuntimeException("New password and confirm password do not match");
+        }
+
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        return userRepo.save(user);
+
+    }
+
+    @Override
+    public Long countInterns(){
+        Role studentRole = roleRepo.findByNameIgnoreCase("STUDENT")
+                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
+        return userRepo.countByRole(studentRole);
+    }
+
 
     @Override
     public User adminResetUserPassword(String targetUserEmail, String newPassword){
@@ -192,9 +220,15 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public List<User> getAllUsers(){
-        return userRepo.findAll();
+    public Page<User> getAllUsers(Pageable pageable){
+        return userRepo.findAll(pageable);
     }
+
+    @Override
+    public Long countAllUsers(){
+        return userRepo.count();
+    }
+
 
     @Override
     public void deleteUser(Long id){
@@ -208,6 +242,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long id) {
         return userRepo.findById(id).get();
+    }
+
+    @Override
+    public Role getRoleByName(String roleName) {
+        return roleRepo.findByNameIgnoreCase(roleName)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
     }
 
     @Override
@@ -284,20 +324,95 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<User> searchInterns(String query, Pageable pageable) {
-        Role internRole = Role.Student; // or however you represent it
+        Role internRole = roleRepo.findByNameIgnoreCase("STUDENT")
+                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
         return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
                 internRole, query, internRole, query, pageable
         );
     }
 
     @Override
+    public Page<User> searchUsers(String query, Pageable pageable) {
+        return userRepo.findByFirstNameContainingIgnoreCase(query, pageable);
+    }
+
+    @Override
+    public Page<User> filterUserByRole(String query, Pageable pageable){
+        Role matchedRole = roleRepo.findByNameIgnoreCase(query)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + query));
+        return userRepo.findByRole(matchedRole, pageable);
+    }
+
+    @Override
     public Page<User> filterByInstitution(String institution, Pageable pageable) {
-        Role internRole = Role.Student;
+        Role internRole = roleRepo.findByNameIgnoreCase("STUDENT")
+                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
         return userRepo.findByRoleAndInstitutionContainingIgnoreCase(internRole, institution, pageable);
     }
 
+    @Override
+    public Page<User> filterByStatus(String query , Pageable pageable) {
+
+        UserStatus matchedStatus = UserStatus.valueOf(query.toUpperCase());
+
+        return userRepo.findByUserStatus(matchedStatus, pageable);
+    }
 
 
+    @Override
+    public List<UserStatusCount> countUsersByStatus() {
+        return userRepo.countUsersByStatus();
+    }
+
+    @Override
+    public Map<String, Long> getUserRoleCounts() {
+        List<User> users = userRepo.findAll();
+        Map<String, Long> roleCounts = new HashMap<>();
+
+        long studentCount = users.stream()
+                .filter(user -> user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName()))
+                .count();
+
+        long companyCount = users.stream()
+                .filter(user -> {
+                    if (user.getRole() == null) return false;
+                    String role = user.getRole().getName();
+                    return "HR".equalsIgnoreCase(role) || "PROJECT_MANAGER".equalsIgnoreCase(role);
+                })
+                .count();
+
+        long universityCount = users.stream()
+                .filter(user -> user.getRole() != null && "UNIVERSITY".equalsIgnoreCase(user.getRole().getName()))
+                .count();
+
+        long adminCount = users.stream()
+                .filter(user -> user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName()))
+                .count();
+
+        long supervisorCount = users.stream()
+                .filter(user -> user.getRole() != null && "SUPERVISOR".equalsIgnoreCase(user.getRole().getName()))
+                .count();
+
+        roleCounts.put("Student", studentCount);
+        roleCounts.put("Company", companyCount);
+        roleCounts.put("University", universityCount);
+        roleCounts.put("Administrator", adminCount);
+        roleCounts.put("Supervisor", supervisorCount);
+
+        return roleCounts;
+    }
+
+    @Override
+    public Role createRole(RolesDTO dto) {
+        Role role = new Role();
+
+        role.setName(dto.getName());
+        role.setDisplayName(dto.getDisplayName());
+        role.setDescription(dto.getDescription());
+
+        // Save entity using repository
+        return roleRepo.save(role);
+    }
 
 
 

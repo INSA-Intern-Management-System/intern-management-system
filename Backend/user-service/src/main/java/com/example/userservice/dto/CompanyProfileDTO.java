@@ -19,17 +19,33 @@ public class CompanyProfileDTO {
     private Integer maxInternsAllowed;
     private Integer minIntershipDuration;
     private Boolean isCVRequired;
+    private Boolean isGPARequired = true;
 
     // === Notification Settings ===
-    private Boolean notifyNewApplicationEnabled;
-    private Boolean notifyWeeklyReportEnabled;
-    private Boolean notifyLeaveRequestEnabled;
+    private Boolean emailNotification = true;
+
 
     // === Security Settings ===
     private Boolean twoFactorEnabled;
 
     private Date createdAt;
     private Date updatedAt;
+
+    public Boolean getGPARequired() {
+        return isGPARequired;
+    }
+
+    public void setGPARequired(Boolean GPARequired) {
+        isGPARequired = GPARequired;
+    }
+
+    public Boolean getEmailNotification() {
+        return emailNotification;
+    }
+
+    public void setEmailNotification(Boolean emailNotification) {
+        this.emailNotification = emailNotification;
+    }
 
     public String getCompanyName() {
         return companyName;
@@ -101,30 +117,6 @@ public class CompanyProfileDTO {
 
     public void setCVRequired(Boolean CVRequired) {
         isCVRequired = CVRequired;
-    }
-
-    public Boolean getNotifyNewApplicationEnabled() {
-        return notifyNewApplicationEnabled;
-    }
-
-    public void setNotifyNewApplicationEnabled(Boolean notifyNewApplicationEnabled) {
-        this.notifyNewApplicationEnabled = notifyNewApplicationEnabled;
-    }
-
-    public Boolean getNotifyWeeklyReportEnabled() {
-        return notifyWeeklyReportEnabled;
-    }
-
-    public void setNotifyWeeklyReportEnabled(Boolean notifyWeeklyReportEnabled) {
-        this.notifyWeeklyReportEnabled = notifyWeeklyReportEnabled;
-    }
-
-    public Boolean getNotifyLeaveRequestEnabled() {
-        return notifyLeaveRequestEnabled;
-    }
-
-    public void setNotifyLeaveRequestEnabled(Boolean notifyLeaveRequestEnabled) {
-        this.notifyLeaveRequestEnabled = notifyLeaveRequestEnabled;
     }
 
     public Boolean getTwoFactorEnabled() {
