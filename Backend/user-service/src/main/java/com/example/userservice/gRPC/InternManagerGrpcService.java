@@ -1,8 +1,6 @@
 package com.example.userservice.gRPC;
-import java.util.List;
 
 import com.example.userservice.model.InternManager;
-import com.example.userservice.model.User;
 import com.example.userservice.repository.InternManagerReposInterface;
 import com.example.userservice.security.JwtServerInterceptor;
 
@@ -42,26 +40,26 @@ public class InternManagerGrpcService extends InternManagerServiceGrpc.InternMan
         responseObserver.onCompleted();
     }
 
-    @Override
-    public void searchByName(UserRequest request, StreamObserver<UserResponse> responseObserver) {
-        if (request.getFirstName().isEmpty() || request.getRole().isEmpty()) {
-            responseObserver.onError(new RuntimeException("First name and role must be provided"));
-            return;
-        }
-        List<User> users = repository.searchByName(request.getFirstName(), request.getRole());
+    // @Override
+    // public void searchByName(UserRequest request, StreamObserver<UserResponse> responseObserver) {
+    //     if (request.getFirstName().isEmpty() || request.getRole().isEmpty()) {
+    //         responseObserver.onError(new RuntimeException("First name and role must be provided"));
+    //         return;
+    //     }
+    //     List<User> users = repository.searchByName(request.getFirstName(), request.getRole());
 
-        for (User user : users) {
-            UserResponse response = UserResponse.newBuilder()
-                    .setId(user.getId())
-                    .setFirstName(user.getFirstName())
-                    .setLastName(user.getLastName())
-                    .build();
-            responseObserver.onNext(response);
-            }
+    //     for (User user : users) {
+    //         UserResponse response = UserResponse.newBuilder()
+    //                 .setId(user.getId())
+    //                 .setFirstName(user.getFirstName())
+    //                 .setLastName(user.getLastName())
+    //                 .build();
+    //         responseObserver.onNext(response);
+    //         }
 
-        responseObserver.onCompleted();
+    //     responseObserver.onCompleted();
 
-        }
+    //     }
 
 }
 

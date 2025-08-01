@@ -1,18 +1,31 @@
 package com.example.project_service.dto;
 
 import com.example.project_service.models.ProjectStatus;
+import jakarta.validation.constraints.*;
 import java.util.Date;
 import java.util.List;
 
 public class ProjectRequest {
 
+    @NotBlank(message = "Project name is required")
     private String name;
+
     private String description;
+
+    @NotNull(message = "Project status is required")
     private ProjectStatus status;
+
+    @NotNull(message = "Start date is required")
     private Date startDate;
+
+    @NotNull(message = "End date is required")
     private Date endDate;
+
+    @PositiveOrZero(message = "Budget cannot be negative")
     private Double budget;
-    private List<String> technologies;
+
+    @NotEmpty(message = "At least one technology is required")
+    private List<@NotBlank(message = "Technology name cannot be blank") String> technologies;
 
     public ProjectRequest() {
     }

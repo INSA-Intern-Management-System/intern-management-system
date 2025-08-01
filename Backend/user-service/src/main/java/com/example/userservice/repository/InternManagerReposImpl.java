@@ -1,9 +1,7 @@
 package com.example.userservice.repository;
 
 import com.example.userservice.model.InternManager;
-import com.example.userservice.model.User;
 
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -27,8 +25,5 @@ public class InternManagerReposImpl implements InternManagerReposInterface {
             throw new RuntimeException("Intern Manager not found for user ID: " + userId);
         }
     }
-    @Override
-    public List<User> searchByName(String name, String role) {
-        return internManagerJpaRepos.findByFirstNameContainingIgnoreCaseAndRole(name, role);
-    }
+  
 }

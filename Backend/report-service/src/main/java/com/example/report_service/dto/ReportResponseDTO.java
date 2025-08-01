@@ -2,8 +2,6 @@ package com.example.report_service.dto;
 
 import java.time.LocalDateTime;
 
-import com.example.project_service.gRPC.ProjectResponse;
-
 public class ReportResponseDTO {
     private Long id;
     private Long managerId;

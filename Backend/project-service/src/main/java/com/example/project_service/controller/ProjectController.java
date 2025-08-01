@@ -4,6 +4,8 @@ import com.example.project_service.dto.*;
 import com.example.project_service.models.*;
 import com.example.project_service.service.ProjectServiceInterface;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +26,7 @@ public class ProjectController {
 
     // -------------------- PROJECTS --------------------
     @PostMapping
-    public ResponseEntity<?> createProject(@RequestBody ProjectRequest request,
+    public ResponseEntity<?> createProject(@Valid @RequestBody ProjectRequest request,
                                            HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
@@ -34,7 +36,13 @@ public class ProjectController {
                 return errorResponse("Unauthorized: Only PM can create projects");
             }
 
-            ProjectResponse created = projectService.createProject(userId, request);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+
+            ProjectResponse created = projectService.createProject(jwtToken,userId, request);
             return ResponseEntity.ok(created);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -106,7 +114,12 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can change project status");
             }
-            ProjectResponse updated = projectService.updateProjectStatus(projectId, newStatus);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            ProjectResponse updated = projectService.updateProjectStatus(jwtToken,projectId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -116,13 +129,18 @@ public class ProjectController {
     // -------------------- TEAMS --------------------
 
     @PostMapping("/teams")
-    public ResponseEntity<?> createTeam(@RequestBody TeamRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> createTeam(@Valid @RequestBody TeamRequest request, HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can create teams");
             }
-            TeamDetailsResponse created = projectService.createTeam(request);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            TeamDetailsResponse created = projectService.createTeam(jwtToken,request);
             return ResponseEntity.ok(created);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -150,7 +168,7 @@ public class ProjectController {
     // -------------------- TEAM MEMBERS --------------------
 
     @PostMapping("/teams/members")
-    public ResponseEntity<?> addTeamMember(@RequestBody TeamMemberRequest request,
+    public ResponseEntity<?> addTeamMember(@Valid @RequestBody TeamMemberRequest request,
                                            HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
@@ -159,7 +177,12 @@ public class ProjectController {
                 return errorResponse("Unauthorized: Only PM can add team members");
             }
 
-            List<TeamMemberResponse> added = projectService.addTeamMember(userId,request);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            List<TeamMemberResponse> added = projectService.addTeamMember(jwtToken,userId,request);
             return ResponseEntity.ok(added);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -177,7 +200,12 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can remove team members");
             }
-            projectService.removeTeamMember(userId,memberId);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            projectService.removeTeamMember(jwtToken,userId,memberId);
             return successResponse("Team member removed");
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -195,7 +223,12 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can assign projects");
             }
-            TeamDetailsResponse updated = projectService.assignProjectToTeam(userId,teamId, projectId);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            TeamDetailsResponse updated = projectService.assignProjectToTeam(jwtToken,userId,teamId, projectId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -210,7 +243,12 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can remove projects");
             }
-            TeamDetailsResponse updated = projectService.removeAssignedProjectFromTeam(userId,teamId);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            TeamDetailsResponse updated = projectService.removeAssignedProjectFromTeam(jwtToken,userId,teamId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -219,15 +257,19 @@ public class ProjectController {
 
     // -------------------- MILESTONES --------------------
     @PostMapping("/milestones")
-    public ResponseEntity<?> addMilestone(@RequestBody MilestoneRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> addMilestone(@Valid @RequestBody MilestoneRequest request, HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
             Long userId = (Long) httpRequest.getAttribute("userId");
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can add milestones");
             }
-
-            MilestoneResponse added = projectService.addMilestone(userId,request);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            MilestoneResponse added = projectService.addMilestone(jwtToken,userId,request);
             return ResponseEntity.ok(added);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -245,7 +287,12 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can update milestone status");
             }
-            MilestoneResponse updated = projectService.updateMilestoneStatus(userId,milestoneId, newStatus);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            MilestoneResponse updated = projectService.updateMilestoneStatus(jwtToken,userId,milestoneId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -260,7 +307,12 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can delete milestones");
             }
-            projectService.deleteMilestone(userId,milestoneId);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            projectService.deleteMilestone(jwtToken,userId,milestoneId);
             return successResponse("Milestone deleted");
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());

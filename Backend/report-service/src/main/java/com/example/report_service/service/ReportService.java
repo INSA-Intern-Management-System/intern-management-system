@@ -2,6 +2,7 @@ package com.example.report_service.service;
 
 import com.example.project_service.gRPC.AllProjectResponses;
 import com.example.project_service.gRPC.ProjectResponse;
+import com.example.report_service.client.ActivityGrpcClient;
 import com.example.report_service.client.InternManagerGrpcClient;
 import com.example.report_service.client.ProjectManagerGrpcClient;
 import com.example.report_service.dto.*;
@@ -29,6 +30,7 @@ public class ReportService {
     private final ReviewReposInterface reviewRepos;
     private final InternManagerGrpcClient grpcClient;
     private final ProjectManagerGrpcClient projectManagerGrpcClient;
+    private final ActivityGrpcClient activityGrpcClient;
     private final MapperService mapper;
 
     @Autowired
@@ -36,11 +38,13 @@ public class ReportService {
                          ReviewReposInterface reviewRepos,
                          InternManagerGrpcClient grpcClient,
                          ProjectManagerGrpcClient projectManagerGrpcClient,
+                        ActivityGrpcClient activityGrpcClient,
                          MapperService mapper) {
         this.reportRepos = reportRepos;
         this.reviewRepos = reviewRepos;
         this.grpcClient = grpcClient;
         this.projectManagerGrpcClient = projectManagerGrpcClient;
+        this.activityGrpcClient = activityGrpcClient;
         this.mapper = mapper;
     }
 
@@ -53,9 +57,6 @@ public class ReportService {
             throw new RuntimeException("User not found for userId: " + userId);
         }
 
-
-
-        
         Report report = new Report();
         report.setIntern(new User(grpcResponse.getUserId()));
         report.setManager(new User(grpcResponse.getManagerId()));
@@ -80,6 +81,8 @@ public class ReportService {
 
         
         Report saved = reportRepos.saveReport(report);
+        // Log activity
+        logActivity(jwtToken, userId, "Report Created", "Report created with title: " + dto.getTitle());
         return mapper.toReportResponseDTO(saved, null, projectResponseDTO);
     }
 
@@ -195,7 +198,12 @@ public class ReportService {
         // get the project response from gRPC
         ProjectResponse projectResponse = projectManagerGrpcClient.getProjectInfo(authHeader, report
                 .getManager().getId());
+        if (projectResponse == null) {
+            throw new RuntimeException("Project not found for report ID: " + dto.getReportId());
+        }
 
+        //log activity
+        logActivity(authHeader, managerId, "Review Created", "Review created for report ID: " + dto.getReportId());
         ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
                 projectResponse.getProjectId(),
                 projectResponse.getProjectName(),
@@ -203,7 +211,6 @@ public class ReportService {
         );
         // map the report to ReportResponseDTO
         return mapper.toReportResponseDTO(report, mapper.toReviewResponseDTO(saved), projectResponseDTO);
-
     }
 
     @Transactional
@@ -345,6 +352,14 @@ public class ReportService {
                         review -> mapper.toReviewResponseDTO(review)
                 ));
         return reports.map(report -> mapper.toReportResponseDTO(report, reviewMap.get(report.getId()),null));
+    }
+     private void logActivity(String jwtToken, Long userId, String action, String description) {
+        try {
+            activityGrpcClient.createActivity(jwtToken, userId, action, description);
+        } catch (Exception e) {
+            // Log the failure, but do NOT block business logic
+            System.err.println("Failed to log activity: " + e.getMessage());
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 package com.example.report_service.service;
-import com.example.project_service.gRPC.ProjectResponse;
 import com.example.report_service.dto.*;
 import com.example.report_service.model.Project;
 import com.example.report_service.model.Report;
