@@ -2,6 +2,9 @@ package com.example.project_service.repository;
 
 import com.example.project_service.models.Project;
 import com.example.project_service.models.ProjectStatus;
+
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,5 +34,7 @@ public interface ProjectJpaRepository extends JpaRepository<Project, Long> {
 
     // Count by status
     Long countByStatus(ProjectStatus status);
+
+    List<Project> findByIdIn(List<Long> ids);
 }
 

@@ -3,11 +3,13 @@ package com.example.project_service.repository;
 import com.example.project_service.models.Team;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface TeamReposInterface {
+@Repository
+public interface TeamReposInterface{
 
     // Create team
     Team createTeam(Team team);

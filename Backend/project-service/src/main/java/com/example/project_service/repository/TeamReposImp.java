@@ -15,11 +15,14 @@ public class TeamReposImp implements TeamReposInterface {
 
     private final TeamJpaRepository teamJpaRepository;
     private final ProjectJpaRepository projectJpaRepository;
+    private final MilestoneJpaRepository milestoneJpaRepository;
 
     @Autowired
-    public TeamReposImp(TeamJpaRepository teamJpaRepository, ProjectJpaRepository projectJpaRepository) {
+    public TeamReposImp(TeamJpaRepository teamJpaRepository, ProjectJpaRepository projectJpaRepository,
+                        MilestoneJpaRepository milestoneJpaRepository) {
         this.teamJpaRepository = teamJpaRepository;
         this.projectJpaRepository = projectJpaRepository;
+        this.milestoneJpaRepository = milestoneJpaRepository;
     }
 
     @Override

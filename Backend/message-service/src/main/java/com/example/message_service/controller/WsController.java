@@ -43,5 +43,6 @@ public class WsController {
         messagingTemplate.convertAndSend("/topic/rooms/" + dto.getRoomId(),
                 java.util.Map.of("deletedMessageId", dto.getMessageId()));
     }
+    
 }
 

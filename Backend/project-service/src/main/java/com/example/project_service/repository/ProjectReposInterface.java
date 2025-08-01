@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 
 public interface ProjectReposInterface {
@@ -40,4 +41,6 @@ public interface ProjectReposInterface {
     // Get stats (total, active, completed, planning, onhold)
     HashMap<String, Long> getProjectStatsHR();
     HashMap<String, Long> getProjectStatsPM(Long userId);
+
+    List<Project> findByProjectIds(List<Long> projectIds);
 }

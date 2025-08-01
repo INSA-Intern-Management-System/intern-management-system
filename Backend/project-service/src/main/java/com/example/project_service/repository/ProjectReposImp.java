@@ -9,16 +9,23 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public class ProjectReposImp implements ProjectReposInterface {
 
     private final ProjectJpaRepository projectJpaRepository;
+    private final TeamJpaRepository teamJpaRepository;
+    private final MilestoneJpaRepository milestoneJpaRepository;
 
     @Autowired
-    public ProjectReposImp(ProjectJpaRepository projectJpaRepository) {
+    public ProjectReposImp(ProjectJpaRepository projectJpaRepository,
+                           TeamJpaRepository teamJpaRepository,
+                           MilestoneJpaRepository milestoneJpaRepository) {
         this.projectJpaRepository = projectJpaRepository;
+        this.teamJpaRepository = teamJpaRepository;
+        this.milestoneJpaRepository = milestoneJpaRepository;
     }
 
     @Override
@@ -96,6 +103,11 @@ public class ProjectReposImp implements ProjectReposInterface {
         stats.put("planning", projectJpaRepository.countByStatus(ProjectStatus.PLANNING));
         stats.put("onhold", projectJpaRepository.countByStatus(ProjectStatus.ONHOLD));
         return stats;
+    }
+
+    @Override
+    public List<Project> findByProjectIds(List<Long> projectIds) {
+        return projectJpaRepository.findByIdIn(projectIds);
     }
 
     @Override
