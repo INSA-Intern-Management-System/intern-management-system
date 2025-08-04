@@ -2,20 +2,23 @@ package com.example.application_service.services;
 
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
-import com.example.application_service.model.Applicant;
-import com.example.application_service.model.Application;
-import com.example.application_service.model.ApplicationStatus;
+import com.example.application_service.dto.CreateUserRequest;
+import com.example.application_service.model.*;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,6 +29,13 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ApplicationServiceImpl implements ApplicationService{
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+
+    @Value("${user.service.url}") // e.g., http://user-service/api/users
+    private String userServiceUrl;
 
     private final ApplicantRepository applicantRepository;
     private final ApplicationRepository applicationRepository;
@@ -184,6 +194,40 @@ public class ApplicationServiceImpl implements ApplicationService{
         application.setStatus(status);
         applicationRepository.save(application);
 
+        if (status == ApplicationStatus.Accepted) {
+            Applicant applicant = application.getApplicant();
+
+            // Generate a random password
+            String generatedPassword = generateRandomPassword(10);
+            System.out.println("Generated password for new Accepted user(Intern): " + generatedPassword);
+
+
+            // Build payload to send to user service
+            CreateUserRequest userRequest = new CreateUserRequest();
+
+            userRequest.setFirstName(applicant.getFirstName());
+            userRequest.setLastName(applicant.getLastName());
+            userRequest.setEmail(applicant.getEmail());
+            userRequest.setPhoneNumber(applicant.getPhoneNumber());
+            userRequest.setFieldOfStudy(applicant.getFieldOfStudy());
+            userRequest.setInstitution(applicant.getInstitution());
+            userRequest.setGender(applicant.getGender());
+            userRequest.setDuration(applicant.getDuration());
+            userRequest.setLinkedInUrl(applicant.getLinkedInUrl());
+            userRequest.setGithubUrl(applicant.getGithubUrl());
+            userRequest.setCvUrl(applicant.getCvUrl());
+            userRequest.setPassword(generatedPassword);
+            userRequest.setUserStatus(UserStatus.ACTIVE);
+            userRequest.setRole(UserRole.STUDENT);
+
+
+            try {
+                restTemplate.postForEntity(userServiceUrl, userRequest, Void.class);
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to create user in user service: " + ex.getMessage());
+            }
+        }
+
         return ApplicationDTO.builder()
                 .id(application.getId())
                 .status(application.getStatus())
@@ -212,6 +256,20 @@ public class ApplicationServiceImpl implements ApplicationService{
     @Override
     public Page<Application> filterByUniversity(String university, Pageable pageable) {
         return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
+    }
+
+
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder();
+
+
+        for (int i = 0; i < length; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+
+        return password.toString();
     }
 
 }

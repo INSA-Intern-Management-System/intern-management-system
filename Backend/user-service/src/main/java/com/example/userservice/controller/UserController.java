@@ -145,8 +145,7 @@ public class UserController {
 
             Pageable pageable = PageRequest.of(page, size);
             // Fetch the Roles entity for "STUDENT"
-            Role studentRole = roleRepo.findByNameIgnoreCase("STUDENT")
-                    .orElseThrow(() -> new RuntimeException("Student role not found"));
+            Role studentRole = roleRepo.findByName("STUDENT");
 
             Page<User> interns = userService.getInterns(studentRole, pageable);
 
@@ -186,8 +185,7 @@ public class UserController {
 
             Pageable pageable = PageRequest.of(page, size);
 
-            Role supervisorRole = roleRepo.findByNameIgnoreCase("SUPERVISOR")
-                    .orElseThrow(() -> new RuntimeException("Student role not found"));
+            Role supervisorRole = roleRepo.findByName("SUPERVISOR");
 
 
             Page<User> supervisors = userService.getSupervisors(supervisorRole, pageable);

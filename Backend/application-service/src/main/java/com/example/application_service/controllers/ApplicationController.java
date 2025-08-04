@@ -11,7 +11,7 @@ import com.example.application_service.model.ApplicationStatus;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.services.ApplicationService;
-import com.example.application_service.services.UserServiceClient;
+//import com.example.application_service.services.UserServiceClient;
 import com.example.grpc.RecipientRole;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -35,7 +35,7 @@ import java.util.*;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
-    private final UserServiceClient userServiceClient;
+//    private final UserServiceClient userServiceClient;
     private final ApplicantRepository applicantRepository;
     private final ApplicationRepository applicationRepository;
 
@@ -43,13 +43,12 @@ public class ApplicationController {
     private NotificationGrpcClient notificationGrpcClient;
 
     public ApplicationController(ApplicationService applicationService,
-                                 UserServiceClient userServiceClient,
                                  ApplicantRepository applicantRepository,
                                  ApplicationRepository applicationRepository,
                                  NotificationGrpcClient notificationGrpcClient
                                  ) {
         this.applicationService = applicationService;
-        this.userServiceClient = userServiceClient;
+//        this.userServiceClient = userServiceClient;
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
         this.notificationGrpcClient = notificationGrpcClient;
@@ -154,7 +153,7 @@ public class ApplicationController {
     ) throws IOException {
 
         String role = (String) request.getAttribute("role");
-        if (!"University".equalsIgnoreCase(role)) {
+        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("message", "Unauthorized: Only University can apply"));
         }

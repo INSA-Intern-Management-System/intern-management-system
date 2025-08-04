@@ -51,6 +51,11 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already registered");
         }
 
+        Role userRole = roleRepo.findByName(request.role.getName().toUpperCase());
+        if (userRole == null) {
+            throw new RuntimeException("Invalid role provided: " + request.role);
+        }
+
         User user = new User();
 
         user.setFirstName(request.firstName);
@@ -67,8 +72,8 @@ public class UserServiceImpl implements UserService {
         user.setGender(request.gender);
         user.setFieldOfStudy(request.fieldOfStudy);
         user.setInstitution(request.institution);
-        user.setRole(request.role);
-        user.setUserStatus(request.userStatus);
+        user.setRole(userRole);
+        user.setUserStatus(UserStatus.PENDING);
         user.setBio(request.bio);
         user.setNotifyEmail(request.notifyEmail);
         user.setVisibility(request.visibility);
@@ -118,8 +123,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Long countInterns(){
-        Role studentRole = roleRepo.findByNameIgnoreCase("STUDENT")
-                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
+        Role studentRole = roleRepo.findByName("STUDENT");
+
         return userRepo.countByRole(studentRole);
     }
 
@@ -246,8 +251,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Role getRoleByName(String roleName) {
-        return roleRepo.findByNameIgnoreCase(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+        return roleRepo.findByName(roleName);
     }
 
     @Override
@@ -324,8 +328,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<User> searchInterns(String query, Pageable pageable) {
-        Role internRole = roleRepo.findByNameIgnoreCase("STUDENT")
-                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
+        Role internRole = roleRepo.findByName("STUDENT");
+
         return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
                 internRole, query, internRole, query, pageable
         );
@@ -338,15 +342,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<User> filterUserByRole(String query, Pageable pageable){
-        Role matchedRole = roleRepo.findByNameIgnoreCase(query)
-                .orElseThrow(() -> new RuntimeException("Role not found: " + query));
+        Role matchedRole = roleRepo.findByName(query);
+
         return userRepo.findByRole(matchedRole, pageable);
     }
 
     @Override
     public Page<User> filterByInstitution(String institution, Pageable pageable) {
-        Role internRole = roleRepo.findByNameIgnoreCase("STUDENT")
-                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
+        Role internRole = roleRepo.findByName("STUDENT");
         return userRepo.findByRoleAndInstitutionContainingIgnoreCase(internRole, institution, pageable);
     }
 
@@ -370,7 +373,7 @@ public class UserServiceImpl implements UserService {
         Map<String, Long> roleCounts = new HashMap<>();
 
         long studentCount = users.stream()
-                .filter(user -> user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName()))
+                .filter(user -> user.getRole().getName() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName()))
                 .count();
 
         long companyCount = users.stream()
@@ -382,11 +385,11 @@ public class UserServiceImpl implements UserService {
                 .count();
 
         long universityCount = users.stream()
-                .filter(user -> user.getRole() != null && "UNIVERSITY".equalsIgnoreCase(user.getRole().getName()))
+                .filter(user -> user.getRole().getName() != null && "UNIVERSITY".equalsIgnoreCase(user.getRole().getName()))
                 .count();
 
         long adminCount = users.stream()
-                .filter(user -> user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName()))
+                .filter(user -> user.getRole().getName() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName()))
                 .count();
 
         long supervisorCount = users.stream()

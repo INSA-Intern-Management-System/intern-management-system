@@ -18,8 +18,8 @@ public class RegisterRequest {
     public String fieldOfStudy;
     public String duration;
     public String bio;
-    public Boolean notifyEmail;
-    public Boolean visibility;
+    public Boolean notifyEmail = true;
+    public Boolean visibility = true;
     public String institution;
     public String linkedInUrl;
     public String githubUrl;
@@ -30,5 +30,13 @@ public class RegisterRequest {
     @NotNull
     public Role role;
     public UserStatus userStatus;
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
 }
 
