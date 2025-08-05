@@ -1,5 +1,6 @@
 package com.example.report_service.config;
 
+import com.example.report_service.client.ActivityGrpcClient;
 import com.example.report_service.client.InternManagerGrpcClient;
 import com.example.report_service.client.ProjectManagerGrpcClient;
 
@@ -22,6 +23,16 @@ public class GrpcClientConfig {
     @Value("${grpc.server.project-port}")
     private int project_port;
 
+    @Value("${grpc.server.activity-address}")
+    private String activity_host;
+
+    @Value("${grpc.server.activity-port}")
+    private int activity_port;
+
+    @Bean
+    public ActivityGrpcClient activityGrpcClient() {
+        return new ActivityGrpcClient(activity_host, activity_port);
+    }
 
     @Bean
     public InternManagerGrpcClient internManagerGrpcClient() {

@@ -1,6 +1,7 @@
 package com.example.leave_service.repository;
 
 import com.example.leave_service.model.Leave;
+import com.example.leave_service.model.LeaveStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,19 +25,17 @@ public class LeaveReposImp implements LeaveReposInterface {
         return leaveJpaRepository.save(leave);
     }
 
-
     @Override
     public Page<Leave> findByUserId(Long userId, Pageable pageable) {
         return leaveJpaRepository.findByUserId(userId, pageable);
     }
-
 
     @Override
     public Optional<Leave> getLeaveById(Long leaveId) {
         return leaveJpaRepository.findById(leaveId);
     }
 
-   @Override
+    @Override
     public Page<Leave> searchLeaves(String leaveType, String reason, Pageable pageable) {
         if (leaveType != null && !leaveType.isEmpty() && reason != null && !reason.isEmpty()) {
             return leaveJpaRepository.findByLeaveTypeContainingIgnoreCaseAndReasonContainingIgnoreCase(
@@ -65,13 +64,13 @@ public class LeaveReposImp implements LeaveReposInterface {
     }
 
     @Override
-    public Page<Leave> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus,Pageable pageable) {
-        return leaveJpaRepository.findByLeaveTypeAndLeaveStatus(leaveType, leaveStatus,pageable);
+    public Page<Leave> filterLeavesByTypeAndStatus(String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
+        return leaveJpaRepository.findByLeaveTypeAndLeaveStatus(leaveType, leaveStatus, pageable);
     }
 
-    @Override 
-    public Page<Leave> filterLeavesByTypeAndStatus(Long receiverId,String leaveType, String leaveStatus,Pageable pageable) {
-        return leaveJpaRepository.findByReceiver_IdAndLeaveTypeAndLeaveStatus(receiverId,leaveType, leaveStatus,pageable);
+    @Override
+    public Page<Leave> filterLeavesByTypeAndStatus(Long receiverId, String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
+        return leaveJpaRepository.findByReceiver_IdAndLeaveTypeAndLeaveStatus(receiverId, leaveType, leaveStatus, pageable);
     }
 
     @Override
@@ -89,7 +88,6 @@ public class LeaveReposImp implements LeaveReposInterface {
         }
     }
 
-
     @Override
     public void deleteAllLeaves(Long userID) {
         leaveJpaRepository.deleteByUser_Id(userID);
@@ -99,9 +97,9 @@ public class LeaveReposImp implements LeaveReposInterface {
     public HashMap<String, Long> getLeaveStatusCounts() {
         HashMap<String, Long> counts = new HashMap<>();
         counts.put("total", leaveJpaRepository.count());
-        counts.put("accepted", leaveJpaRepository.countByLeaveStatus("ACCEPTED"));
-        counts.put("rejected", leaveJpaRepository.countByLeaveStatus("REJECTED"));
-        counts.put("pending", leaveJpaRepository.countByLeaveStatus("PENDING"));
+        counts.put("approved", leaveJpaRepository.countByLeaveStatus(LeaveStatus.APPROVED));
+        counts.put("rejected", leaveJpaRepository.countByLeaveStatus(LeaveStatus.REJECTED));
+        counts.put("pending", leaveJpaRepository.countByLeaveStatus(LeaveStatus.PENDING));
         return counts;
     }
 
@@ -109,16 +107,14 @@ public class LeaveReposImp implements LeaveReposInterface {
     public HashMap<String, Long> getLeaveStatusCountsPm(Long receiverId) {
         HashMap<String, Long> counts = new HashMap<>();
         counts.put("total", leaveJpaRepository.countByReceiver_Id(receiverId));
-        counts.put("accepted", leaveJpaRepository.countByReceiver_IdAndLeaveStatus(receiverId, "ACCEPTED"));
-        counts.put("rejected", leaveJpaRepository.countByReceiver_IdAndLeaveStatus(receiverId, "REJECTED"));
-        counts.put("pending", leaveJpaRepository.countByReceiver_IdAndLeaveStatus(receiverId, "PENDING"));
+        counts.put("approved", leaveJpaRepository.countByReceiver_IdAndLeaveStatus(receiverId, LeaveStatus.APPROVED));
+        counts.put("rejected", leaveJpaRepository.countByReceiver_IdAndLeaveStatus(receiverId, LeaveStatus.REJECTED));
+        counts.put("pending", leaveJpaRepository.countByReceiver_IdAndLeaveStatus(receiverId, LeaveStatus.PENDING));
         return counts;
     }
 
-        
-
     @Override
-    public Leave updateLeaveStatus(Long leaveId, String newStatus) {
+    public Leave updateLeaveStatus(Long leaveId, LeaveStatus newStatus) {
         Optional<Leave> leaveOpt = leaveJpaRepository.findById(leaveId);
         if (leaveOpt.isPresent()) {
             Leave leave = leaveOpt.get();
@@ -128,6 +124,7 @@ public class LeaveReposImp implements LeaveReposInterface {
             throw new RuntimeException("Leave not found with ID: " + leaveId);
         }
     }
+
     @Override
     public void deleteLeaveOfSelf(Long leaveId, Long userId) {
         Optional<Leave> leaveOpt = leaveJpaRepository.findById(leaveId);
@@ -152,5 +149,4 @@ public class LeaveReposImp implements LeaveReposInterface {
     public Page<Leave> getAllLeaves(Pageable pageable) {
         return leaveJpaRepository.findAll(pageable);
     }
-
 }

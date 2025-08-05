@@ -10,5 +10,6 @@ public interface ReviewReposInterface {
     Double calculateAverageRatingByUserId(Long userId);
     Double calculateAverageRatingByManagerId(Long managerId);
     Double calculateGlobalAverageRating();
+    Review findByReportId(Long reportId);
 
 }

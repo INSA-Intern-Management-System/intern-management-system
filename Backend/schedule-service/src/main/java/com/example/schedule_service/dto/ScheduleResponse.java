@@ -1,6 +1,7 @@
 package com.example.schedule_service.dto;
-
 import java.util.Date;
+
+import com.example.schedule_service.model.ScheduleStatus;
 
 public class ScheduleResponse {
 
@@ -9,14 +10,14 @@ public class ScheduleResponse {
     private String title;
     private String description;
     private Date dueDate;
-    private String status;
+    private ScheduleStatus status;
     private Date createdAt;
 
     public ScheduleResponse() {
     }
 
     public ScheduleResponse(Long scheduleId, Long userId, String title, String description,
-                            Date due, String status, Date createdAt) {
+                            Date due, ScheduleStatus status, Date createdAt) {
         this.scheduleId = scheduleId;
         this.userId = userId;
         this.title = title;
@@ -66,11 +67,11 @@ public class ScheduleResponse {
         this.dueDate = due;
     }
 
-    public String getStatus() {
+    public ScheduleStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ScheduleStatus status) {
         this.status = status;
     }
 

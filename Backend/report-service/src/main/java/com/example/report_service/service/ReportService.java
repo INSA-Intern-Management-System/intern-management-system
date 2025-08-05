@@ -78,7 +78,6 @@ public class ReportService {
                 projectResponse.getProjectName(),
                 projectResponse.getProjectDescription()
         );
-
         
         Report saved = reportRepos.saveReport(report);
         // Log activity
@@ -88,31 +87,123 @@ public class ReportService {
 
 
     @Transactional
-    public Page<ReportResponseDTO> getReportsWithReviews(Long userId, Pageable pageable) {
+    public Page<ReportResponseDTO> getReportsWithReviews(String jwtToken, Long userId, Pageable pageable) {
         Page<Report> reports = reportRepos.findByUserId(userId, pageable);
+        System.out.println("Fetched reports for userId: " + userId + ", total reports: " + reports.getTotalElements());
+
         List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
 
+        Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
+                .stream().collect(Collectors.toMap(
+                        review -> review.getReport().getId(),
+                        review -> mapper.toReviewResponseDTO(review)
+                ));
+
+        // Collect project IDs instead of report IDs
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        System.out.println("Fetching project responses for project IDs: " + projectIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
+        allProjectResponses.getProjectsList().forEach(project ->
+                System.out.println("Fetched project ID: " + project.getProjectId()));
+
+        return reports.map(report -> {
+                ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
+                ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
+                        .filter(project -> project.getProjectId() == report.getProject().getId())
+                        .findFirst()
+                        .orElse(null);
+
+                ProjectResponseDTO projectResponseDTO = null;
+                if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+                }
+
+                return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
+        });
+}
+
+
+
+    public Page<ReportResponseDTO> searchReports(String jwtToken,Long userId, String keyword, Pageable pageable) {
+        Page<Report> reports = reportRepos.searchByTitleAndFeedback(userId, keyword, pageable);
+        if (reports.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        // Map reviews for the reports
+        List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
         Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
                 .stream().collect(Collectors.toMap(
                         Review::getReportId,
                         review -> mapper.toReviewResponseDTO(review)
                 ));
-
-
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+        // Fetch project responses from gRPC
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
-            return mapper.toReportResponseDTO(report, reviewDto, null);
+            ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
+                    .filter(project -> project.getProjectId() == report.getProject().getId())
+                    .findFirst()
+                    .orElse(null);
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }
+            return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
     }
 
-    public Page<ReportResponseDTO> searchReports(Long userId, String keyword, Pageable pageable) {
-        Page<Report> reports = reportRepos.searchByTitleAndFeedback(userId, keyword, pageable);
-        return mapReportsWithReviews(reports);
-    }
-
-    public Page<ReportResponseDTO> filterReports(Long userId, String status, String period, Pageable pageable) {
+    public Page<ReportResponseDTO> filterReports(String jwtToken,Long userId, String status, String period, Pageable pageable) {
         Page<Report> reports = reportRepos.filterByStatusAndDate(userId, status, period, pageable);
-        return mapReportsWithReviews(reports);
+        if (reports.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        // Map reviews for the reports
+        List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
+        Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
+                .stream().collect(Collectors.toMap(
+                        Review::getReportId,
+                        review -> mapper.toReviewResponseDTO(review)
+                ));
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+        // Fetch project responses from gRPC
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
+        return reports.map(report -> {
+            ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
+            ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
+                    .filter(project -> project.getProjectId() == report.getProject().getId())
+                    .findFirst()
+                    .orElse(null);
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }
+            return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
+        });
     }
 
     public ReportStatsDTO getUserReportStats(Long userId) {
@@ -138,8 +229,14 @@ public class ReportService {
                         Review::getReportId,
                         review -> mapper.toReviewResponseDTO(review)
                 ));
+        //Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
         // get all the project response from gRPC
-        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, reportIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
         // map reports to ReportResponseDTO and map projects to ProjectResponseDTO
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
@@ -147,6 +244,9 @@ public class ReportService {
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
+            if (projectResponse == null) {
+                throw new RuntimeException("Project not found for report ID: " + report.getId());
+            }
             ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
                     projectResponse.getProjectId(),
                     projectResponse.getProjectName(),
@@ -164,15 +264,24 @@ public class ReportService {
                         Review::getReportId,
                         review -> mapper.toReviewResponseDTO(review)
                 ));
+
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
         
         // get all the project response from gRPC
-        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, reportIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
             ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
+            if (projectResponse == null) {
+                throw new RuntimeException("Project not found for report ID: " + report.getId());
+            }
             ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
                     projectResponse.getProjectId(),
                     projectResponse.getProjectName(),
@@ -184,7 +293,17 @@ public class ReportService {
 
     @Transactional
     public ReportResponseDTO createReview(String authHeader,Long managerId, ReviewRequestDTO dto) {
+        //check if rev
+        Report report = reportRepos.getReportById(dto.getReportId())
+                .orElseThrow(() -> new RuntimeException("Report not found for ID: " + dto.getReportId()));
 
+        //check if review already exists
+
+        Review existingReview = reviewRepos.findByReportId(dto.getReportId());
+        if (existingReview != null) {
+            throw new RuntimeException("Review already exists for report ID: " + dto.getReportId());
+        }
+        //create review
         Review review = new Review();
         review.setReport(new Report(dto.getReportId()));
         review.setFeedback(dto.getFeedback());
@@ -194,7 +313,7 @@ public class ReportService {
         Review saved = reviewRepos.saveReview(review);
 
         // get the report to return together
-        Report report = reportRepos.getReportById(dto.getReportId()).orElseThrow();
+        //Report report = reportRepos.getReportById(dto.getReportId()).orElseThrow();
         // get the project response from gRPC
         ProjectResponse projectResponse = projectManagerGrpcClient.getProjectInfo(authHeader, report
                 .getManager().getId());
@@ -228,19 +347,28 @@ public class ReportService {
                         mapper::toReviewResponseDTO
                 ));
 
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
         // get all the project response from gRPC
-        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(authHeader, reportIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(authHeader, projectIds);
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
             ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
-            ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
-                    projectResponse.getProjectId(),
-                    projectResponse.getProjectName(),
-                    projectResponse.getProjectDescription()
-            );
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
     }
@@ -255,20 +383,28 @@ public class ReportService {
                         review -> mapper.toReviewResponseDTO(review)
                 ));
         
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
 
         // get all the project response from gRPC
-        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, reportIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
             ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
-            ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
-                    projectResponse.getProjectId(),
-                    projectResponse.getProjectName(),
-                    projectResponse.getProjectDescription()
-            );
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
     }
@@ -283,19 +419,28 @@ public class ReportService {
                         review -> mapper.toReviewResponseDTO(review)
                 ));
 
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
         // get all the project response from gRPC
-        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, reportIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
             ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
-            ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
-                    projectResponse.getProjectId(),
-                    projectResponse.getProjectName(),
-                    projectResponse.getProjectDescription()
-            );
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
     }
@@ -309,19 +454,28 @@ public class ReportService {
                         review -> mapper.toReviewResponseDTO(review)
                 ));
 
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
         // get all the project response from gRPC
-        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, reportIds);
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
         return reports.map(report -> {
             ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
             ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
-            ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
-                    projectResponse.getProjectId(),
-                    projectResponse.getProjectName(),
-                    projectResponse.getProjectDescription()
-            );
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
     }

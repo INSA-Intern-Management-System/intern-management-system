@@ -12,8 +12,9 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long scheduleId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY) 
+    @JoinColumn(name = "user_id", nullable = false) // foreign key column
+    private User user;
 
     @Column(name = "title", nullable = false)
     private String title;
@@ -31,12 +32,13 @@ public class Schedule {
     @Column(name = "created_at", nullable = false)
     private Date createdAt;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status; // e.g., pending, completed, upcoming
+    private ScheduleStatus status; // e.g., pending, completed, upcoming
 
     public Schedule() {
         this.createdAt = new Date(); // set default createdAt
-        this.status = "pending"; // default status
+        this.status = ScheduleStatus.PENDING; // default status
     }
 
     // Getters and Setters
@@ -49,12 +51,12 @@ public class Schedule {
         this.scheduleId = scheduleId;
     }
 
-    public Long getUserId() {
-        return userId;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getTitle() {
@@ -90,11 +92,11 @@ public class Schedule {
         this.createdAt = createdAt;
     }
 
-    public String getStatus() {
+    public ScheduleStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ScheduleStatus status) {
         this.status = status;
     }
 }

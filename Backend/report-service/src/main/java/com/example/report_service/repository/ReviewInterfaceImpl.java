@@ -40,5 +40,9 @@ public class ReviewInterfaceImpl implements ReviewReposInterface {
         Double avg = reviewJpa.calculateGlobalAverageRating();
         return avg != null ? avg : 0.0;
     }
+    @Override
+    public Review findByReportId(Long reportId) {
+        return reviewJpa.findByReport_Id(reportId);
+    }
 
 }

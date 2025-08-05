@@ -2,6 +2,7 @@ package com.example.leave_service.controller;
 
 import com.example.leave_service.dto.LeaveRequest;
 import com.example.leave_service.dto.LeaveResponse;
+import com.example.leave_service.model.LeaveStatus;
 import com.example.leave_service.service.LeaveService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,14 @@ public class LeaveController {
             if (!"STUDENT".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only INTERN can create leave requests");
             }
-            LeaveResponse createdLeave = leaveService.createLeave(userId, leaveRequest);
+
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+
+            LeaveResponse createdLeave = leaveService.createLeave(jwtToken,userId, leaveRequest);
             return ResponseEntity.ok(createdLeave);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -110,7 +118,7 @@ public class LeaveController {
 
     @GetMapping("/filter")
     public ResponseEntity<?> filterLeaves(@RequestParam String leaveType,
-                                          @RequestParam String leaveStatus,
+                                          @RequestParam LeaveStatus leaveStatus,
                                           HttpServletRequest request,
                                           Pageable pageable) {
         try {
@@ -142,7 +150,7 @@ public class LeaveController {
             String role = (String) request.getAttribute("role");
             Long userId = (Long) request.getAttribute("userId");
 
-            if(!"PROJECT_MANAGER".equalsIgnoreCase(role) || !"HR".equalsIgnoreCase(role)){
+            if(!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)){
                 return errorResponse("Unauthorized: Only PROJECT_MANAGER and HR can view leave status counts");
             }
             if ("HR".equalsIgnoreCase(role)) {
@@ -161,12 +169,18 @@ public class LeaveController {
     @DeleteMapping("/{leaveId}")
     public ResponseEntity<?> deleteLeaveByIdForStudent(@PathVariable Long leaveId,HttpServletRequest request) {
         try {
-            Long user_id=(Long) request.getAttribute("user_id");
+            Long user_id=(Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
             if (!"STUDENT".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only STUDENT or ADMIN can delete leaves");
             }
-            leaveService.deleteLeaveOfSelf(leaveId,user_id);
+            
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            leaveService.deleteLeaveOfSelf(jwtToken,leaveId,user_id);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Leave deleted successfully");
             return ResponseEntity.ok(response);
@@ -177,7 +191,7 @@ public class LeaveController {
 
     @PatchMapping("/{leaveId}/status")
     public ResponseEntity<?> updateLeaveStatus(@PathVariable Long leaveId,
-                                               @RequestParam String newStatus,
+                                               @RequestParam LeaveStatus newStatus,
                                                HttpServletRequest request) {
         try {
             String role = (String) request.getAttribute("role");
@@ -185,7 +199,14 @@ public class LeaveController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PROJECT_MANAGER can update leave status");
             }
-            LeaveResponse updated = leaveService.updateLeaveStatus(leaveId,userId, newStatus);
+
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+
+            LeaveResponse updated = leaveService.updateLeaveStatus(jwtToken,leaveId,userId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());

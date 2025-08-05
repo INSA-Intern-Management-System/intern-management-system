@@ -10,7 +10,7 @@ public interface ReviewJpaInterface extends JpaRepository<Review, Long> {
 
     // Find reviews by report IDs
     List<Review> findByReport_IdIn(List<Long> reportIds);
-
+    Review findByReport_Id(Long reportId);
 
     // Average rating by internId (user)
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.report.intern.id = :userId")

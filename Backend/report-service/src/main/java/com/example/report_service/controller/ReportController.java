@@ -69,7 +69,7 @@ public class ReportController {
                 return ResponseEntity.status(403).body("Access denied: Only students OR pm can view their reports");
             }
             if ("STUDENT".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> reports = reportService.getReportsWithReviews(userId, pageable);
+                Page<ReportResponseDTO> reports = reportService.getReportsWithReviews(jwtToken,userId, pageable);
                 return ResponseEntity.ok(reports);
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 Page<ReportResponseDTO> reports = reportService.getReportsByManagerId(jwtToken,userId, pageable);
@@ -107,7 +107,7 @@ public class ReportController {
             String jwtToken = authHeader.substring(7);
 
             if ("STUDENT".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.searchReports(userId, keyword, pageable);
+                Page<ReportResponseDTO> results = reportService.searchReports(jwtToken,userId, keyword, pageable);
                 return ResponseEntity.ok(results);
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 Page<ReportResponseDTO> results = reportService.searchManagerReports(jwtToken,userId, keyword, pageable);
@@ -145,7 +145,7 @@ public class ReportController {
             }
             String jwtToken = authHeader.substring(7);
             if ("STUDENT".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> filtered = reportService.filterReports(userId, status, period, pageable);
+                Page<ReportResponseDTO> filtered = reportService.filterReports(jwtToken,userId, status, period, pageable);
                 return ResponseEntity.ok(filtered);
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 Page<ReportResponseDTO> filtered = reportService.filterManagerReports(jwtToken,userId, status, period, pageable);

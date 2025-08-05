@@ -1,6 +1,8 @@
 package com.example.leave_service.repository;
 
 import com.example.leave_service.model.Leave;
+import com.example.leave_service.model.LeaveStatus;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -29,10 +31,10 @@ public interface LeaveReposInterface {
 
 
     // Filter leaves by type and status
-    Page<Leave> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus,Pageable pageable);
+    Page<Leave> filterLeavesByTypeAndStatus(String leaveType, LeaveStatus  leaveStatus,Pageable pageable);
 
 
-    Page<Leave> filterLeavesByTypeAndStatus(Long receiverId,String leaveType, String leaveStatus,Pageable pageable);
+    Page<Leave> filterLeavesByTypeAndStatus(Long receiverId,String  leaveType, LeaveStatus leaveStatus,Pageable pageable);
 
     // Delete leave by ID
     void deleteLeaveById(Long leaveId, Long userId);
@@ -49,7 +51,7 @@ public interface LeaveReposInterface {
 
 
     // Update leave status
-    Leave updateLeaveStatus(Long leaveId, String newStatus);
+    Leave updateLeaveStatus(Long leaveId, LeaveStatus newStatus);
 
     // Delete leave of self
     void deleteLeaveOfSelf(Long leaveId, Long userId);

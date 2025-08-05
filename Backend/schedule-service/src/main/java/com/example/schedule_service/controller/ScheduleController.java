@@ -2,6 +2,7 @@ package com.example.schedule_service.controller;
 
 import com.example.schedule_service.dto.ScheduleRequest;
 import com.example.schedule_service.dto.ScheduleResponse;
+import com.example.schedule_service.model.ScheduleStatus;
 import com.example.schedule_service.service.ScheduleService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,13 @@ public class ScheduleController {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
             Long userId = (Long) httpRequest.getAttribute("userId");
-            ScheduleResponse created = scheduleService.createSchedule(userId, request);
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+
+            ScheduleResponse created = scheduleService.createSchedule(jwtToken,userId, request);
             return ResponseEntity.ok(created);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -50,12 +57,19 @@ public class ScheduleController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchSchedules(@RequestParam(required = false) String title,
-                                             @RequestParam(required = false) String description,
+    public ResponseEntity<?> searchSchedules(@RequestParam(required = false) String query,
+                                              Pageable pageable,
                                              HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            List<ScheduleResponse> results = scheduleService.searchSchedules(title, description);
+            if (query == null || query.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Query parameter is required");
+            }
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+            Page<ScheduleResponse> results = scheduleService.searchSchedules(userId,query, pageable);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -63,11 +77,17 @@ public class ScheduleController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<?> filterSchedulesByStatus(@RequestParam String status,
+    public ResponseEntity<?> filterSchedulesByStatus(@RequestParam ScheduleStatus status,
+                                                    Pageable pageable,
                                                      HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            List<ScheduleResponse> results = scheduleService.filterSchedulesByStatus(status);
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+         
+            Page<ScheduleResponse> results = scheduleService.filterSchedulesByStatus(userId,status, pageable);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -78,7 +98,11 @@ public class ScheduleController {
     public ResponseEntity<?> getScheduleStatusCounts(HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            Map<String, Long> counts = scheduleService.getScheduleStatusCounts();
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+            Map<String, Long> counts = scheduleService.getScheduleStatusCounts(userId);
             return ResponseEntity.ok(counts);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -88,10 +112,15 @@ public class ScheduleController {
     @GetMapping("/due-after")
     public ResponseEntity<?> findSchedulesByDueDateAfter(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date date,
+            Pageable pageable,
             HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            List<ScheduleResponse> results = scheduleService.findSchedulesByDueDateAfter(date);
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+            Page<ScheduleResponse> results = scheduleService.findSchedulesByDueDateAfter(userId,date, pageable);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -101,10 +130,15 @@ public class ScheduleController {
     @GetMapping("/upcoming")
     public ResponseEntity<?> findUpcomingSchedules(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date beforeDate,
+            Pageable pageable,
             HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            List<ScheduleResponse> results = scheduleService.findUpcomingSchedules(beforeDate);
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+            Page<ScheduleResponse> results = scheduleService.findUpcomingSchedules(userId,beforeDate, pageable);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -115,7 +149,17 @@ public class ScheduleController {
     public ResponseEntity<?> deleteAllSchedules(HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            scheduleService.deleteAllSchedules();
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            scheduleService.deleteAllSchedules(jwtToken, userId);
             Map<String, String> res = new HashMap<>();
             res.put("message", "All schedules deleted successfully");
             return ResponseEntity.ok(res);
@@ -129,7 +173,17 @@ public class ScheduleController {
                                                 HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            scheduleService.deleteScheduleById(scheduleId);
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+
+            scheduleService.deleteScheduleById(jwtToken,userId,scheduleId);
             Map<String, String> res = new HashMap<>();
             res.put("message", "Schedule deleted successfully");
             return ResponseEntity.ok(res);
@@ -140,11 +194,21 @@ public class ScheduleController {
 
     @PatchMapping("/{scheduleId}/status")
     public ResponseEntity<?> updateScheduleStatus(@PathVariable Long scheduleId,
-                                                  @RequestParam String newStatus,
+                                                  @RequestParam ScheduleStatus newStatus,
                                                   HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            ScheduleResponse updated = scheduleService.updateScheduleStatus(scheduleId, newStatus);
+            Long userId = (Long) httpRequest.getAttribute("userId");
+
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            }
+            String jwtToken = authHeader.substring(7);
+            ScheduleResponse updated = scheduleService.updateScheduleStatus(jwtToken, userId,scheduleId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
@@ -156,7 +220,12 @@ public class ScheduleController {
                                              HttpServletRequest httpRequest) {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
-            ScheduleResponse schedule = scheduleService.getScheduleById(scheduleId);
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Unauthorized: User ID not found");
+            }
+
+            ScheduleResponse schedule = scheduleService.getScheduleById(userId,scheduleId);
             return ResponseEntity.ok(schedule);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());

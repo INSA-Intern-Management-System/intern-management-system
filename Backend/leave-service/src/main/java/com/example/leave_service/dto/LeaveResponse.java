@@ -2,6 +2,8 @@ package com.example.leave_service.dto;
 
 import java.util.Date;
 
+import com.example.leave_service.model.LeaveStatus;
+
 public class LeaveResponse {
 
     private Long leaveId;
@@ -10,7 +12,7 @@ public class LeaveResponse {
     private Date fromDate;
     private Date toDate;
     private String reason;
-    private String leaveStatus;
+    private LeaveStatus leaveStatus;
     private Long receiverID;
     private Date createdAt;
 
@@ -18,7 +20,7 @@ public class LeaveResponse {
     }
 
     public LeaveResponse(Long leaveId, Long userId, String leaveType, Date fromDate,
-                         Date toDate, String reason, String leaveStatus,Long receiverID, Date createdAt) {
+                         Date toDate, String reason, LeaveStatus leaveStatus,Long receiverID, Date createdAt) {
         this.leaveId = leaveId;
         this.userId = userId;
         this.leaveType = leaveType;
@@ -78,11 +80,11 @@ public class LeaveResponse {
         this.reason = reason;
     }
 
-    public String getLeaveStatus() {
+    public LeaveStatus getLeaveStatus() {
         return leaveStatus;
     }
 
-    public void setLeaveStatus(String leaveStatus) {
+    public void setLeaveStatus(LeaveStatus leaveStatus) {
         this.leaveStatus = leaveStatus;
     }
 

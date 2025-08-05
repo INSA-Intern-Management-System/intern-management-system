@@ -33,8 +33,9 @@ public class Leave {
     @Column(name = "reason", length = 500)
     private String reason;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "leave_status")
-    private String leaveStatus;
+    private LeaveStatus leaveStatus;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at")
@@ -102,11 +103,11 @@ public class Leave {
         this.reason = reason;
     }
 
-    public String getLeaveStatus() {
+    public LeaveStatus getLeaveStatus() {
         return leaveStatus;
     }
 
-    public void setLeaveStatus(String leaveStatus) {
+    public void setLeaveStatus(LeaveStatus leaveStatus) {
         this.leaveStatus = leaveStatus;
     }
 

@@ -1,8 +1,10 @@
 package com.example.leave_service.service;
 
+import com.example.leave_service.client.ActivityGrpcClient;
 import com.example.leave_service.dto.LeaveRequest;
 import com.example.leave_service.dto.LeaveResponse;
 import com.example.leave_service.model.Leave;
+import com.example.leave_service.model.LeaveStatus;
 import com.example.leave_service.model.User;
 import com.example.leave_service.repository.InternManagerReposInterface;
 import com.example.leave_service.repository.LeaveReposInterface;
@@ -19,25 +21,29 @@ public class LeaveService {
 
     private final LeaveReposInterface leaveRepository;
     private final InternManagerReposInterface internManagerRepos;
+    private final ActivityGrpcClient activityGrpcClient;
+
 
     @Autowired
     public LeaveService(LeaveReposInterface leaveRepository,
-                        InternManagerReposInterface internManagerRepos) {
+                        InternManagerReposInterface internManagerRepos,
+                        ActivityGrpcClient activityGrpcClient) {
         this.leaveRepository = leaveRepository;
         this.internManagerRepos = internManagerRepos;
+        this.activityGrpcClient = activityGrpcClient;
     }
 
     // Create a leave
   
     @Transactional
-    public LeaveResponse createLeave(Long userId, LeaveRequest leaveRequest) {
+    public LeaveResponse createLeave(String jwtToken,Long userId, LeaveRequest leaveRequest) {
         // Create Leave object
         Leave leave = new Leave();
         leave.setLeaveType(leaveRequest.getLeaveType());
         leave.setFromDate(leaveRequest.getFromDate());
         leave.setToDate(leaveRequest.getToDate());
         leave.setReason(leaveRequest.getReason());
-        leave.setLeaveStatus("PENDING");
+        leave.setLeaveStatus(LeaveStatus.PENDING);
         leave.setCreatedAt(new Date());
         User user = new User();
         user.setId(userId);
@@ -56,6 +62,8 @@ public class LeaveService {
         }
 
         Leave savedLeave = leaveRepository.createLeave(leave);
+        // Log activity
+        logActivity(jwtToken, userId, "Create Leave", "Leave created with ID: " + savedLeave.getLeaveId()+", Type: " + savedLeave.getLeaveType());
         return mapToResponse(savedLeave);
     }
 
@@ -103,14 +111,14 @@ public class LeaveService {
     }
 
     // Filter leaves by type and status
-    public Page<LeaveResponse> filterLeavesByTypeAndStatus(String leaveType, String leaveStatus, Pageable pageable) {
+    public Page<LeaveResponse> filterLeavesByTypeAndStatus(String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
         Page<Leave> leavesPage = leaveRepository.filterLeavesByTypeAndStatus(leaveType, leaveStatus, pageable);
         Page<LeaveResponse> responsePage = leavesPage.map(this::mapToResponse);
 
         return responsePage;
     }
 
-    public Page<LeaveResponse> filterLeavesByTypeAndStatus(Long receiverId, String leaveType, String leaveStatus, Pageable pageable) {
+    public Page<LeaveResponse> filterLeavesByTypeAndStatus(Long receiverId, String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
 
         Page<Leave> leavesPage = leaveRepository.filterLeavesByTypeAndStatus(receiverId, leaveType, leaveStatus, pageable);
         Page<LeaveResponse> responsePage = leavesPage.map(this::mapToResponse);
@@ -143,7 +151,7 @@ public class LeaveService {
 
     // Update leave status
     @Transactional
-    public LeaveResponse updateLeaveStatus(Long leaveId,long receiver_id, String newStatus) {
+    public LeaveResponse updateLeaveStatus(String jwtToken,Long leaveId,long receiver_id, LeaveStatus newStatus) {
         //Get by using leave id
         Optional<Leave> leave = leaveRepository.getLeaveById(leaveId);
         if (leave.isEmpty()) {
@@ -156,11 +164,15 @@ public class LeaveService {
         }
 
         Leave updatedLeave = leaveRepository.updateLeaveStatus(leaveId, newStatus);
+        // Log activity
+        logActivity(jwtToken, receiver_id, "Update Leave Status", "Leave ID: " + leaveId + ", New Status: " + newStatus);
         return mapToResponse(updatedLeave);
     }
     // Delete leave of self
-    public void deleteLeaveOfSelf(Long leaveId, Long userId) {
+    public void deleteLeaveOfSelf(String jwtToken, Long leaveId, Long userId) {
         leaveRepository.deleteLeaveOfSelf(leaveId, userId);
+        // Log activity
+        logActivity(jwtToken, userId, "Delete Leave", "Leave deleted with ID: " + leaveId);
     }
 
     //get leaves by recevier id 
@@ -177,7 +189,14 @@ public class LeaveService {
 
     
 
-
+    private void logActivity(String jwtToken, Long userId, String action, String description) {
+        try {
+            activityGrpcClient.createActivity(jwtToken, userId, action, description);
+        } catch (Exception e) {
+            // Log the failure, but do NOT block business logic
+            System.err.println("Failed to log activity: " + e.getMessage());
+        }
+    }
 
     // Helper: map Leave → LeaveResponse
     private LeaveResponse mapToResponse(Leave leave) {
