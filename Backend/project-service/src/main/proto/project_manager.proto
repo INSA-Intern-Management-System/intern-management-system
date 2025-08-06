@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package com.example.project_service.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.project_service.gRPC";
+option java_outer_classname = "ProjectManagerProto";
+
+service ProjectManagerService {
+  rpc getProjectInfo (ProjectRequest) returns (ProjectResponse);
+  rpc getProjects (AllProjectRequests) returns (AllProjectResponses);
+}
+
+message ProjectRequest {
+  int64 project_id = 1;
+}
+
+message ProjectResponse {
+  int64 project_id = 1;
+  string project_name = 2;
+  string project_description = 3;
+}
+
+
+message AllProjectRequests {
+  repeated int64 project_ids = 1;
+}
+
+message AllProjectResponses {
+  repeated ProjectResponse projects = 1;
+}
