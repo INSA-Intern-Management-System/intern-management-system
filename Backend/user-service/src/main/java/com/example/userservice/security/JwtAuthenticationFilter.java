@@ -25,6 +25,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+
+        String internalHeader = request.getHeader("X-Internal-Call");
+        if ("true".equalsIgnoreCase(internalHeader)) {
+            System.out.println("Internal service call detected. Skipping JWT validation.");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -83,9 +91,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         return path.equals("/api/auth/login") ||
                 path.equals("/api/auth/request-password-change-otp") ||
-                path.equals("/api/users/") ||
+                path.equals("/api/users") ||
                 path.equals("/api/users/filter-by-role") ||
-                path.equals("/api/users/filter-by-status") ||
+                path.equals("/api/users/interns/search") ||
+                path.equals("/api/users/supervisors/search")||
+                path.equals("/api/users/supervisors") ||
+                path.equals("/api/users/interns") ||
+                path.equals("/api/users/filter-all-users-by-status") ||
+                path.equals("/api/users/filter-interns-by-status") ||
+                path.equals("/api/users/filter-interns-by-university") ||
+                path.equals("/api/users/filter-intern-by-supervisor") ||
                 path.equals("/api/users/status-count") ||
                 path.equals("/api/users/role-counts") ||
                 path.equals("/api/auth/confirm-password-change-otp");

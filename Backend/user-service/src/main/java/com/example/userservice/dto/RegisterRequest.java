@@ -38,5 +38,15 @@ public class RegisterRequest {
     public void setRole(Role role) {
         this.role = role;
     }
+
+    public UserStatus getUserStatus() {
+        return userStatus;
+    }
+
+    public void setUserStatus(UserStatus userStatus) {
+        this.userStatus = userStatus;
+    }
+
+
 }
 

@@ -5,5 +5,6 @@ public enum RecipientRole {
     Project_Manager,
     HR,
     University,
-    Supervisor
+    Supervisor,
+    Admin
 }

@@ -30,12 +30,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Role role1, String firstName, Role role2, String fieldOfStudy, Pageable pageable
     );
 
-   Page<User> findByRoleAndInstitutionContainingIgnoreCase( Role role ,String institution, Pageable pageable);
+   Page<User> findByRoleAndInstitution( Role role ,String institution, Pageable pageable);
+
+   Page<User> findByRoleAndUserStatus(Role role, UserStatus userStatus, Pageable pageable);
 
    Page<User> findByUserStatus(UserStatus userStatus, Pageable pageable);
 
     @Query("SELECT u.userStatus AS userStatus, COUNT(u) AS count FROM User u GROUP BY u.userStatus")
     List<UserStatusCount> countUsersByStatus();
+
+    Page<User> findByRoleAndSupervisor_FirstNameContainingIgnoreCase(
+            Role role1, String firstName, Pageable pageable
+    );
 
 
 

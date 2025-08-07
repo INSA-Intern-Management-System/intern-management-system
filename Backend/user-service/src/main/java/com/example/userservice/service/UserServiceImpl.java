@@ -1,9 +1,6 @@
 package com.example.userservice.service;
 
-import com.example.userservice.dto.LoginRequest;
-import com.example.userservice.dto.RegisterRequest;
-import com.example.userservice.dto.RolesDTO;
-import com.example.userservice.dto.UpdatePasswordDTO;
+import com.example.userservice.dto.*;
 import com.example.userservice.model.*;
 import com.example.userservice.repository.RoleRepository;
 import com.example.userservice.repository.UserRepository;
@@ -22,6 +19,7 @@ import com.example.userservice.security.SecurityConfig.*;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -73,7 +71,7 @@ public class UserServiceImpl implements UserService {
         user.setFieldOfStudy(request.fieldOfStudy);
         user.setInstitution(request.institution);
         user.setRole(userRole);
-        user.setUserStatus(UserStatus.PENDING);
+        user.setUserStatus(request.userStatus);
         user.setBio(request.bio);
         user.setNotifyEmail(request.notifyEmail);
         user.setVisibility(request.visibility);
@@ -350,15 +348,34 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<User> filterByInstitution(String institution, Pageable pageable) {
         Role internRole = roleRepo.findByName("STUDENT");
-        return userRepo.findByRoleAndInstitutionContainingIgnoreCase(internRole, institution, pageable);
+        return userRepo.findByRoleAndInstitution(internRole, institution, pageable);
     }
 
     @Override
-    public Page<User> filterByStatus(String query , Pageable pageable) {
+    public Page<User> filterInternByStatus(String query, Pageable pageable) {
+        Role internRole = roleRepo.findByName("STUDENT");
 
-        UserStatus matchedStatus = UserStatus.valueOf(query.toUpperCase());
+        UserStatus matchedStatus;
+        try {
+            matchedStatus = UserStatus.valueOf(query.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status value: " + query);
+        }
 
-        return userRepo.findByUserStatus(matchedStatus, pageable);
+        return userRepo.findByRoleAndUserStatus(internRole, matchedStatus, pageable);
+    }
+
+
+    @Override
+    public Page<User> filterAllUsersByStatus(String query , Pageable pageable) {
+
+        UserStatus matchedStatus;
+        try {
+            matchedStatus = UserStatus.valueOf(query.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status value: " + query);
+        }
+        return userRepo.findByUserStatus( matchedStatus, pageable);
     }
 
 
@@ -417,7 +434,46 @@ public class UserServiceImpl implements UserService {
         return roleRepo.save(role);
     }
 
+    @Override
+    public void assignSupervisor(AssignSupervisorRequestDTO dto) {
+        User student = userRepo.findByEmail(dto.getStudentEmail());
 
+        Role studentRole = roleRepo.findByName("STUDENT");
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+
+        if (student == null && student.getRole() != studentRole) {
+            throw new RuntimeException("Student with this email not found");
+        }
+
+        if (student.getUserStatus() != UserStatus.ACTIVE) {
+            throw new RuntimeException("Only Accepted students can be assigned a supervisor");
+        }
+
+        User supervisor = userRepo.findByEmail(dto.getSupervisorEmail());
+        if (supervisor == null && supervisor.getRole() !=supervisorRole) {
+            throw new RuntimeException("Supervisor with this email not found");
+        }
+
+        student.setSupervisor(supervisor);
+        userRepo.save(student);
+    }
+
+    @Override
+    public Page<User> searchSupervisors(String query, Pageable pageable) {
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+
+        return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
+                supervisorRole, query, supervisorRole, query, pageable
+        );
+    }
+
+    @Override
+    public Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable) {
+        Role internRole = roleRepo.findByName("STUDENT");
+        return userRepo.findByRoleAndSupervisor_FirstNameContainingIgnoreCase(
+                internRole, supervisorName, pageable
+        );
+    }
 
 
 

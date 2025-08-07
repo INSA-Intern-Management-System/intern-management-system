@@ -1,6 +1,8 @@
+
 package com.example.notification_service.controller;
 
 
+import com.example.notification_service.dto.NotificationRequest;
 import com.example.notification_service.model.Notification;
 import com.example.notification_service.model.RecipientRole;
 import com.example.notification_service.repository.NotificationRepository;
@@ -9,11 +11,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -22,7 +24,7 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<?> getMyNotifications(HttpServletRequest request) {
         String roleStr = (String) request.getAttribute("role");
 
@@ -31,16 +33,76 @@ public class NotificationController {
                     .body("User role not found in request.");
         }
 
-        RecipientRole role;
         try {
-            role = RecipientRole.valueOf(roleStr);
+            // Convert from "UNIVERSITY" → "University"
+            String pascalCaseRole = roleStr.substring(0, 1).toUpperCase() +
+                    roleStr.substring(1).toLowerCase();
+
+            RecipientRole role = RecipientRole.valueOf(pascalCaseRole);
+
             List<Notification> notifications = notificationService.getNotificationsByRole(role);
             return ResponseEntity.ok(notifications);
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Invalid role: " + roleStr);
         }
-
     }
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createNotification(@RequestBody NotificationRequest dto, HttpServletRequest request){
+        String role = (String) request.getAttribute("role");
+
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only Admin can create notification.");
+        }
+
+        try{
+           Notification newNotification = notificationService.createNotification(dto);
+
+           Map<String, Object> response = new HashMap<>();
+           response.put("message", "Notification created successfully!");
+           response.put("success", true);
+           response.put("data", newNotification);
+
+           return ResponseEntity.ok().body(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id, HttpServletRequest request){
+        String role = (String) request.getAttribute("role");
+
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            return errorResponse("Unauthorized: Only Admin can delete notification.");
+        }
+
+        try{
+
+            notificationService.deleteNotificationById(id);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Notification deleted successfully!");
+            response.put("success", true);
+
+            return ResponseEntity.ok().body(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
+
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
 
 }

@@ -1,10 +1,7 @@
 package com.example.userservice.controller;
 
 
-import com.example.userservice.dto.AdminResetPasswordRequest;
-import com.example.userservice.dto.RolesDTO;
-import com.example.userservice.dto.UpdatePasswordDTO;
-import com.example.userservice.dto.UserResponseDto;
+import com.example.userservice.dto.*;
 import com.example.userservice.model.Role;
 import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
@@ -65,7 +62,7 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
 
-            if (role == null || !"Admin".equalsIgnoreCase(role)) {
+            if (role == null || !"ADMIN".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only Admin users can delete user.");
             }
 
@@ -93,15 +90,16 @@ public class UserController {
         }
     }
 
-        @PutMapping("/update-password/{id}")
-        public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, @PathVariable Long id, HttpServletRequest request) {
+    @PutMapping("/update-password/{id}")
+    public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, @PathVariable Long id, HttpServletRequest request) {
             String role = (String) request.getAttribute("role");
 
             if (role == null || !(role.equalsIgnoreCase("HR") ||
-                    role.equalsIgnoreCase("Project_Manager") ||
-                    role.equalsIgnoreCase("Student") ||
-                    role.equalsIgnoreCase("Admin") ||
-                    role.equalsIgnoreCase("University"))) {
+                    role.equalsIgnoreCase("PROJECT_MANAGER") ||
+                    role.equalsIgnoreCase("STUDENT") ||
+                    role.equalsIgnoreCase("ADMIN") ||
+                    role.equalsIgnoreCase("SUPERVISOR") ||
+                    role.equalsIgnoreCase("UNIVERSITY"))) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
             }
 
@@ -116,7 +114,7 @@ public class UserController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
+    public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody User user) {
         try {
             User updatedUser = userService.updateUser(id, user);
             return ResponseEntity.ok(new UserResponseDto(updatedUser));
@@ -129,19 +127,10 @@ public class UserController {
     }
 
     @GetMapping("/interns")
-    public ResponseEntity<?> getInterns(HttpServletRequest request,
+    public ResponseEntity<?> getInterns(
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "10") int size) {
         try {
-            String role = (String) request.getAttribute("role");
-
-            if (role == null) {
-                return errorResponse("Unauthorized: Role not found in request");
-            }
-
-            if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only HR or Project Manager can access interns");
-            }
 
             Pageable pageable = PageRequest.of(page, size);
             // Fetch the Roles entity for "STUDENT"
@@ -165,23 +154,36 @@ public class UserController {
         }
     }
 
+    @PutMapping("/assign-supervisor")
+    public ResponseEntity<?> assignSupervisor(
+            @RequestBody AssignSupervisorRequestDTO dto,
+            HttpServletRequest request
+    ) {
+        String role = (String) request.getAttribute("role");
+
+        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Unauthorized: Only UNIVERSITY can assign supervisors.");
+        }
+
+        try {
+            userService.assignSupervisor(dto);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Supervisor assigned successfully!");
+            response.put("Success", true);
+
+            return ResponseEntity.ok().body(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+
 
 
     @GetMapping("/supervisors")
-    public ResponseEntity<?> getSupervisors(HttpServletRequest request,
+    public ResponseEntity<?> getSupervisors(
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "10") int size){
         try{
-
-            String role = (String) request.getAttribute("role");
-
-            if (role == null) {
-                return errorResponse("Unauthorized: Role not found in request");
-            }
-
-            if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
-            }
 
             Pageable pageable = PageRequest.of(page, size);
 
@@ -212,7 +214,7 @@ public class UserController {
         try {
             String role = (String) request.getAttribute("role"); // Extracted by JwtAuthenticationFilter
 
-            if (role == null || !"Admin".equalsIgnoreCase(role)) {
+            if (role == null || !"ADMIN".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only Admin users can reset passwords.");
             }
 
@@ -249,7 +251,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/role-counts")
+    @GetMapping("/role-count")
     public ResponseEntity<Map<String, Long>> getUserRoleCounts() {
         Map<String, Long> roleCounts = userService.getUserRoleCounts();
         return ResponseEntity.ok(roleCounts);
@@ -257,22 +259,38 @@ public class UserController {
 
 
 
-
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            HttpServletRequest request) {
-
-        String role = (String) request.getAttribute("role");
-
-        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-            return errorResponse("Unauthorized: Only HR or Project Manager can search users");
-        }
+            @RequestParam(defaultValue = "10") int size
+             ) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.searchInterns(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+    @GetMapping("/supervisors/search")
+    public ResponseEntity<?> searchSupervisors(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            ) {
+
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.searchSupervisors(query, pageable);
 
         List<UserResponseDto> content = pageResult.getContent().stream()
                 .map(this::mapToDTO)
@@ -308,18 +326,12 @@ public class UserController {
     }
 
 
-    @GetMapping("/filter-by-institution")
-    public ResponseEntity<?> filterByInstitution(
+    @GetMapping("/filter-interns-by-university")
+    public ResponseEntity<?> filterInternByUniversity(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            HttpServletRequest request) {
-
-        String role = (String) request.getAttribute("role");
-
-        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-            return errorResponse("Unauthorized: Only HR or Project Manager can search users");
-        }
+            @RequestParam(defaultValue = "10") int size
+            ) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.filterByInstitution(query, pageable);
@@ -344,7 +356,6 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size
             ) {
 
-
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.filterUserByRole(query, pageable);
 
@@ -360,16 +371,15 @@ public class UserController {
         ));
     }
 
-    @GetMapping("/filter-by-status")
-    public ResponseEntity<?> filterByStatus(
+    @GetMapping("/filter-interns-by-status")
+    public ResponseEntity<?> filterInternByStatus(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
 
-
         Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterByStatus(query, pageable);
+        Page<User> pageResult = userService.filterInternByStatus(query, pageable);
 
         List<UserResponseDto> content = pageResult.getContent().stream()
                 .map(this::mapToDTO)
@@ -382,6 +392,29 @@ public class UserController {
                 "totalElements", pageResult.getTotalElements()
         ));
     }
+
+    @GetMapping("/filter-all-users-by-status")
+    public ResponseEntity<?> filterAllUserByStatus(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterAllUsersByStatus(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
 
 
     @PostMapping("/role/create")
@@ -408,6 +441,29 @@ public class UserController {
 
 
 }
+
+
+    @GetMapping("/filter-intern-by-supervisor")
+    public ResponseEntity<?> filterInternsBySupervisor(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterInternBySupervisor(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
 
 
     private ResponseEntity<?> errorResponse(String message) {

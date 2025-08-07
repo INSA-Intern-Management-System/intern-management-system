@@ -65,7 +65,6 @@ public class CompanySettingController {
         }
     }
 
-
     @PutMapping()
     public ResponseEntity<?> updateCompanyProfile(@RequestBody CompanyProfileDTO newProfile, HttpServletRequest request){
         try {
@@ -89,7 +88,6 @@ public class CompanySettingController {
             return ResponseEntity.status(400).body(error);
         }
     }
-
 
 
     private ResponseEntity<?> errorResponse(String message) {

@@ -1,9 +1,6 @@
 package com.example.userservice.service;
 
-import com.example.userservice.dto.LoginRequest;
-import com.example.userservice.dto.RegisterRequest;
-import com.example.userservice.dto.RolesDTO;
-import com.example.userservice.dto.UpdatePasswordDTO;
+import com.example.userservice.dto.*;
 import com.example.userservice.model.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +39,8 @@ public interface UserService {
 
     User loadUserByEmail(String email);
 
+    void assignSupervisor(AssignSupervisorRequestDTO dto);
+
     Page<User> getInterns(Role role, Pageable pageable);
     Page<User> getSupervisors(Role role, Pageable pageable);
 
@@ -52,11 +51,19 @@ public interface UserService {
     Page<User> filterUserByRole(String query, Pageable pageable);
 
     Page<User> filterByInstitution(String institution, Pageable pageable);
-    Page<User> filterByStatus(String query, Pageable pageable);
+
+    Page<User> filterInternByStatus(String query, Pageable pageable);
+    Page<User> filterAllUsersByStatus(String query, Pageable pageable);
+
 
     List<UserStatusCount> countUsersByStatus();
     Map<String, Long> getUserRoleCounts();
 
     Role createRole(RolesDTO dto);
+
+    Page<User> searchSupervisors(String query, Pageable pageable);
+    Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable);
+
+
 
 }
