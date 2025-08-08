@@ -11,7 +11,6 @@ import java.util.Optional;
 
 @Repository
 public class MessageReposImpl implements MessageReposInterface {
-
     private final MessageJpaRepos messageJpaRepos;
 
     @Autowired

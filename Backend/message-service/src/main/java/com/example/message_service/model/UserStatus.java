@@ -1,6 +1,6 @@
 package com.example.message_service.model;
 
-public enum Status {
+public enum UserStatus {
     ONLINE,
     OFFLINE
 }

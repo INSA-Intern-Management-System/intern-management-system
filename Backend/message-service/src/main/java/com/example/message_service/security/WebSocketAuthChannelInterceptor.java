@@ -24,12 +24,12 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            String token = accessor.getFirstNativeHeader("access-token");
-            if (token == null || !token.startsWith("Bearer ")) {
+            String rawHeader = accessor.getFirstNativeHeader("access-token");
+            if (rawHeader == null || !rawHeader.startsWith("Bearer ")) {
                 throw new IllegalArgumentException("Missing or invalid access-token header");
             }
 
-            token = token.substring(7);
+            String token = rawHeader.substring(7); // raw token (without "Bearer ")
 
             try {
                 if (!security.isTokenValid(token)) {
@@ -39,7 +39,11 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
                 Long userId = security.extractUserId(token);
                 String role = security.extractUserRole(token);
 
-                System.out.println("[WebSocketAuth] User connected: id=" + userId + ", role=" + role);
+                // Save token and userId into session attributes for later retrieval
+                if (accessor.getSessionAttributes() != null) {
+                    accessor.getSessionAttributes().put("jwt", token);
+                    accessor.getSessionAttributes().put("userId", userId);
+                }
 
                 List<SimpleGrantedAuthority> authorities =
                         List.of(new SimpleGrantedAuthority("ROLE_" + role));
@@ -60,4 +64,3 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     }
 
 }
-

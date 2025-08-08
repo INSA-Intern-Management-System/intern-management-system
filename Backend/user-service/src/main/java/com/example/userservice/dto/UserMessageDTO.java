@@ -1,30 +1,33 @@
-package com.example.message_service.dto;
-import com.example.message_service.model.UserStatus;
+package com.example.userservice.dto;
+
+import com.example.userservice.model.Role;
+
+import com.example.userservice.model.Status;
 
 
-public class UserResponseDTO {
+public class UserMessageDTO {
 
     private Long    id;
     private String firstName;
     private String lastName;
     private String fieldOfStudy;
     private String university;
-    private UserStatus Status;
-    private String roleName;
+    private Status Status;
+    private Role role;
 
 
 
-    public UserResponseDTO () {}
+    public UserMessageDTO () {}
 
-    public UserResponseDTO(Long id, String firstName, String lastName,  String fieldOfStudy,
-                String university,UserStatus status, String roleName) {
+    public UserMessageDTO(Long id, String firstName, String lastName,  String fieldOfStudy,
+                String university,Status status, Role role) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.fieldOfStudy = fieldOfStudy;
         this.university = university;
         this.Status = status;
-        this.roleName = roleName;
+        this.role = role;
     }
 
     public String getFirstName() {
@@ -67,19 +70,19 @@ public class UserResponseDTO {
         this.university = university;
     }
 
-    public String getRole() {
-        return roleName;
+    public Role getRole() {
+        return role;
     }
 
-    public void setRole(String role) {
-        this.roleName = role;
+    public void setRole(Role role) {
+        this.role = role;
     }
 
-    public UserStatus getStatus() {
+    public Status getStatus() {
         return Status;
     }
 
-    public void setStatus(UserStatus status) {
+    public void setStatus(Status status) {
         Status = status;
     }
 }

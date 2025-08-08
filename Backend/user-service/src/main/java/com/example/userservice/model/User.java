@@ -8,8 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-
-
+import java.util.List;
 
 
 @Entity
@@ -46,6 +45,14 @@ public class User implements UserDetails {
     private Date createdAt;
     private Date updatedAt;
 
+    @ManyToOne
+    @JoinColumn(name = "supervisor_id")
+    private User supervisor;
+
+    @OneToMany(mappedBy = "supervisor")
+    private List<User> supervisedInterns;
+
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "last_login")
     private Date lastLogin;
@@ -67,6 +74,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private UserStatus userStatus = UserStatus.PENDING;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.OFFLINE; // Default status
 
     public Date getLastLogin() {
         return lastLogin;
@@ -101,9 +112,13 @@ public class User implements UserDetails {
     Date lastLogin,
     Role role,
     UserStatus userStatus,
+    Status status,
     Date createdAt, 
     Date updatedAt,
-    Boolean isFirstLogin
+    Boolean isFirstLogin,
+    User supervisor,
+    List<User> supervisedInterns
+
       ) {
         this.id = id;
         this.firstName = firstName;
@@ -127,9 +142,12 @@ public class User implements UserDetails {
         this.lastLogin = lastLogin;
         this.role = role;
         this.userStatus = userStatus;
+        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.isFirstLogin = isFirstLogin;
+        this.supervisor = supervisor;
+        this.supervisedInterns = supervisedInterns;
     }
 
      @Override
@@ -137,6 +155,7 @@ public class User implements UserDetails {
          // You can use role-based authority here
          return Collections.emptyList(); // Or use: List.of(new SimpleGrantedAuthority(role))
      }
+
 
      @Override
      public String getUsername() {
@@ -187,6 +206,22 @@ public class User implements UserDetails {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public User getSupervisor() {
+        return supervisor;
+    }
+
+    public void setSupervisor(User supervisor) {
+        this.supervisor = supervisor;
+    }
+
+    public List<User> getSupervisedInterns() {
+        return supervisedInterns;
+    }
+
+    public void setSupervisedInterns(List<User> supervisedInterns) {
+        this.supervisedInterns = supervisedInterns;
     }
 
     public String getLastName() {
@@ -356,5 +391,12 @@ public class User implements UserDetails {
 
     public void setUserStatus(UserStatus userStatus) {
         this.userStatus = userStatus;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+    public void setStatus(Status status) {
+        this.status = status;
     }
 }

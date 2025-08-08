@@ -2,8 +2,13 @@ package com.example.message_service.controller;
 
 import com.example.message_service.dto.*;
 import com.example.message_service.service.MessageService;
+
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
@@ -20,8 +25,24 @@ public class WsController {
     }
 
     @MessageMapping("/send-message")
-    public void sendMessage(WebSocketMessageDTO dto) {
-        MessageResponseDTO saved = messageService.sendMessage(dto);
+    public void sendMessage(@Payload WebSocketMessageDTO dto, SimpMessageHeaderAccessor headerAccessor) {
+        // extract jwt token from session attributes (stored at CONNECT time)
+        Map<String, Object> sessionAttrs = headerAccessor.getSessionAttributes();
+        String jwtToken = null;
+        if (sessionAttrs != null) {
+            Object jwtObj = sessionAttrs.get("jwt");
+            if (jwtObj instanceof String) {
+                jwtToken = (String) jwtObj;
+            }
+        }
+
+        if (jwtToken == null || jwtToken.isBlank()) {
+            // Optionally send error message to user, or throw
+            throw new IllegalArgumentException("Unauthorized: JWT token not found in WebSocket session. Make sure to CONNECT with 'access-token: Bearer <token>' header.");
+        }
+
+        // Service call that uses grpc to validate/fetch users and persist message
+        MessageResponseDTO saved = messageService.sendMessage(jwtToken, dto);
         messagingTemplate.convertAndSend("/topic/rooms/" + saved.getRoomId(), saved);
     }
 
