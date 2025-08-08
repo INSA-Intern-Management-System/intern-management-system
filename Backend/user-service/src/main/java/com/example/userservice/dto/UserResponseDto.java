@@ -35,6 +35,7 @@ public class UserResponseDto {
     private String fieldOfStudy;
     private String institution;
     private LocalDateTime lastLogin;
+    private SupervisorDTO supervisor;
 
     @NotBlank(message = "Role is required")
     private Role role;
@@ -64,9 +65,41 @@ public class UserResponseDto {
         this.updatedAt = user.getUpdatedAt();
         this.role = user.getRole();
         this.userStatus = user.getUserStatus();
+
+        if (user.getSupervisor() != null) {
+            this.supervisor = new SupervisorDTO(user.getSupervisor());
+        }
+
     }
 
     // Getters and Setters (generate with Alt+Insert or Lombok)
+
+
+
+    public Boolean getNotifyEmail() {
+        return notifyEmail;
+    }
+
+    public SupervisorDTO getSupervisor() {
+        return supervisor;
+    }
+
+    public void setSupervisor(SupervisorDTO supervisor) {
+        this.supervisor = supervisor;
+    }
+
+    public String getLinkedInUrl() {
+        return linkedInUrl;
+    }
+
+    public LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
+    }
+    
 
     public Long getId() {
         return id;
@@ -241,10 +274,6 @@ public class UserResponseDto {
     public void setUserStatus(UserStatus userStatus) {
         this.userStatus = userStatus;
     }
-
-
-
-
 
 
 }

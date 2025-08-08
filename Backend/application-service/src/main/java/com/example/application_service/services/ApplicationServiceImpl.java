@@ -6,6 +6,7 @@ import com.example.application_service.dto.CreateUserRequest;
 import com.example.application_service.model.*;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -118,15 +121,10 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public List<ApplicationDTO> getApplicationByApplicantId(Long applicantId) {
-        return applicationRepository.findByApplicantId(applicantId)
-                .stream()
-                .map(application -> ApplicationDTO.builder()
-                        .id(application.getId())
-                        .applicantId(application.getApplicant().getId())
-                        .status(application.getStatus())
-                        .build())
-                .collect(Collectors.toList());
+    public Application getApplicationById(Long id) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+        return application;
     }
 
     @Override
@@ -187,7 +185,7 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status) {
+    public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status, String authHeader) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
@@ -197,14 +195,10 @@ public class ApplicationServiceImpl implements ApplicationService{
         if (status == ApplicationStatus.Accepted) {
             Applicant applicant = application.getApplicant();
 
-            // Generate a random password
             String generatedPassword = generateRandomPassword(10);
             System.out.println("Generated password for new Accepted user(Intern): " + generatedPassword);
 
-
-            // Build payload to send to user service
             CreateUserRequest userRequest = new CreateUserRequest();
-
             userRequest.setFirstName(applicant.getFirstName());
             userRequest.setLastName(applicant.getLastName());
             userRequest.setEmail(applicant.getEmail());
@@ -220,9 +214,15 @@ public class ApplicationServiceImpl implements ApplicationService{
             userRequest.setUserStatus(UserStatus.ACTIVE);
             userRequest.setRole(UserRole.STUDENT);
 
+            // ✅ Build headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", authHeader);  // ⬅️ Pass the token
+            headers.set("internal-source", "application-service"); // optional for tracking
+
+            HttpEntity<CreateUserRequest> requestEntity = new HttpEntity<>(userRequest, headers);
 
             try {
-                restTemplate.postForEntity(userServiceUrl, userRequest, Void.class);
+                restTemplate.postForEntity(userServiceUrl, requestEntity, Void.class);
             } catch (Exception ex) {
                 throw new RuntimeException("Failed to create user in user service: " + ex.getMessage());
             }
@@ -271,5 +271,7 @@ public class ApplicationServiceImpl implements ApplicationService{
 
         return password.toString();
     }
+
+
 
 }

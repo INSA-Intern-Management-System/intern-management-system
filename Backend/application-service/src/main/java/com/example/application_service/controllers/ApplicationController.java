@@ -13,6 +13,7 @@ import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.services.ApplicationService;
 //import com.example.application_service.services.UserServiceClient;
 import com.example.grpc.RecipientRole;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
+
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api")
 public class ApplicationController {
@@ -222,17 +225,21 @@ public class ApplicationController {
     }
 
 
-    @GetMapping("/applications/applicant/{applicantId}")
-    public ResponseEntity<List<ApplicationDTO>> getApplicationsByApplicantId(@PathVariable Long applicantId) {
-        List<ApplicationDTO> application = applicationService.getApplicationByApplicantId(applicantId);
-        return ResponseEntity.ok(application);
+    @GetMapping("/applications/{id}")
+    public ResponseEntity<?> getApplicationById(@PathVariable Long id) {
+        Application application = applicationService.getApplicationById(id);
+
+        // ✅ Convert to DTO with applicant data
+        ApplicationResponseDTO applicationDTO = mapToDTO(application);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Application fetched successfully");
+        response.put("success", true);
+        response.put("data", applicationDTO);
+
+        return ResponseEntity.ok(response);
     }
 
-    private ResponseEntity<?> errorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-    }
 
     @PostMapping(value = "/application/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> batchImport(
@@ -242,7 +249,7 @@ public class ApplicationController {
         try {
             String role = (String) request.getAttribute("role");
 
-            if (!"University".equalsIgnoreCase(role)) {
+            if (!"UNIVERSITY".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only University can create batch application");
             }
 
@@ -275,30 +282,38 @@ public class ApplicationController {
                 return errorResponse("Unauthorized: Only HR can update application status.");
             }
 
-            // ✅ Update the application status and get the updated data
-            ApplicationDTO updated = applicationService.updateApplicationStatus(id, ApplicationStatus.valueOf(status));
+            // ✅ Extract token from Authorization header
+            String authHeader = request.getHeader("Authorization");
 
-            // ✅ Fetch applicant info using application ID
+            // ✅ Update the application status and pass token to service
+            ApplicationDTO updated = applicationService.updateApplicationStatus(
+                    id, ApplicationStatus.valueOf(status), authHeader
+            );
+
+            // ✅ Fetch application + applicant
             Application application = applicationRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Application not found"));
 
             Applicant applicant = application.getApplicant();
 
-            // ✅ Create a dynamic message based on status
-            String message = String.format("Application for %s %s (%s) has been %s.",
+            // ✅ Send Notification
+            String message = String.format("Application for your student %s %s (%s) has been %s.",
                     applicant.getFirstName(),
                     applicant.getLastName(),
                     applicant.getEmail(),
                     status.toUpperCase());
 
-            // ✅ Send notification to the applicant(University)
-            notificationGrpcClient.sendNotification(
-                    Set.of(RecipientRole.University),
-                    "Application Status Update",
-                    message,
-                    Instant.now()
-            );
-
+            try {
+                notificationGrpcClient.sendNotification(
+                        Set.of(RecipientRole.University),
+                        "Application Status Update",
+                        message,
+                        Instant.now()
+                );
+            } catch (Exception e) {
+                System.err.println("Failed to send gRPC notification: " + e.getMessage());
+                // optionally log this or send to monitoring
+            }
             return ResponseEntity.ok(updated);
 
         } catch (RuntimeException e) {
@@ -309,7 +324,7 @@ public class ApplicationController {
     }
 
 
-    @GetMapping("/applicants/search")
+    @GetMapping("/applications/search")
     public ResponseEntity<?> searchApplicants(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
@@ -402,6 +417,13 @@ public class ApplicationController {
         return ResponseEntity.ok(response);
     }
 
+
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
 
 
     private ApplicationResponseDTO mapToDTO(Application application) {

@@ -20,12 +20,19 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/internal/**").permitAll() // if you allow internal unauthenticated
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/universities/login",
                                 "/api/universities/register",
-                                "/api/users/*",
+                                "/api/users",
+                                "/api/users/filter-interns-by-university",
+                                "/api/users/filter-all-users-by-status",
+                                "/api/users/filter-supervisor-by-status",
+                                "/api/users/filter-supervisor-by-field-of-study",
+                                "/api/users/filter-interns-by-status",
+                                "/api/users/interns/search",
                                 "/api/users/status-count",
                                 "/api/users/role-counts",
                                 "/api/users/filter-by-role",

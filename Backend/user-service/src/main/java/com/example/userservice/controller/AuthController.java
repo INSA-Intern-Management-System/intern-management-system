@@ -2,6 +2,7 @@ package com.example.userservice.controller;
 
 
 import com.example.userservice.dto.*;
+import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
@@ -27,13 +28,27 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request, HttpServletRequest servletRequest) {
+    public ResponseEntity<?> register(
+            @RequestBody RegisterRequest request,
+            HttpServletRequest httpServletRequest) {
         try {
+            // Try to get role from token (set as request attribute by your security filter)
+            String roleFromToken = (String) httpServletRequest.getAttribute("role");
 
-            String role = (String) servletRequest.getAttribute("role");
+            // Get role and internalSource from headers as fallback (for internal service calls)
+            String roleFromHeader = httpServletRequest.getHeader("role");
+            String internalSource = httpServletRequest.getHeader("internal-source");
 
-            if(role == null || !"Admin".equalsIgnoreCase(role)){
-                return errorResponse("Unauthorized: Only Admin Register Users!!");
+            // Determine effective role to use for authorization
+            String effectiveRole = roleFromToken != null ? roleFromToken : roleFromHeader;
+
+            boolean allowed =
+                    "ADMIN".equalsIgnoreCase(effectiveRole) ||
+                            ("application-service".equalsIgnoreCase(internalSource) && "HR".equalsIgnoreCase(effectiveRole));
+
+            if (!allowed) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only ADMIN or HR from application-service can register users."));
             }
 
             User user = userService.registerUser(request);
@@ -41,13 +56,12 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "User registered successfully");
             response.put("user", new UserResponseDto(user));
-            return ResponseEntity.status(201).body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
-
-            return ResponseEntity.status(400).body(error);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
 
@@ -133,9 +147,6 @@ public class AuthController {
             return errorResponse(e.getMessage());
         }
     }
-
-
-
 
 
 
