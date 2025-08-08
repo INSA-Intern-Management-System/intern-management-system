@@ -99,6 +99,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/api/users/interns") ||
                 path.equals("/api/users/filter-all-users-by-status") ||
                 path.equals("/api/users/filter-interns-by-status") ||
+                path.equals("/api/users/filter-supervisor-by-status") ||
+                path.equals("/api/users/filter-supervisor-by-field-of-study") ||
                 path.equals("/api/users/filter-interns-by-university") ||
                 path.equals("/api/users/filter-intern-by-supervisor") ||
                 path.equals("/api/users/status-count") ||

@@ -32,6 +32,8 @@ public class SecurityConfig {
                                 "/api/users",
                                 "/api/users/filter-interns-by-university",
                                 "/api/users/filter-all-users-by-status",
+                                "/api/users/filter-supervisor-by-status",
+                                "/api/users/filter-supervisor-by-field-of-study",
                                 "/api/users/filter-interns-by-status",
                                 "/api/users/interns/search",
                                 "/api/users/status-count",

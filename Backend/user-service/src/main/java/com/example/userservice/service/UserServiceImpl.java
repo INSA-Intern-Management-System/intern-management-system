@@ -86,8 +86,30 @@ public class UserServiceImpl implements UserService {
 
         User savedUser = userRepo.save(user);
 
-        System.out.println("Generated Temporary Password for " + savedUser.getEmail() + ": " + temporaryPassword);
+        // ✅ Send email after saving
+        String subject = "Welcome to INSA Internship Management System - Your Account Details";
+        String message = String.format("""
+            Hello %s,
 
+            Your account has been successfully created by the administrator.
+
+            Here are your login details:
+
+            Email: %s
+            Temporary Password: %s
+
+            Please log in to your account and change your password immediately for security reasons:
+            https://intern-insa0.onrender.com/login
+
+            If you have any questions or didn't request this account, please contact support.
+
+            Thank you,
+            INSA Internship Management Team
+            """, savedUser.getFirstName(), savedUser.getEmail(), temporaryPassword);
+
+        sendEmail(savedUser.getEmail(), subject, message);
+
+        System.out.println("Generated Temporary Password for " + savedUser.getEmail() + ": " + temporaryPassword);
 
         return savedUser;
     }
@@ -113,6 +135,8 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new RuntimeException("Current password is incorrect");
         }
+
+
 
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         return userRepo.save(user);
@@ -365,6 +389,35 @@ public class UserServiceImpl implements UserService {
         return userRepo.findByRoleAndUserStatus(internRole, matchedStatus, pageable);
     }
 
+    @Override
+    public Page<User> filterSupervisorByStatus(String query, Pageable pageable) {
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+
+        UserStatus matchedStatus;
+        try {
+            matchedStatus = UserStatus.valueOf(query.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status value: " + query);
+        }
+
+        return userRepo.findByRoleAndUserStatus(supervisorRole, matchedStatus, pageable);
+    }
+
+    @Override
+    public Page<User> filterSupervisorByFieldOfStudy(String query, Pageable pageable) {
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+
+        return userRepo.findByRoleAndFieldOfStudyContainingIgnoreCase(supervisorRole, query, pageable);
+    }
+
+    @Override
+    public Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable) {
+        Role internRole = roleRepo.findByName("STUDENT");
+        return userRepo.findByRoleAndSupervisor_FirstNameContainingIgnoreCase(
+                internRole, supervisorName, pageable
+        );
+    }
+
 
     @Override
     public Page<User> filterAllUsersByStatus(String query , Pageable pageable) {
@@ -467,13 +520,6 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    @Override
-    public Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable) {
-        Role internRole = roleRepo.findByName("STUDENT");
-        return userRepo.findByRoleAndSupervisor_FirstNameContainingIgnoreCase(
-                internRole, supervisorName, pageable
-        );
-    }
 
 
 

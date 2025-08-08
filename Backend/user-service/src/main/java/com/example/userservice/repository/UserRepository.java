@@ -34,7 +34,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
    Page<User> findByRoleAndUserStatus(Role role, UserStatus userStatus, Pageable pageable);
 
-   Page<User> findByUserStatus(UserStatus userStatus, Pageable pageable);
+   Page<User> findByRoleAndFieldOfStudyContainingIgnoreCase(Role role, String fieldOfStudy, Pageable pageable);
+
+
+    Page<User> findByUserStatus(UserStatus userStatus, Pageable pageable);
+
 
     @Query("SELECT u.userStatus AS userStatus, COUNT(u) AS count FROM User u GROUP BY u.userStatus")
     List<UserStatusCount> countUsersByStatus();

@@ -36,17 +36,24 @@ public class UserController {
     @GetMapping
     public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "10") int size) {
-        try{
-            Pageable pageable = PageRequest.of(page,size);
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> usersPage = userService.getAllUsers(pageable);
+            Long totalUser = userService.countAllUsers();
 
-           Page<User> users  = userService.getAllUsers(pageable);
-
-           Long totalUser = userService.countAllUsers();
+            // Convert each User to UserResponseDto
+            List<UserResponseDto> userDtos = usersPage.getContent()
+                    .stream()
+                    .map(UserResponseDto::new)
+                    .toList();
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "All Users fetched successfully");
-            response.put("Users", users);
+            response.put("users", userDtos);
             response.put("totalUser", totalUser);
+            response.put("currentPage", usersPage.getNumber());
+            response.put("totalPages", usersPage.getTotalPages());
+            response.put("totalElements", usersPage.getTotalElements());
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -92,26 +99,22 @@ public class UserController {
 
     @PutMapping("/update-password/{id}")
     public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, @PathVariable Long id, HttpServletRequest request) {
+
             String role = (String) request.getAttribute("role");
 
-            if (role == null || !(role.equalsIgnoreCase("HR") ||
-                    role.equalsIgnoreCase("PROJECT_MANAGER") ||
-                    role.equalsIgnoreCase("STUDENT") ||
-                    role.equalsIgnoreCase("ADMIN") ||
-                    role.equalsIgnoreCase("SUPERVISOR") ||
-                    role.equalsIgnoreCase("UNIVERSITY"))) {
+            List<String> allowedRoles = List.of("HR", "PROJECT_MANAGER", "STUDENT", "ADMIN", "SUPERVISOR", "UNIVERSITY");
+
+            if (role == null || !allowedRoles.contains(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
             }
 
             try {
                 userService.updateUserPassword(id, dto);
-
                 return ResponseEntity.ok("Password updated successfully");
             } catch (RuntimeException e) {
                 return ResponseEntity.badRequest().body(e.getMessage());
             }
         }
-
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody User user) {
@@ -380,6 +383,50 @@ public class UserController {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.filterInternByStatus(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+    @GetMapping("/filter-supervisor-by-status")
+    public ResponseEntity<?> filterSupervisorByStatus(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
+    @GetMapping("/filter-supervisor-by-field-of-study")
+    public ResponseEntity<?> filterSupervisorByFieldOfStudy(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> pageResult = userService.filterSupervisorByFieldOfStudy(query, pageable);
 
         List<UserResponseDto> content = pageResult.getContent().stream()
                 .map(this::mapToDTO)

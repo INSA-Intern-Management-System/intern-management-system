@@ -53,6 +53,9 @@ public interface UserService {
     Page<User> filterByInstitution(String institution, Pageable pageable);
 
     Page<User> filterInternByStatus(String query, Pageable pageable);
+    Page<User> filterSupervisorByStatus(String query, Pageable pageable);
+    Page<User> filterSupervisorByFieldOfStudy(String query, Pageable pageable);
+
     Page<User> filterAllUsersByStatus(String query, Pageable pageable);
 
 
