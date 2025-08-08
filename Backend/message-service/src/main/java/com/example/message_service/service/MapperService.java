@@ -3,21 +3,23 @@ package com.example.message_service.service;
 import com.example.message_service.dto.*;
 import com.example.message_service.model.Message;
 import com.example.message_service.model.Room;
-import com.example.message_service.model.User;
+import com.example.message_service.model.UserStatus;
+import com.example.userservice.gRPC.UserResponse;
+
 import org.springframework.stereotype.Service;
 
 @Service
 public class MapperService {
 
-    public UserResponseDTO toUserResponseDTO(User user) {
+    public UserResponseDTO toUserResponseDTO(UserResponse grpcResponse) {
         return new UserResponseDTO(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getFieldOfStudy(),
-                user.getUniversity(),
-                user.getStatus(),
-                user.getRole()
+                grpcResponse.getUserId(),
+                grpcResponse.getFirstName(),
+                grpcResponse.getLastName(),
+                grpcResponse.getFieldOfStudy(),
+                grpcResponse.getUniversity(),
+                grpcResponse.getStatus() == com.example.userservice.gRPC.Status.ONLINE ? UserStatus.ONLINE : UserStatus.OFFLINE,
+                grpcResponse.getRole().getName()
         );
     }
 
@@ -43,4 +45,5 @@ public class MapperService {
                 message.getUpdatedAt()
         );
     }
+   
 }

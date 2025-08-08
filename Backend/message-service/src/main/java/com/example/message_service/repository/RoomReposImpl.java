@@ -11,22 +11,18 @@ import java.util.Optional;
 
 @Repository
 public class RoomReposImpl implements RoomReposInterface {
-
     private final RoomJpaRepos roomJpaRepos;
-    private final UserJpaRepos userJpaRepos;
 
     @Autowired
-    public RoomReposImpl(RoomJpaRepos roomJpaRepos, UserJpaRepos userJpaRepos) {
+    public RoomReposImpl(RoomJpaRepos roomJpaRepos) {
         this.roomJpaRepos = roomJpaRepos;
-        this.userJpaRepos = userJpaRepos;
     }
 
     @Override
-    public Room createRoom(Long user1Id, Long user2Id) {
-        User user1 = userJpaRepos.findById(user1Id)
-                .orElseThrow(() -> new RuntimeException("User1 not found"));
-        User user2 = userJpaRepos.findById(user2Id)
-                .orElseThrow(() -> new RuntimeException("User2 not found"));
+    public Room createRoom(User user1, User user2) {
+        if (user1 == null || user2 == null) {
+            throw new IllegalArgumentException("Both users must be provided to create a room");
+        }
         Room room = new Room(user1, user2);
         return roomJpaRepos.save(room);
     }
