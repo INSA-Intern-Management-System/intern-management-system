@@ -27,15 +27,14 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
     public void getUser(UserRequest request, StreamObserver<UserResponse> responseObserver) {
         try{
             Long userIdFromContext = JwtServerInterceptor.getUserId();
-        Long userIdToUse = (userIdFromContext != null) ? userIdFromContext : request.getUserId();
-        //check if user id correct 
+            if( userIdFromContext<=0){
+                responseObserver.onError(new RuntimeException("Invalid user ID provided"));
+            return;
+            }
+            Long userIdToUse = request.getUserId();
+ 
         if (userIdToUse <= 0) {
             responseObserver.onError(new RuntimeException("Invalid user ID provided"));
-            return;
-        }
-        //check if user id is equal to the request user id
-        if (!userIdToUse.equals(request.getUserId())) {
-            responseObserver.onError(new RuntimeException("User ID from context does not match request user ID"));
             return;
         }
 
