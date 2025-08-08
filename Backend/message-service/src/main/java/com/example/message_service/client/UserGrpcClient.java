@@ -4,6 +4,7 @@ import com.example.userservice.gRPC.*;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +22,7 @@ public class UserGrpcClient {
     }
 
     public UserResponse getUserById(String jwtToken, Long userId) {
-        try{
+        try {
             JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
             UserServiceGrpc.UserServiceBlockingStub stubWithAuth = blockingStub.withInterceptors(authInterceptor);
 
@@ -30,13 +31,17 @@ public class UserGrpcClient {
                     .build();
 
             return stubWithAuth.getUser(request);
-        }catch(Exception e){
-            System.out.println("error: "+ e.getMessage());
-        
+        } catch (StatusRuntimeException e) {
+                System.err.println("gRPC error fetching user with ID: " + userId);
+                e.printStackTrace();
+              return null;
+        } catch (Exception e) {
+            System.err.println("Unexpected error fetching user with ID: " + userId);
+            e.printStackTrace();
             return null;
         }
-        
     }
+
 
     public UsersResponse getAllUsers(String jwtToken, List<Long> ids) {
         JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
