@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+  activity-service:
+    build: ./activity-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8080" # host:container
+
+  application-service:
+    build: ./application-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8082:8080"
+
+  leave-service:
+    build: ./leave-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8083:8080"
+
+  message-service:
+    build: ./message-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8084:8080"
+
+  notification-service:
+    build: ./notification-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8085:8080"
+
+  project-service:
+    build: ./project-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8086:8080"
+
+  report-service:
+    build: ./report-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8087:8080"
+
+  schedule-service:
+    build: ./schedule-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8088:8080"
+
+  user-service:
+    build: ./user-service
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432" # avoid conflict with local Postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
