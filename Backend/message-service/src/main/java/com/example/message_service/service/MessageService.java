@@ -106,22 +106,25 @@ public class MessageService {
      * Send message (create room if not exist, else update lastMessageAt)
      */
     @Transactional
-    public MessageResponseDTO sendMessage(String jwtToken,WebSocketMessageDTO dto) {
-
+    public MessageResponseDTO sendMessage(String jwtToken, WebSocketMessageDTO dto) {
         UserResponse senderResponse = userGrpcClient.getUserById(jwtToken, dto.getSenderId());
         if (senderResponse == null) {
-            throw new RuntimeException("Sender user not found");
+            System.err.println("Sender user not found. ID: " + dto.getSenderId());
+            return null;
         }
+
 
         UserResponse receiverResponse = userGrpcClient.getUserById(jwtToken, dto.getReceiverId());
         if (receiverResponse == null) {
-            throw new RuntimeException("Receiver user not found");
+            System.err.println("Receiver user not found. ID: " + dto.getReceiverId());
+            return null;
         }
+
         // Convert gRPC responses to User entities
         User sender = new User(senderResponse.getUserId());
         User receiver = new User(receiverResponse.getUserId());
 
-        //define room->create or update existing room
+        // Define or update room
         Room room;
         Optional<Room> existingRoom = roomRepos.findRoomByUserIds(dto.getSenderId(), dto.getReceiverId());
         if (existingRoom.isPresent()) {
@@ -129,16 +132,18 @@ public class MessageService {
             room.setLastMessageAt(new Date());
             roomRepos.updateRoom(room);
         } else {
-            room = new Room(sender, receiver);
+            room = roomRepos.createRoom(sender, receiver);
             room.setLastMessageAt(new Date());
-            room = roomRepos.createRoom(new User(sender.getId()),new User(receiver.getId()));
         }
 
+        // Create and save message
         Message message = new Message(sender, receiver, dto.getContent(), MessageStatus.UNREAD);
         message.setRoom(room);
         Message saved = messageRepos.createMessage(message);
+
         return mapper.toMessageResponseDTO(saved);
-    }
+}
+
 
     /**
      * Edit message content

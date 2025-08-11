@@ -26,25 +26,42 @@ public class WsController {
 
     @MessageMapping("/send-message")
     public void sendMessage(@Payload WebSocketMessageDTO dto, SimpMessageHeaderAccessor headerAccessor) {
-        // extract jwt token from session attributes (stored at CONNECT time)
-        Map<String, Object> sessionAttrs = headerAccessor.getSessionAttributes();
-        String jwtToken = null;
-        if (sessionAttrs != null) {
-            Object jwtObj = sessionAttrs.get("jwt");
-            if (jwtObj instanceof String) {
-                jwtToken = (String) jwtObj;
-            }
-        }
+        // Extract JWT token from WebSocket session attributes (set during CONNECT)
+        String jwtToken = getJwtFromSession(headerAccessor);
 
         if (jwtToken == null || jwtToken.isBlank()) {
-            // Optionally send error message to user, or throw
-            throw new IllegalArgumentException("Unauthorized: JWT token not found in WebSocket session. Make sure to CONNECT with 'access-token: Bearer <token>' header.");
+            throw new IllegalArgumentException("Unauthorized: JWT token not found in WebSocket session. " +
+                    "Ensure you connect using the header 'access-token: Bearer <token>'.");
         }
 
-        // Service call that uses grpc to validate/fetch users and persist message
-        MessageResponseDTO saved = messageService.sendMessage(jwtToken, dto);
-        messagingTemplate.convertAndSend("/topic/rooms/" + saved.getRoomId(), saved);
+        try {
+            // Call the service which handles gRPC validation + message persistence
+            MessageResponseDTO savedMessage = messageService.sendMessage(jwtToken, dto);
+
+            // Broadcast the message to subscribers of the room
+            System.out.println("message: "+savedMessage.getRoomId());
+            messagingTemplate.convertAndSend("/topic/rooms/" + savedMessage.getRoomId(), savedMessage);
+        } catch (Exception e) {
+            // Log or handle error appropriately
+            System.err.println("Failed to send message: " + e.getMessage());
+            // Optionally notify the client
+        }
     }
+
+    /**
+     * Helper method to extract JWT from session attributes.
+     */
+    private String getJwtFromSession(SimpMessageHeaderAccessor headerAccessor) {
+        Map<String, Object> sessionAttrs = headerAccessor.getSessionAttributes();
+        if (sessionAttrs != null) {
+            Object jwtObj = sessionAttrs.get("jwt");
+            if (jwtObj instanceof String jwtStr) {
+                return jwtStr;
+            }
+        }
+        return null;
+    }
+
 
     @MessageMapping("/edit-message")
     public void editMessage(EditMessageRequest dto) {
