@@ -25,11 +25,6 @@ export function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ name: "Company User", role: "student" })
-      );
-    
     const userData = localStorage.getItem("user");
     if (userData) {
       const parsedUser = JSON.parse(userData);
@@ -66,9 +61,10 @@ export function DashboardLayout({
         userName={user.name}
         onLogout={handleLogout}
       />
-      <div className="md:ml-64 transition-all duration-300">
+      <div className="lg:ml-64  transition-all duration-300">
         <main className="p-6">{children}</main>
       </div>
     </div>
   );
 }
+
