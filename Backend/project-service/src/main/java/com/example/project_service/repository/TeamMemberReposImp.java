@@ -39,7 +39,7 @@ public class TeamMemberReposImp implements TeamMemberReposInterface {
 
     @Override
     public Optional<TeamMember> getMemberById(Long memberId) {
-        return teamMemberJpaRepository.findById(memberId);
+        return teamMemberJpaRepository.findFirstByMember_IdOrderByIdAsc(memberId);
     }
     
     @Override
