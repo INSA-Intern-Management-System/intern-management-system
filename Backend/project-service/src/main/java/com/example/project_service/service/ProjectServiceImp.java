@@ -307,8 +307,14 @@ public class ProjectServiceImp implements ProjectServiceInterface {
         
         // Check if the member already exists in the team
         List<TeamMember> existingMembers = teamMemberRepo.getMemberByTeamId(request.getTeamId());
-        boolean alreadyExists = existingMembers.stream()
-            .anyMatch(m -> m.getMemberId()==request.getMemberId());
+        //check if member id is equal with 
+        boolean alreadyExists=false;
+        for (TeamMember member : existingMembers) {
+            if (member.getMemberId()==request.getMemberId()) {
+                alreadyExists = true;
+                break;
+            }
+        }   
 
         if (!alreadyExists) {
             TeamMember member = new TeamMember();
