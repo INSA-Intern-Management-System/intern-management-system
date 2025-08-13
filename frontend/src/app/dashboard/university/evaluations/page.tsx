@@ -9,17 +9,33 @@ import { Textarea } from "@/components/ui/textarea"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { User, Search, Star, FileText, Calendar, CheckCircle, Clock } from "lucide-react"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import jsPDF from "jspdf";
+type Evaluation = {
+  id: number
+  student: string
+  company: string
+  supervisor: string
+  companyRating: number
+  companyFeedback: string
+  status: string
+  submissionDate: string
+  evaluationDate: string
+}
 export default function EvaluationsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [supervisorFilter, setSupervisorFilter] = useState("all")
-  const [gradeFilter, setGradeFilter] = useState("all")
   const [page, setPage] = useState(1)
+  const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
+
+
   const pageSize = 3
 
+
   // Mock data
-  const evaluations = [
+  const [evaluations, setEvaluations] = useState([
     {
       id: 1,
       student: "John Doe",
@@ -27,8 +43,6 @@ export default function EvaluationsPage() {
       supervisor: "Dr. Smith",
       companyRating: 4.5,
       companyFeedback: "Excellent performance, shows great initiative and technical skills.",
-      finalGrade: "A",
-      academicComments: "Outstanding work on the final project. Demonstrates deep understanding.",
       status: "completed",
       submissionDate: "2024-03-10",
       evaluationDate: "2024-03-12",
@@ -40,8 +54,6 @@ export default function EvaluationsPage() {
       supervisor: "Dr. Johnson",
       companyRating: 4.8,
       companyFeedback: "Exceptional analytical skills and professional attitude.",
-      finalGrade: "A+",
-      academicComments: "Exceeded expectations in all areas. Highly recommended.",
       status: "completed",
       submissionDate: "2024-03-09",
       evaluationDate: "2024-03-11",
@@ -53,8 +65,6 @@ export default function EvaluationsPage() {
       supervisor: "Dr. Brown",
       companyRating: 4.2,
       companyFeedback: "Good design skills, needs improvement in time management.",
-      finalGrade: "",
-      academicComments: "",
       status: "pending",
       submissionDate: "2024-03-08",
       evaluationDate: "",
@@ -66,25 +76,19 @@ export default function EvaluationsPage() {
       supervisor: "Dr. Davis",
       companyRating: 4.0,
       companyFeedback: "Solid performance with room for growth in leadership skills.",
-      finalGrade: "",
-      academicComments: "",
       status: "in_review",
       submissionDate: "2024-03-07",
       evaluationDate: "",
     },
-  ]
+  ])
 
-  // Unique values for filters
   const statusesList = Array.from(new Set(evaluations.map(e => e.status)))
   const supervisorsList = Array.from(new Set(evaluations.map(e => e.supervisor)))
-  const gradesList = Array.from(new Set(evaluations.map(e => e.finalGrade).filter(Boolean)))
 
-  // Filtering logic
   const filteredEvaluations = evaluations.filter(
     (evaluation) =>
       (statusFilter === "all" || evaluation.status === statusFilter) &&
       (supervisorFilter === "all" || evaluation.supervisor === supervisorFilter) &&
-      (gradeFilter === "all" || evaluation.finalGrade === gradeFilter) &&
       (
         evaluation.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
         evaluation.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,21 +110,7 @@ export default function EvaluationsPage() {
         return <Badge variant="secondary">{status}</Badge>
     }
   }
-
-  const getGradeBadge = (grade: string) => {
-    if (!grade) return null
-    const gradeColors: { [key: string]: string } = {
-      "A+": "bg-green-100 text-green-800",
-      A: "bg-green-100 text-green-800",
-      "B+": "bg-blue-100 text-blue-800",
-      B: "bg-blue-100 text-blue-800",
-      "C+": "bg-yellow-100 text-yellow-800",
-      C: "bg-yellow-100 text-yellow-800",
-    }
-    return <Badge className={gradeColors[grade] || "bg-gray-100 text-gray-800"}>{grade}</Badge>
-  }
-
-  const renderStars = (rating: number) => {
+const renderStars = (rating: number) => {
     return (
       <div className="flex items-center">
         {[...Array(5)].map((_, i) => (
@@ -134,22 +124,129 @@ export default function EvaluationsPage() {
     )
   }
 
+const generatePDF = () => { if (filteredEvaluations.length === 0) {
+    alert("No evaluations to export.");
+    return;
+  }
+
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  let y = 30;
+
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("Internship Evaluation Report", pageWidth / 2, 20, { align: "center" });
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  const today = new Date().toLocaleDateString();
+  doc.text(`Generated on: ${today}`, pageWidth - margin, 10, { align: "right" });
+
+  filteredEvaluations.forEach((evaluation, index) => {
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+
+   
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 40, 40);
+    doc.text(`Student ${index + 1}: ${evaluation.student}`, margin, y);
+    y += 8;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+
+    doc.text("Company Name:", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(evaluation.company, margin + 40, y);
+    y += 6;
+
+   
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Supervisor Name:", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(evaluation.supervisor, margin + 40, y);
+    y += 6;
+
+ 
+
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Company Rating:", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${evaluation.companyRating} / 5`, margin + 40, y);
+    y += 6;
+
+  
+    doc.setFont("helvetica", "bold");
+    doc.text("Company Feedback:", margin, y);
+    y += 6;
+
+    doc.setFont("helvetica", "normal");
+    const feedbackLines = doc.splitTextToSize(evaluation.companyFeedback, pageWidth - 2 * margin);
+    doc.text(feedbackLines, margin + 10, y);
+    y += feedbackLines.length * 6;
+
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Submission Date:", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(new Date(evaluation.submissionDate).toLocaleDateString(), margin + 40, y);
+    y += 6;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Evaluation Date:", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      evaluation.evaluationDate ? new Date(evaluation.evaluationDate).toLocaleDateString() : "N/A",
+      margin + 40,
+      y
+    );
+    y += 6;
+
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Status:", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(evaluation.status.replace("_", " "), margin + 40, y);
+    y += 10;
+
+    
+    doc.setDrawColor(150);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+  });
+
+  // Dynamic file name
+  let fileName = "Evaluation_Report";
+  if (statusFilter !== "all") fileName += `_${statusFilter}`;
+  if (supervisorFilter !== "all") fileName += `_${supervisorFilter.replace(/\s+/g, "")}`;
+  if (searchTerm) fileName += `_search-${searchTerm.replace(/\s+/g, "")}`;
+  fileName += ".pdf";
+
+  doc.save(fileName);
+};
+
+
   return (
     <DashboardLayout requiredRole="university">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Evaluations</h1>
-            <p className="text-gray-600">Review company evaluations and assign final grades</p>
+            <p className="text-gray-600">Review company evaluations</p>
           </div>
-          <Button>
+          <Button className="bg-black text-white"  onClick={generatePDF} >
             <FileText className="h-4 w-4 mr-2" />
             Export Report
           </Button>
         </div>
 
-        {/* Search and Filters */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
@@ -162,101 +259,34 @@ export default function EvaluationsPage() {
                   className="pl-10"
                 />
               </div>
-              <select className="border rounded px-2 py-1" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+              <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
                 <option value="all">All Statuses</option>
                 {statusesList.map(s => (
                   <option key={s} value={s}>{s.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}</option>
                 ))}
               </select>
-              <select className="border rounded px-2 py-1" value={supervisorFilter} onChange={e => { setSupervisorFilter(e.target.value); setPage(1); }}>
+              <select className="border rounded px-2 py-1 text-sm" value={supervisorFilter} onChange={e => { setSupervisorFilter(e.target.value); setPage(1); }}>
                 <option value="all">All Supervisors</option>
                 {supervisorsList.map(s => (
                   <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <select className="border rounded px-2 py-1" value={gradeFilter} onChange={e => { setGradeFilter(e.target.value); setPage(1); }}>
-                <option value="all">All Grades</option>
-                {gradesList.map(g => (
-                  <option key={g} value={g}>{g}</option>
                 ))}
               </select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Evaluation Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">2</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-600">1</p>
-                </div>
-                <Clock className="h-8 w-8 text-yellow-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">In Review</p>
-                  <p className="text-2xl font-bold text-blue-600">1</p>
-                </div>
-                <FileText className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Rating</p>
-                  <p className="text-2xl font-bold text-orange-600">4.4</p>
-                </div>
-                <Star className="h-8 w-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Completed</p><p className="text-2xl font-bold text-green-600">2</p></div><CheckCircle className="h-8 w-8 text-green-600" /></div></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Pending</p><p className="text-2xl font-bold text-yellow-600">1</p></div><Clock className="h-8 w-8 text-yellow-600" /></div></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">In Review</p><p className="text-2xl font-bold text-blue-600">1</p></div><FileText className="h-8 w-8 text-blue-600" /></div></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Avg. Rating</p><p className="text-2xl font-bold text-orange-600">4.4</p></div><Star className="h-8 w-8 text-orange-600" /></div></CardContent></Card>
         </div>
 
-        {/* Evaluations List */}
         <div className="space-y-6">
           {paginatedEvaluations.map((evaluation) => (
             <Card key={evaluation.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gray-100 rounded-full">
-                      <User className="h-6 w-6 text-gray-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{evaluation.student}</CardTitle>
-                      <CardDescription>
-                        {evaluation.company} • Supervisor: {evaluation.supervisor}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {getStatusBadge(evaluation.status)}
-                    {evaluation.finalGrade && getGradeBadge(evaluation.finalGrade)}
-                  </div>
-                </div>
-              </CardHeader>
+              <CardHeader><div className="flex items-center justify-between"><div className="flex items-center space-x-3"><div className="p-2 bg-gray-100 rounded-full"><User className="h-6 w-6 text-gray-600" /></div><div><CardTitle className="text-lg">{evaluation.student}</CardTitle><CardDescription>{evaluation.company} • Supervisor: {evaluation.supervisor}</CardDescription></div></div><div className="flex items-center space-x-2">{getStatusBadge(evaluation.status)}</div></div></CardHeader>
               <CardContent className="space-y-4">
-                {/* Company Evaluation */}
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-semibold text-gray-900">Company Evaluation</h4>
@@ -268,62 +298,36 @@ export default function EvaluationsPage() {
                     <span>Submitted: {evaluation.submissionDate}</span>
                   </div>
                 </div>
-
-                {/* Academic Evaluation */}
-                {evaluation.status === "completed" ? (
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-900">Academic Evaluation</h4>
-                      {evaluation.finalGrade && getGradeBadge(evaluation.finalGrade)}
-                    </div>
-                    <p className="text-sm text-gray-700">{evaluation.academicComments}</p>
-                    <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
-                      <Calendar className="h-3 w-3" />
-                      <span>Evaluated: {evaluation.evaluationDate}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 mb-3">Academic Evaluation</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Final Grade</label>
-                        <select className="w-full p-2 border border-gray-300 rounded-md">
-                          <option value="">Select Grade</option>
-                          <option value="A+">A+</option>
-                          <option value="A">A</option>
-                          <option value="B+">B+</option>
-                          <option value="B">B</option>
-                          <option value="C+">C+</option>
-                          <option value="C">C</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Academic Comments</label>
-                        <Textarea placeholder="Enter your evaluation comments..." className="min-h-[80px]" />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm">Submit Evaluation</Button>
-                        <Button variant="outline" size="sm">
-                          Save Draft
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="flex items-center space-x-2 text-xs text-gray-500">
                     <span>Status: {evaluation.status.replace("_", " ")}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
-                      View Full Report
-                    </Button>
-                    {evaluation.status !== "completed" && (
-                      <Button size="sm">{evaluation.status === "pending" ? "Start Review" : "Continue Review"}</Button>
-                    )}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={() => setSelectedEvaluation(evaluation)}>View Full Report</Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl bg-white text-black">
+                        <DialogHeader>
+                          <DialogTitle>Full Company Report</DialogTitle>
+                          <DialogDescription>Detailed view of the company’s evaluation for the student.</DialogDescription>
+                        </DialogHeader>
+                        {selectedEvaluation && (
+                          <div className="space-y-4">
+                            <div><h3 className="font-semibold">Student</h3><p>{selectedEvaluation.student}</p></div>
+                            <div><h3 className="font-semibold">Company</h3><p>{selectedEvaluation.company}</p></div>
+                            <div><h3 className="font-semibold">Supervisor</h3><p>{selectedEvaluation.supervisor}</p></div>
+                            <div><h3 className="font-semibold">Company Rating</h3>{renderStars(selectedEvaluation.companyRating)}</div>
+                            <div><h3 className="font-semibold">Company Feedback</h3><p className="text-sm text-gray-700">{selectedEvaluation.companyFeedback}</p></div>
+                            <div className="flex items-center text-sm text-gray-500 space-x-4">
+                              <span>Submitted: {selectedEvaluation.submissionDate}</span>
+                              {selectedEvaluation.evaluationDate && (<span>Evaluated: {selectedEvaluation.evaluationDate}</span>)}
+                            </div>
+                            <div><h3 className="font-semibold">Status</h3><p>{selectedEvaluation.status.replace("_", " ")}</p></div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               </CardContent>
@@ -333,7 +337,7 @@ export default function EvaluationsPage() {
             <div className="text-center text-gray-500 py-8">No results found.</div>
           )}
         </div>
-        {/* Pagination */}
+
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
@@ -341,13 +345,7 @@ export default function EvaluationsPage() {
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
-                <PaginationLink
-                  href="#"
-                  isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
-                >
-                  {i + 1}
-                </PaginationLink>
+                <PaginationLink href="#" isActive={page === i + 1} onClick={e => { e.preventDefault(); setPage(i + 1); }}>{i + 1}</PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
