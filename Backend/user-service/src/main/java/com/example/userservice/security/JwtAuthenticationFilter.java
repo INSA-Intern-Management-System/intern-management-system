@@ -92,6 +92,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return path.equals("/api/auth/login") ||
                 path.equals("/api/auth/request-password-change-otp") ||
                 path.equals("/api/users") ||
+                path.equals("/api/users/\\d+") ||
                 path.equals("/api/users/filter-by-role") ||
                 path.equals("/api/users/interns/search") ||
                 path.equals("/api/users/supervisors/search")||
@@ -105,7 +106,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/api/users/filter-intern-by-supervisor") ||
                 path.equals("/api/users/status-count") ||
                 path.equals("/api/users/role-counts") ||
-                path.equals("/api/auth/confirm-password-change-otp");
+                path.equals("/api/auth/confirm-password-change-otp") ||
+                path.equals("/actuator/health");
+
     }
 }
 
