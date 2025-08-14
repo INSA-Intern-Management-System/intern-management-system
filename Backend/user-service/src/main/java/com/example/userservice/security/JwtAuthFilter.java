@@ -1,4 +1,4 @@
-package com.example.report_service.security;
+package com.example.userservice.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,8 +22,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private Security security; // your JWT util class
 
-   @Override
-protected void doFilterInternal(HttpServletRequest request,
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
                                 HttpServletResponse response,
                                 FilterChain filterChain)
                                 throws ServletException, IOException {
@@ -81,3 +81,4 @@ protected void doFilterInternal(HttpServletRequest request,
     filterChain.doFilter(request, response);
 }
 }
+
