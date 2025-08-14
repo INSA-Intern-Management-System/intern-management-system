@@ -31,7 +31,7 @@ public class WsController {
 
         if (jwtToken == null || jwtToken.isBlank()) {
             throw new IllegalArgumentException("Unauthorized: JWT token not found in WebSocket session. " +
-                    "Ensure you connect using the header 'access-token: Bearer <token>'.");
+                    "Ensure you connect using the header 'access-token: <token>'.");
         }
 
         try {

@@ -6,8 +6,13 @@ import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
+import com.google.common.net.HttpHeaders;
+
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,40 +71,43 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            User user = userService.loginUser(request);
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    try {
+        User user = userService.loginUser(request);
 
-            String token = jwtUtil.generateToken(user);
+        String token = jwtUtil.generateToken(user);
+        boolean forcePasswordChange = user.isFirstLogin();
 
-            boolean forcePasswordChange = user.isFirstLogin();
+        // ✅ Create HttpOnly cookie
+        ResponseCookie cookie = ResponseCookie.from("access_token", token)
+                .httpOnly(true)
+                .secure(false)           // local dev uses HTTP
+                .path("/")
+                .maxAge(24 * 60 * 60)
+                .sameSite("Lax")         // allows cross-site requests for local dev
+                .build();
 
-            // ✅ Extract data from the token
-            Long userIdFromToken = jwtUtil.extractUserId(token);
-            String roleFromToken = jwtUtil.extractUserRole(token);
-            String emailFromToken = jwtUtil.extractEmail(token);
 
-            // ✅ Print values
-            System.out.println("userId: " + userIdFromToken);
-            System.out.println("role: " + roleFromToken);
-            System.out.println("email: " + emailFromToken);
+        // ✅ Add cookie to response
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-            AuthResponse authResponse = new AuthResponse(
-                    "User logged in successfully",
-                    forcePasswordChange,
-                    token,
-                    new UserResponseDto(user)
-            );
+        // ✅ Prepare body (optional — you can still return user info)
+        AuthResponse authResponse = new AuthResponse(
+                "User logged in successfully",
+                forcePasswordChange,
+                null, // no token in body anymore for security
+                new UserResponseDto(user)
+        );
 
-            return ResponseEntity.status(201).body(authResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
 
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-
-            return ResponseEntity.status(400).body(error);
-        }
+    } catch (RuntimeException e) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
+}
+
 
 
     // --- New Public Endpoints for OTP-based Password Change ---

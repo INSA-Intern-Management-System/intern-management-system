@@ -1,4 +1,4 @@
-package com.example.report_service.security;
+package com.example.notification_service.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -4,6 +4,8 @@ import com.example.message_service.dto.MessageResponseDTO;
 import com.example.message_service.dto.RoomUserUnreadDTO;
 import com.example.message_service.dto.UserResponseDTO;
 import com.example.message_service.service.MessageService;
+
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -41,11 +43,20 @@ public class ApiController {
                 return ResponseEntity.badRequest().body("Name parameter is required");
             }
 
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
 
 
             Page<UserResponseDTO> users = messageService.searchUsersByName(jwtToken,name, pageable);
@@ -69,11 +80,20 @@ public class ApiController {
             if (userId == null) {
                 return ResponseEntity.badRequest().body("User ID not found in request attributes");
             }
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-            }   
-            String jwtToken = authHeader.substring(7);
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             Page<RoomUserUnreadDTO> results = messageService.getRoomsWithUserAndUnreadCount(jwtToken,userId, pageable);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
