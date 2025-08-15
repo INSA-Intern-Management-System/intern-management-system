@@ -134,6 +134,7 @@ public class LeaveService {
     }
 
     // Delete all leaves
+    @Transactional
     public void deleteAllLeaves(Long userId) {
         leaveRepository.deleteAllLeaves(userId);
     }

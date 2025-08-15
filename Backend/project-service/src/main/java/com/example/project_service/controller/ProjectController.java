@@ -3,6 +3,8 @@ package com.example.project_service.controller;
 import com.example.project_service.dto.*;
 import com.example.project_service.models.*;
 import com.example.project_service.service.ProjectServiceInterface;
+
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -36,11 +38,20 @@ public class ProjectController {
                 return errorResponse("Unauthorized: Only PM can create projects");
             }
 
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
 
             ProjectResponse created = projectService.createProject(jwtToken,userId, request);
             return ResponseEntity.ok(created);
@@ -114,11 +125,21 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can change project status");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             ProjectResponse updated = projectService.updateProjectStatus(jwtToken,projectId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
@@ -135,11 +156,21 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can create teams");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             TeamDetailsResponse created = projectService.createTeam(jwtToken,request);
             return ResponseEntity.ok(created);
         } catch (RuntimeException e) {
@@ -177,11 +208,20 @@ public class ProjectController {
                 return errorResponse("Unauthorized: Only PM can add team members");
             }
 
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             List<TeamMemberResponse> added = projectService.addTeamMember(jwtToken,userId,request);
             return ResponseEntity.ok(added);
         } catch (RuntimeException e) {
@@ -200,11 +240,20 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can remove team members");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             projectService.removeTeamMember(jwtToken,userId,memberId);
             return successResponse("Team member removed");
         } catch (RuntimeException e) {
@@ -223,11 +272,20 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can assign projects");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             TeamDetailsResponse updated = projectService.assignProjectToTeam(jwtToken,userId,teamId, projectId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
@@ -243,11 +301,20 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can remove projects");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             TeamDetailsResponse updated = projectService.removeAssignedProjectFromTeam(jwtToken,userId,teamId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
@@ -264,11 +331,20 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can add milestones");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             MilestoneResponse added = projectService.addMilestone(jwtToken,userId,request);
             return ResponseEntity.ok(added);
         } catch (RuntimeException e) {
@@ -287,11 +363,20 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can update milestone status");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             MilestoneResponse updated = projectService.updateMilestoneStatus(jwtToken,userId,milestoneId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
@@ -307,11 +392,20 @@ public class ProjectController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can delete milestones");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             projectService.deleteMilestone(jwtToken,userId,milestoneId);
             return successResponse("Milestone deleted");
         } catch (RuntimeException e) {

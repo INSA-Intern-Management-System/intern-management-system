@@ -1,6 +1,8 @@
 package com.example.report_service.controller;
 import com.example.report_service.dto.*;
 import com.example.report_service.service.ReportService;
+
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -35,11 +37,20 @@ public class ReportController {
                 return ResponseEntity.status(403).body("Access denied: Only students can create reports");
             }
 
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7); // Remove "Bearer "
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
 
             ReportResponseDTO created = reportService.createReport(jwtToken, userId, dto);
             return ResponseEntity.ok(created);
@@ -59,11 +70,21 @@ public class ReportController {
         try {
             Long userId = (Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
 
             if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(403).body("Access denied: Only students OR pm can view their reports");
@@ -100,11 +121,21 @@ public class ReportController {
             if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(403).body("Access denied: Only students OR pm can search their reports");
             }
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
 
             if ("STUDENT".equalsIgnoreCase(role)) {
                 Page<ReportResponseDTO> results = reportService.searchReports(jwtToken,userId, keyword, pageable);
@@ -139,11 +170,21 @@ public class ReportController {
             if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(403).body("Access denied: Only students OR pm can filter their reports");
             }
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             if ("STUDENT".equalsIgnoreCase(role)) {
                 Page<ReportResponseDTO> filtered = reportService.filterReports(jwtToken,userId, status, period, pageable);
                 return ResponseEntity.ok(filtered);
@@ -205,11 +246,21 @@ public class ReportController {
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(403).body("Access denied: Only project managers can create reviews");
             }
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
             ReportResponseDTO response = reportService.createReview(jwtToken,managerId, dto);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {

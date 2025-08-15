@@ -32,5 +32,9 @@ build/
 ### VS Code ###
 .vscode/
 
+# Environment (do not commit real secrets)
+/.env
+/.env.*
+
 /leave-service/src/main/resources/application.properties
 /user-service/src/main/resources/application.properties

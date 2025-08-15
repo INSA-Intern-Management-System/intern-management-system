@@ -21,7 +21,7 @@ public class JwtClientInterceptor implements ClientInterceptor {
                 // Add the Authorization header
                 Metadata.Key<String> AUTHORIZATION_METADATA_KEY =
                         Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
-                headers.put(AUTHORIZATION_METADATA_KEY, "Bearer " + jwtToken);
+                headers.put(AUTHORIZATION_METADATA_KEY, jwtToken);
                 super.start(responseListener, headers);
             }
         };
