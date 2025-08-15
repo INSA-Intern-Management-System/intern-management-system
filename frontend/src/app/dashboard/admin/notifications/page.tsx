@@ -37,75 +37,87 @@ import {
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination"
+import { toast } from "@/components/ui/use-toast"
 
 export default function AdminNotifications() {
   const [user, setUser] = useState<any>(null)
   const [isCreateNotificationOpen, setIsCreateNotificationOpen] = useState(false)
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([])
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [newNotification, setNewNotification] = useState({
+    title: "",
+    message: "",
+    type: "info"
+  })
+  const [viewingNotification, setViewingNotification] = useState<any>(null)
   const router = useRouter()
-  // Mock data
-  const notifications = [
-    {
-      id: 1,
-      title: "System Maintenance Scheduled",
-      message: "The system will be under maintenance tonight from 2 AM to 4 AM.",
-      type: "warning",
-      recipients: ["all"],
-      status: "sent",
-      createdAt: "2024-01-15T10:00:00Z",
-      sentAt: "2024-01-15T10:05:00Z",
-      readCount: 142,
-      totalRecipients: 156,
-    },
-    {
-      id: 2,
-      title: "New Feature: Video Interviews",
-      message: "We've added video interview functionality for companies to interview candidates remotely.",
-      type: "info",
-      recipients: ["company"],
-      status: "sent",
-      createdAt: "2024-01-14T14:30:00Z",
-      sentAt: "2024-01-14T14:35:00Z",
-      readCount: 18,
-      totalRecipients: 23,
-    },
-    {
-      id: 3,
-      title: "Report Submission Reminder",
-      message: "Don't forget to submit your weekly internship reports by Friday.",
-      type: "info",
-      recipients: ["student"],
-      status: "sent",
-      createdAt: "2024-01-13T09:00:00Z",
-      sentAt: "2024-01-13T09:00:00Z",
-      readCount: 78,
-      totalRecipients: 89,
-    },
-    {
-      id: 4,
-      title: "Security Update Required",
-      message: "Please update your passwords to comply with new security policies.",
-      type: "alert",
-      recipients: ["all"],
-      status: "draft",
-      createdAt: "2024-01-15T16:00:00Z",
-      sentAt: null,
-      readCount: 0,
-      totalRecipients: 156,
-    },
-    {
-      id: 5,
-      title: "Evaluation Deadline Approaching",
-      message: "University supervisors: Please complete student evaluations by January 20th.",
-      type: "warning",
-      recipients: ["university"],
-      status: "scheduled",
-      createdAt: "2024-01-15T11:00:00Z",
-      sentAt: null,
-      readCount: 0,
-      totalRecipients: 12,
-    },
-  ]
+  
+  // Initialize with mock data
+  useEffect(() => {
+    setNotifications([
+      {
+        id: 1,
+        title: "System Maintenance Scheduled",
+        message: "The system will be under maintenance tonight from 2 AM to 4 AM.",
+        type: "warning",
+        recipients: ["all"],
+        status: "sent",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: "2024-01-15T10:05:00Z",
+        readCount: 142,
+        totalRecipients: 156,
+      },
+      {
+        id: 2,
+        title: "New Feature: Video Interviews",
+        message: "We've added video interview functionality for companies to interview candidates remotely.",
+        type: "info",
+        recipients: ["company"],
+        status: "sent",
+        createdAt: "2024-01-14T14:30:00Z",
+        sentAt: "2024-01-14T14:35:00Z",
+        readCount: 18,
+        totalRecipients: 23,
+      },
+      {
+        id: 3,
+        title: "Report Submission Reminder",
+        message: "Don't forget to submit your weekly internship reports by Friday.",
+        type: "info",
+        recipients: ["student"],
+        status: "sent",
+        createdAt: "2024-01-13T09:00:00Z",
+        sentAt: "2024-01-13T09:00:00Z",
+        readCount: 78,
+        totalRecipients: 89,
+      },
+      {
+        id: 4,
+        title: "Security Update Required",
+        message: "Please update your passwords to comply with new security policies.",
+        type: "alert",
+        recipients: ["all"],
+        status: "draft",
+        createdAt: "2024-01-15T16:00:00Z",
+        sentAt: null,
+        readCount: 0,
+        totalRecipients: 156,
+      },
+      {
+        id: 5,
+        title: "Evaluation Deadline Approaching",
+        message: "University supervisors: Please complete student evaluations by January 20th.",
+        type: "warning",
+        recipients: ["university"],
+        status: "scheduled",
+        createdAt: "2024-01-15T11:00:00Z",
+        sentAt: null,
+        readCount: 0,
+        totalRecipients: 12,
+      },
+    ])
+  }, [])
+
   const [page, setPage] = useState(1)
   const pageSize = 4
   const totalPages = Math.ceil(notifications.length / pageSize)
@@ -212,6 +224,111 @@ export default function AdminNotifications() {
     })
   }
 
+  const handleSendNotification = () => {
+    if (!newNotification.title || !newNotification.message || selectedRecipients.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please fill all fields and select at least one recipient",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const newNotif = {
+      id: notifications.length + 1,
+      title: newNotification.title,
+      message: newNotification.message,
+      type: newNotification.type,
+      recipients: selectedRecipients,
+      status: "sent",
+      createdAt: new Date().toISOString(),
+      sentAt: new Date().toISOString(),
+      readCount: 0,
+      totalRecipients: selectedRecipients.includes("all") ? 156 : 
+        selectedRecipients.reduce((total, recipient) => {
+          const option = recipientOptions.find(opt => opt.value === recipient)
+          return total + (option?.count || 0)
+        }, 0)
+    }
+
+    setNotifications([newNotif, ...notifications])
+    setNewNotification({ title: "", message: "", type: "info" })
+    setSelectedRecipients([])
+    setIsCreateNotificationOpen(false)
+    
+    toast({
+      title: "Success",
+      description: "Notification sent successfully",
+    })
+  }
+
+  const handleSaveDraft = () => {
+    if (!newNotification.title || !newNotification.message) {
+      toast({
+        title: "Error",
+        description: "Please fill title and message fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const newNotif = {
+      id: notifications.length + 1,
+      title: newNotification.title,
+      message: newNotification.message,
+      type: newNotification.type,
+      recipients: selectedRecipients,
+      status: "draft",
+      createdAt: new Date().toISOString(),
+      sentAt: null,
+      readCount: 0,
+      totalRecipients: selectedRecipients.length > 0 ? 
+        (selectedRecipients.includes("all") ? 156 : 
+          selectedRecipients.reduce((total, recipient) => {
+            const option = recipientOptions.find(opt => opt.value === recipient)
+            return total + (option?.count || 0)
+          }, 0)) : 0
+    }
+
+    setNotifications([newNotif, ...notifications])
+    setNewNotification({ title: "", message: "", type: "info" })
+    setSelectedRecipients([])
+    setIsCreateNotificationOpen(false)
+    
+    toast({
+      title: "Success",
+      description: "Draft saved successfully",
+    })
+  }
+
+  const handleSendNotificationFromList = (id: number) => {
+    setNotifications(notifications.map(notif => 
+      notif.id === id ? { 
+        ...notif, 
+        status: "sent",
+        sentAt: new Date().toISOString()
+      } : notif
+    ))
+    
+    toast({
+      title: "Success",
+      description: "Notification sent successfully",
+    })
+  }
+
+  const handleDeleteNotification = (id: number) => {
+    setNotifications(notifications.filter(notif => notif.id !== id))
+    
+    toast({
+      title: "Success",
+      description: "Notification deleted successfully",
+    })
+  }
+
+  const handleViewNotification = (notification: any) => {
+    setViewingNotification(notification)
+  }
+
   return (
     <DashboardLayout requiredRole="admin">
       <div className="space-y-6">
@@ -223,32 +340,46 @@ export default function AdminNotifications() {
           </div>
           <Dialog open={isCreateNotificationOpen} onOpenChange={setIsCreateNotificationOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-black text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Notification
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl bg-gradient-to-br from-blue-50 to-indigo-50 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Notification</DialogTitle>
+                <DialogTitle >Create New Notification</DialogTitle>
                 <DialogDescription>Send a notification to selected user groups</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title</Label>
-                  <Input id="title" placeholder="Notification title" />
+                  <Input 
+                    id="title" 
+                    placeholder="Notification title" 
+                    value={newNotification.title}
+                    onChange={(e) => setNewNotification({...newNotification, title: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="message">Message</Label>
-                  <Textarea id="message" placeholder="Notification message" rows={4} />
+                  <Textarea 
+                    id="message" 
+                    placeholder="Notification message" 
+                    rows={4}
+                    value={newNotification.message}
+                    onChange={(e) => setNewNotification({...newNotification, message: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Type</Label>
-                  <Select>
+                  <Select
+                    value={newNotification.type}
+                    onValueChange={(value) => setNewNotification({...newNotification, type: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select notification type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-200">
                       <SelectItem value="info">Info</SelectItem>
                       <SelectItem value="warning">Warning</SelectItem>
                       <SelectItem value="alert">Alert</SelectItem>
@@ -280,11 +411,11 @@ export default function AdminNotifications() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateNotificationOpen(false)}>
+                <Button variant="outline" onClick={handleSaveDraft}>
                   Save as Draft
                 </Button>
-                <Button onClick={() => setIsCreateNotificationOpen(false)}>
-                  <Send className="h-4 w-4 mr-2" />
+                <Button onClick={handleSendNotification} className="bg-black text-white">
+                  <Send className="h-4 w-4 mr-2  " />
                   Send Now
                 </Button>
               </DialogFooter>
@@ -295,8 +426,7 @@ export default function AdminNotifications() {
         {/* Notifications List */}
         <Card>
           <CardHeader>
-            <CardTitle>All Notifications</CardTitle>
-            <CardDescription>Manage and track all system notifications</CardDescription>
+  
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -327,12 +457,20 @@ export default function AdminNotifications() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewNotification(notification)}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>
                       {notification.status === "draft" && (
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleSendNotificationFromList(notification.id)}
+                        >
                           <Send className="h-4 w-4 mr-2" />
                           Send
                         </Button>
@@ -341,6 +479,7 @@ export default function AdminNotifications() {
                         variant="outline"
                         size="sm"
                         className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                        onClick={() => handleDeleteNotification(notification.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -377,6 +516,56 @@ export default function AdminNotifications() {
           </CardContent>
         </Card>
       </div>
+
+      {/* View Notification Dialog */}
+      <Dialog open={!!viewingNotification} onOpenChange={(open) => !open && setViewingNotification(null)}>
+        <DialogContent className="bg-gradient-to-br from-blue-50 to-indigo-50 ">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {viewingNotification && getTypeIcon(viewingNotification.type)}
+              {viewingNotification?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Status:</span>
+              {viewingNotification && getStatusBadge(viewingNotification.status)}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Recipients:</span>
+              {viewingNotification && getRecipientBadge(viewingNotification.recipients)}
+            </div>
+            <div className="space-y-1">
+              <span className="font-medium">Message:</span>
+              <p className="text-gray-600">{viewingNotification?.message}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="font-medium">Created:</span>
+                <p>{viewingNotification && formatDate(viewingNotification.createdAt)}</p>
+              </div>
+              {viewingNotification?.sentAt && (
+                <div>
+                  <span className="font-medium">Sent:</span>
+                  <p>{formatDate(viewingNotification.sentAt)}</p>
+                </div>
+              )}
+            </div>
+            {viewingNotification?.status === "sent" && (
+              <div>
+                <span className="font-medium">Read Status:</span>
+                <p>
+                  {viewingNotification.readCount}/{viewingNotification.totalRecipients} (
+                  {Math.round((viewingNotification.readCount / viewingNotification.totalRecipients) * 100)}%)
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setViewingNotification(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

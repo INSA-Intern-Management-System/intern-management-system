@@ -6,17 +6,66 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Settings, Bell, Shield, Clock, Save, RefreshCw, AlertTriangle, CheckCircle, GraduationCap } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { toast } from "@/components/ui/use-toast"
+
+interface User {
+  name: string
+  role: string
+}
+
+interface SystemSettings {
+  general: {
+    systemName: string
+    adminEmail: string
+    supportEmail: string
+    systemUrl: string
+    timezone: string
+    language: string
+    maintenanceMode: boolean
+  }
+  notifications: {
+    emailNotifications: boolean
+    smsNotifications: boolean
+    pushNotifications: boolean
+    reportReminders: string
+    applicationNotifications: boolean
+    systemAlerts: boolean
+  }
+  security: {
+    passwordMinLength: number
+    requireSpecialChars: boolean
+    sessionTimeout: number
+    maxLoginAttempts: number
+    twoFactorAuth: boolean
+    ipWhitelist: string
+  }
+  internships: {
+    maxInternsPerCompany: number
+    internshipDuration: number
+    reportFrequency: string
+    evaluationDeadline: number
+    autoApproveApplications: boolean
+    requireUniversityApproval: boolean
+  }
+}
+
+interface SystemStatus {
+  database: string
+  email: string
+  storage: string
+  api: string
+  backup: string
+}
 
 export default function SystemSettings() {
-  const [user, setUser] = useState<any>(null)
-  const [settings, setSettings] = useState({
+  const [user, setUser] = useState<User | null>(null)
+  const [settings, setSettings] = useState<SystemSettings>({
     general: {
       systemName: "INSA Internship Portal",
       adminEmail: "admin@insa.fr",
@@ -51,35 +100,125 @@ export default function SystemSettings() {
       requireUniversityApproval: true,
     },
   })
+  const [isSaving, setIsSaving] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+
   const router = useRouter()
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
-      if (parsedUser.role !== "admin") {
-        router.push("/login")
-        return
+    const loadData = async () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const userData = localStorage.getItem("user")
+          if (userData) {
+            const parsedUser = JSON.parse(userData) as User
+            if (parsedUser.role !== "admin") {
+              router.push("/login")
+              return
+            }
+            setUser(parsedUser)
+          } else {
+            router.push("/login")
+          }
+
+          const savedSettings = localStorage.getItem("systemSettings")
+          if (savedSettings) {
+            setSettings(JSON.parse(savedSettings))
+          }
+        }
+      } catch (error) {
+        console.error("Error loading data:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load settings data",
+          variant: "destructive",
+        })
       }
-      setUser(parsedUser)
-    } else {
-      router.push("/login")
     }
+
+    loadData()
   }, [router])
 
-  if (!user) return null
-
-  const handleSaveSettings = () => {
-    // Save settings logic
-    console.log("Settings saved:", settings)
+  const handleSaveSettings = async () => {
+    setIsSaving(true)
+    try {
+      localStorage.setItem("systemSettings", JSON.stringify(settings))
+      toast({
+        title: "Success",
+        description: "Settings saved successfully",
+      })
+    } catch (error) {
+      console.error("Error saving settings:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleResetSettings = () => {
-    // Reset to defaults logic
-    console.log("Settings reset to defaults")
+    if (confirm("Are you sure you want to reset all settings to their default values?")) {
+      setIsResetting(true)
+      try {
+        const defaultSettings = {
+          general: {
+            systemName: "INSA Internship Portal",
+            adminEmail: "admin@insa.fr",
+            supportEmail: "support@insa.fr",
+            systemUrl: "https://internships.insa.fr",
+            timezone: "Europe/Paris",
+            language: "en",
+            maintenanceMode: false,
+          },
+          notifications: {
+            emailNotifications: true,
+            smsNotifications: false,
+            pushNotifications: true,
+            reportReminders: "weekly",
+            applicationNotifications: true,
+            systemAlerts: true,
+          },
+          security: {
+            passwordMinLength: 8,
+            requireSpecialChars: true,
+            sessionTimeout: 30,
+            maxLoginAttempts: 5,
+            twoFactorAuth: false,
+            ipWhitelist: "",
+          },
+          internships: {
+            maxInternsPerCompany: 10,
+            internshipDuration: 6,
+            reportFrequency: "weekly",
+            evaluationDeadline: 7,
+            autoApproveApplications: false,
+            requireUniversityApproval: true,
+          },
+        }
+        
+        setSettings(defaultSettings)
+        localStorage.setItem("systemSettings", JSON.stringify(defaultSettings))
+        toast({
+          title: "Success",
+          description: "Settings reset to defaults",
+        })
+      } catch (error) {
+        console.error("Error resetting settings:", error)
+        toast({
+          title: "Error",
+          description: "Failed to reset settings",
+          variant: "destructive",
+        })
+      } finally {
+        setIsResetting(false)
+      }
+    }
   }
 
-  const systemStatus = {
+  const systemStatus: SystemStatus = {
     database: "healthy",
     email: "healthy",
     storage: "warning",
@@ -113,28 +252,69 @@ export default function SystemSettings() {
     }
   }
 
+  const CustomSwitch = ({ 
+    id, 
+    checked, 
+    onCheckedChange 
+  }: {
+    id: string
+    checked: boolean
+    onCheckedChange: (checked: boolean) => void
+  }) => (
+    <label className="relative inline-flex items-center cursor-pointer">
+      <input 
+        type="checkbox" 
+        id={id}
+        className="sr-only peer" 
+        checked={checked}
+        onChange={(e) => onCheckedChange(e.target.checked)}
+      />
+      <div className="
+        w-11 h-6 
+        bg-gray-200 
+        peer-focus:outline-none 
+        rounded-full 
+        peer 
+        peer-checked:after:translate-x-full 
+        peer-checked:after:border-white 
+        after:content-[''] 
+        after:absolute 
+        after:top-[2px] 
+        after:left-[2px] 
+        after:bg-white 
+        after:border-gray-300 
+        after:border 
+        after:rounded-full 
+        after:h-5 
+        after:w-5 
+        after:transition-all 
+        peer-checked:bg-green-500
+      "></div>
+    </label>
+  )
+
+  if (!user) return null
+
   return (
-    <DashboardLayout userRole="admin" userName={user.name}>
+    <DashboardLayout requiredRole="admin">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
+            <h1 className="text-3xl font-bold text-gray-900 ">System Settings</h1>
             <p className="text-gray-600">Configure system-wide settings and preferences</p>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={handleResetSettings}>
+            <Button variant="outline" onClick={handleResetSettings} disabled={isResetting}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Reset to Defaults
+              {isResetting ? "Resetting..." : "Reset to Defaults"}
             </Button>
-            <Button onClick={handleSaveSettings}>
+            <Button onClick={handleSaveSettings} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
 
-        {/* System Status */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -158,16 +338,14 @@ export default function SystemSettings() {
           </CardContent>
         </Card>
 
-        {/* Settings Tabs */}
-        <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="internships">Internships</TabsTrigger>
+        <Tabs defaultValue="general" className="space-y-6  ">
+          <TabsList className="grid w-full grid-cols-4 gap-3 border rounded-lg shadow-md">
+            <TabsTrigger value="general" className="data-[state=active]:bg-gray-200">General</TabsTrigger>
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-gray-200">Notifications</TabsTrigger>
+            <TabsTrigger value="security" className="data-[state=active]:bg-gray-200">Security</TabsTrigger>
+            <TabsTrigger value="internships" className="data-[state=active]:bg-gray-200">Internships</TabsTrigger>
           </TabsList>
 
-          {/* General Settings */}
           <TabsContent value="general">
             <Card>
               <CardHeader>
@@ -251,7 +429,7 @@ export default function SystemSettings() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-200">
                           <SelectItem value="Europe/Paris">Europe/Paris</SelectItem>
                           <SelectItem value="Europe/London">Europe/London</SelectItem>
                           <SelectItem value="America/New_York">America/New_York</SelectItem>
@@ -273,7 +451,7 @@ export default function SystemSettings() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-200">
                           <SelectItem value="en">English</SelectItem>
                           <SelectItem value="fr">French</SelectItem>
                           <SelectItem value="es">Spanish</SelectItem>
@@ -283,7 +461,7 @@ export default function SystemSettings() {
                     </div>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                      <Switch
+                      <CustomSwitch
                         id="maintenanceMode"
                         checked={settings.general.maintenanceMode}
                         onCheckedChange={(checked) =>
@@ -300,7 +478,6 @@ export default function SystemSettings() {
             </Card>
           </TabsContent>
 
-          {/* Notification Settings */}
           <TabsContent value="notifications">
             <Card>
               <CardHeader>
@@ -318,7 +495,7 @@ export default function SystemSettings() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="emailNotifications">Email Notifications</Label>
-                          <Switch
+                          <CustomSwitch
                             id="emailNotifications"
                             checked={settings.notifications.emailNotifications}
                             onCheckedChange={(checked) =>
@@ -331,7 +508,7 @@ export default function SystemSettings() {
                         </div>
                         <div className="flex items-center justify-between">
                           <Label htmlFor="smsNotifications">SMS Notifications</Label>
-                          <Switch
+                          <CustomSwitch
                             id="smsNotifications"
                             checked={settings.notifications.smsNotifications}
                             onCheckedChange={(checked) =>
@@ -344,7 +521,7 @@ export default function SystemSettings() {
                         </div>
                         <div className="flex items-center justify-between">
                           <Label htmlFor="pushNotifications">Push Notifications</Label>
-                          <Switch
+                          <CustomSwitch
                             id="pushNotifications"
                             checked={settings.notifications.pushNotifications}
                             onCheckedChange={(checked) =>
@@ -363,7 +540,7 @@ export default function SystemSettings() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="applicationNotifications">Application Updates</Label>
-                          <Switch
+                          <CustomSwitch
                             id="applicationNotifications"
                             checked={settings.notifications.applicationNotifications}
                             onCheckedChange={(checked) =>
@@ -376,7 +553,7 @@ export default function SystemSettings() {
                         </div>
                         <div className="flex items-center justify-between">
                           <Label htmlFor="systemAlerts">System Alerts</Label>
-                          <Switch
+                          <CustomSwitch
                             id="systemAlerts"
                             checked={settings.notifications.systemAlerts}
                             onCheckedChange={(checked) =>
@@ -417,7 +594,6 @@ export default function SystemSettings() {
             </Card>
           </TabsContent>
 
-          {/* Security Settings */}
           <TabsContent value="security">
             <Card>
               <CardHeader>
@@ -436,18 +612,20 @@ export default function SystemSettings() {
                       <Input
                         id="passwordMinLength"
                         type="number"
+                        min="6"
+                        max="32"
                         value={settings.security.passwordMinLength}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, passwordMinLength: Number.parseInt(e.target.value) },
+                            security: { ...settings.security, passwordMinLength: parseInt(e.target.value) || 8 },
                           })
                         }
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="requireSpecialChars">Require Special Characters</Label>
-                      <Switch
+                      <CustomSwitch
                         id="requireSpecialChars"
                         checked={settings.security.requireSpecialChars}
                         onCheckedChange={(checked) =>
@@ -463,11 +641,13 @@ export default function SystemSettings() {
                       <Input
                         id="sessionTimeout"
                         type="number"
+                        min="1"
+                        max="1440"
                         value={settings.security.sessionTimeout}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, sessionTimeout: Number.parseInt(e.target.value) },
+                            security: { ...settings.security, sessionTimeout: parseInt(e.target.value) || 30 },
                           })
                         }
                       />
@@ -481,18 +661,20 @@ export default function SystemSettings() {
                       <Input
                         id="maxLoginAttempts"
                         type="number"
+                        min="1"
+                        max="10"
                         value={settings.security.maxLoginAttempts}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, maxLoginAttempts: Number.parseInt(e.target.value) },
+                            security: { ...settings.security, maxLoginAttempts: parseInt(e.target.value) || 5 },
                           })
                         }
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="twoFactorAuth">Two-Factor Authentication</Label>
-                      <Switch
+                      <CustomSwitch
                         id="twoFactorAuth"
                         checked={settings.security.twoFactorAuth}
                         onCheckedChange={(checked) =>
@@ -523,7 +705,6 @@ export default function SystemSettings() {
             </Card>
           </TabsContent>
 
-          {/* Internship Settings */}
           <TabsContent value="internships">
             <Card>
               <CardHeader>
@@ -542,13 +723,15 @@ export default function SystemSettings() {
                       <Input
                         id="maxInternsPerCompany"
                         type="number"
+                        min="1"
+                        max="50"
                         value={settings.internships.maxInternsPerCompany}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
                             internships: {
                               ...settings.internships,
-                              maxInternsPerCompany: Number.parseInt(e.target.value),
+                              maxInternsPerCompany: parseInt(e.target.value) || 10,
                             },
                           })
                         }
@@ -559,13 +742,15 @@ export default function SystemSettings() {
                       <Input
                         id="internshipDuration"
                         type="number"
+                        min="1"
+                        max="12"
                         value={settings.internships.internshipDuration}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
                             internships: {
                               ...settings.internships,
-                              internshipDuration: Number.parseInt(e.target.value),
+                              internshipDuration: parseInt(e.target.value) || 6,
                             },
                           })
                         }
@@ -573,7 +758,7 @@ export default function SystemSettings() {
                     </div>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="autoApproveApplications">Auto-approve Applications</Label>
-                      <Switch
+                      <CustomSwitch
                         id="autoApproveApplications"
                         checked={settings.internships.autoApproveApplications}
                         onCheckedChange={(checked) =>
@@ -602,7 +787,7 @@ export default function SystemSettings() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-200">
                           <SelectItem value="daily">Daily</SelectItem>
                           <SelectItem value="weekly">Weekly</SelectItem>
                           <SelectItem value="biweekly">Bi-weekly</SelectItem>
@@ -615,13 +800,15 @@ export default function SystemSettings() {
                       <Input
                         id="evaluationDeadline"
                         type="number"
+                        min="1"
+                        max="30"
                         value={settings.internships.evaluationDeadline}
                         onChange={(e) =>
                           setSettings({
                             ...settings,
                             internships: {
                               ...settings.internships,
-                              evaluationDeadline: Number.parseInt(e.target.value),
+                              evaluationDeadline: parseInt(e.target.value) || 7,
                             },
                           })
                         }
@@ -629,7 +816,7 @@ export default function SystemSettings() {
                     </div>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="requireUniversityApproval">Require University Approval</Label>
-                      <Switch
+                      <CustomSwitch
                         id="requireUniversityApproval"
                         checked={settings.internships.requireUniversityApproval}
                         onCheckedChange={(checked) =>

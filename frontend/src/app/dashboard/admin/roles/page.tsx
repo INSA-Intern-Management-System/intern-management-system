@@ -45,30 +45,14 @@ export default function RoleManagement() {
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
-      if (parsedUser.role !== "admin") {
-        router.push("/login")
-        return
-      }
-      setUser(parsedUser)
-    } else {
-      router.push("/login")
-    }
-  }, [router])
-
-  if (!user) return null
-
-  // Mock data
-  const roles = [
+  const [roles, setRoles] = useState([
     {
       id: 1,
       name: "student",
       displayName: "Student",
       description: "Students applying for internships and submitting reports",
       userCount: 89,
+      isActive: true,
       permissions: {
         dashboard: { view: true, edit: false, delete: false },
         applications: { view: true, edit: true, delete: true },
@@ -93,6 +77,7 @@ export default function RoleManagement() {
       displayName: "Company",
       description: "Companies offering internships and managing interns",
       userCount: 23,
+      isActive: true,
       permissions: {
         dashboard: { view: true, edit: false, delete: false },
         applications: { view: true, edit: true, delete: false },
@@ -119,6 +104,7 @@ export default function RoleManagement() {
       displayName: "University",
       description: "University staff supervising students and managing evaluations",
       userCount: 12,
+      isActive: true,
       permissions: {
         dashboard: { view: true, edit: false, delete: false },
         students: { view: true, edit: true, delete: false },
@@ -143,6 +129,7 @@ export default function RoleManagement() {
       displayName: "Administrator",
       description: "System administrators with full access",
       userCount: 4,
+      isActive: true,
       permissions: {
         dashboard: { view: true, edit: true, delete: true },
         users: { view: true, edit: true, delete: true },
@@ -160,55 +147,76 @@ export default function RoleManagement() {
         "Full system access",
       ],
     },
-  ]
+  ])
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user")
+    if (userData) {
+      const parsedUser = JSON.parse(userData)
+      if (parsedUser.role !== "admin") {
+        router.push("/login")
+        return
+      }
+      setUser(parsedUser)
+    } else {
+      router.push("/login")
+    }
+  }, [router])
 
   const getRoleIcon = (roleName: string) => {
     switch (roleName) {
-      case "student":
-        return <GraduationCap className="h-6 w-6 text-blue-600" />
-      case "company":
-        return <Building2 className="h-6 w-6 text-green-600" />
-      case "university":
-        return <University className="h-6 w-6 text-purple-600" />
-      case "admin":
-        return <Shield className="h-6 w-6 text-red-600" />
-      default:
-        return <User className="h-6 w-6 text-gray-600" />
+      case "student": return <GraduationCap className="h-6 w-6 text-blue-600" />
+      case "company": return <Building2 className="h-6 w-6 text-green-600" />
+      case "university": return <University className="h-6 w-6 text-purple-600" />
+      case "admin": return <Shield className="h-6 w-6 text-red-600" />
+      default: return <User className="h-6 w-6 text-gray-600" />
     }
   }
 
   const getPermissionIcon = (permission: string) => {
     switch (permission) {
-      case "dashboard":
-        return <Eye className="h-4 w-4" />
-      case "applications":
-        return <FileText className="h-4 w-4" />
-      case "messages":
-        return <MessageSquare className="h-4 w-4" />
-      case "leave":
-        return <Calendar className="h-4 w-4" />
-      case "notifications":
-        return <Bell className="h-4 w-4" />
-      case "users":
-        return <Users className="h-4 w-4" />
-      case "settings":
-        return <Settings className="h-4 w-4" />
-      case "performance":
-        return <Star className="h-4 w-4" />
-      case "evaluations":
-        return <CheckCircle className="h-4 w-4" />
-      default:
-        return <Eye className="h-4 w-4" />
+      case "dashboard": return <Eye className="h-4 w-4" />
+      case "applications": return <FileText className="h-4 w-4" />
+      case "messages": return <MessageSquare className="h-4 w-4" />
+      case "leave": return <Calendar className="h-4 w-4" />
+      case "notifications": return <Bell className="h-4 w-4" />
+      case "users": return <Users className="h-4 w-4" />
+      case "settings": return <Settings className="h-4 w-4" />
+      case "performance": return <Star className="h-4 w-4" />
+      case "evaluations": return <CheckCircle className="h-4 w-4" />
+      default: return <Eye className="h-4 w-4" />
     }
   }
 
   const handleEditRole = (role: any) => {
-    setSelectedRole(role)
+    setSelectedRole(JSON.parse(JSON.stringify(role)))
     setIsEditRoleOpen(true)
   }
 
+  const updatePermission = (permission: string, action: string, value: boolean) => {
+    setSelectedRole(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permission]: {
+          ...prev.permissions[permission],
+          [action]: value
+        }
+      }
+    }))
+  }
+
+  const saveRoleChanges = () => {
+    setRoles(roles.map(role => 
+      role.id === selectedRole.id ? selectedRole : role
+    ))
+    setIsEditRoleOpen(false)
+  }
+
+  if (!user) return null
+
   return (
-    <DashboardLayout userRole="admin" userName={user.name}>
+    <DashboardLayout requiredRole="admin" >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -218,30 +226,30 @@ export default function RoleManagement() {
           </div>
           <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-black text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Role
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-4xl bg-white">
               <DialogHeader>
                 <DialogTitle>Create New Role</DialogTitle>
                 <DialogDescription>Define a new role with specific permissions</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="items-center gap-4">
                   <Label htmlFor="roleName" className="text-right">
                     Role Name
                   </Label>
                   <Input id="roleName" className="col-span-3" />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="items-center gap-4">
                   <Label htmlFor="displayName" className="text-right">
                     Display Name
                   </Label>
                   <Input id="displayName" className="col-span-3" />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="items-center gap-4">
                   <Label htmlFor="description" className="text-right">
                     Description
                   </Label>
@@ -290,8 +298,15 @@ export default function RoleManagement() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <Badge variant={role.isActive ? "default" : "secondary"}>
+                      {role.isActive ? "Active" : "Inactive"}
+                    </Badge>
                     <Badge variant="outline">{role.userCount} users</Badge>
-                    <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleEditRole(role)}
+                    >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Permissions
                     </Button>
@@ -348,46 +363,87 @@ export default function RoleManagement() {
 
         {/* Edit Role Dialog */}
         <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto  ">
             <DialogHeader>
-              <DialogTitle>Edit Role Permissions - {selectedRole?.displayName}</DialogTitle>
-              <DialogDescription>Configure permissions for this role</DialogDescription>
+              <DialogTitle className="text-xl font-bold text-gray-800">
+                Edit Role: {selectedRole?.displayName}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Configure permissions and access levels
+              </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-6 py-4">
-              {selectedRole && (
-                <div className="space-y-4">
-                  {Object.entries(selectedRole.permissions).map(([permission, access]) => (
-                    <div key={permission} className="border rounded-lg p-4">
-                      <div className="flex items-center space-x-2 mb-3">
-                        {getPermissionIcon(permission)}
-                        <h4 className="font-semibold capitalize">{permission}</h4>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        {Object.entries(access as any).map(([action, allowed]) => (
-                          <div key={action} className="flex items-center justify-between">
-                            <Label htmlFor={`${permission}-${action}`} className="capitalize">
-                              {action}
-                            </Label>
-                            <Switch
-                              id={`${permission}-${action}`}
-                              checked={allowed as boolean}
-                              onCheckedChange={() => {
-                                // Handle permission change
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
+            
+            {selectedRole && (
+              <div className="space-y-6">
+                {/* Status Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-500 rounded-lg ">
+                  <div className="flex items-center space-x-3">
+                    <Shield className="h-5 w-5 text-gray-600" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Role Status</label>
+                      <p className="text-xs text-gray-500">
+                        {selectedRole.isActive 
+                          ? 'Active roles can be assigned to users' 
+                          : 'Inactive roles cannot be assigned'}
+                      </p>
                     </div>
-                  ))}
+                  </div>
+                  <Switch
+                    checked={selectedRole.isActive}
+                    onCheckedChange={(checked) => setSelectedRole({
+                      ...selectedRole,
+                      isActive: checked
+                    })}
+                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                  />
                 </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditRoleOpen(false)}>
+
+                {/* Permissions Grid */}
+                <div className="space-y-4 ">
+                  <h4 className="text-lg font-semibold text-gray-800">Permissions</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {Object.entries(selectedRole.permissions).map(([permission, access]) => (
+                      <div key={permission} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="flex items-center space-x-2 p-3 bg-gray-50 border-b border-gray-200">
+                          {getPermissionIcon(permission)}
+                          <h5 className="font-medium text-gray-700 capitalize">{permission}</h5>
+                        </div>
+                        <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {Object.entries(access as any).map(([action, allowed]) => (
+                            <div key={action} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                              <span className="text-sm text-gray-700 capitalize">{action}</span>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={allowed as boolean}
+                                  onChange={(e) => updatePermission(permission, action, e.target.checked)}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg">
+              <button
+                onClick={saveRoleChanges}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setIsEditRoleOpen(false)}
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
                 Cancel
-              </Button>
-              <Button onClick={() => setIsEditRoleOpen(false)}>Save Changes</Button>
+              </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
