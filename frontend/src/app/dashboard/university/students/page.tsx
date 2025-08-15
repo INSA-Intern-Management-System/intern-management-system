@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,6 +36,16 @@ const students = [
     id: 1,
     name: "John Doe",
     email: "john.doe@student.insa.fr",
+    phone_number: "+251923415262",
+    institution: "AASTU",
+    field_of_study: "Software Engineering",
+    gender: "Male",
+    address: "Addis Ababa, Ethiopia",
+    role: "student",
+    profile_pic_url: "https://randomuser.me/api/portraits/men/1.jpg",
+    linkedin_url: "https://linkedin.com/in/johndoe",
+    github_url: "https://github.com/johndoe",
+    cv_url: "https://example.com/johndoe-cv.pdf",
     company: "Tech Corp",
     position: "Software Developer",
     supervisor: "Dr. Smith",
@@ -46,6 +57,16 @@ const students = [
     id: 2,
     name: "Jane Smith",
     email: "jane.smith@student.insa.fr",
+    phone_number: "+251911223344",
+    institution: "Addis Ababa University",
+    field_of_study: "Data Science",
+    gender: "Female",
+    address: "Bole, Addis Ababa",
+    role: "student",
+    profile_pic_url: "https://randomuser.me/api/portraits/women/2.jpg",
+    linkedin_url: "https://linkedin.com/in/janesmith",
+    github_url: "https://github.com/janesmith",
+    cv_url: "https://example.com/janesmith-cv.pdf",
     company: "Innovation Labs",
     position: "Data Analyst",
     supervisor: "Dr. Johnson",
@@ -57,6 +78,16 @@ const students = [
     id: 3,
     name: "Mike Johnson",
     email: "mike.johnson@student.insa.fr",
+    phone_number: "+251922334455",
+    institution: "AAiT",
+    field_of_study: "Human-Computer Interaction",
+    gender: "Male",
+    address: "Gullele, Addis Ababa",
+    role: "student",
+    profile_pic_url: "https://randomuser.me/api/portraits/men/3.jpg",
+    linkedin_url: "https://linkedin.com/in/mikejohnson",
+    github_url: "https://github.com/mikejohnson",
+    cv_url: "https://example.com/mikejohnson-cv.pdf",
     company: "StartupXYZ",
     position: "UI/UX Designer",
     supervisor: "Dr. Brown",
@@ -68,12 +99,43 @@ const students = [
     id: 4,
     name: "Sarah Wilson",
     email: "sarah.wilson@student.insa.fr",
+    phone_number: "+251934567890",
+    institution: "Mekelle University",
+    field_of_study: "Marketing",
+    gender: "Female",
+    address: "Piassa, Addis Ababa",
+    role: "student",
+    profile_pic_url: "https://randomuser.me/api/portraits/women/4.jpg",
+    linkedin_url: "https://linkedin.com/in/sarahwilson",
+    github_url: "https://github.com/sarahwilson",
+    cv_url: "https://example.com/sarahwilson-cv.pdf",
     company: "Digital Agency",
     position: "Marketing Intern",
     supervisor: "Dr. Davis",
     startDate: "2024-02-01",
-    status: "active",
-    progress: 45,
+    status: "pending",
+    progress: 0,
+  },
+  {
+    id: 5,
+    name: "Tom smith",
+    email: "tom.r@student.insa.fr",
+    phone_number: "+251912345678",
+    institution: "AASTU",
+    field_of_study: "Networking",
+    gender: "Male",
+    address: "Addis Ababa",
+    role: "student",
+    profile_pic_url: "https://randomuser.me/api/portraits/men/5.jpg",
+    linkedin_url: "",
+    github_url: "",
+    cv_url: "",
+    company: "",
+    position: "",
+    supervisor: "",
+    startDate: "",
+    status: "rejected",
+    progress: 0,
   },
 ];
 
@@ -90,14 +152,20 @@ export default function StudentsPage() {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [supervisorFilter, setSupervisorFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [viewStudent, setViewStudent] = useState<(typeof students)[0] | null>(
+    null
+  );
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+  const [showSupervisorDropdown, setShowSupervisorDropdown] = useState(false);
+
   const pageSize = 3;
-  // Supervisor list from supervisors page
+  const router = useRouter();
+
   const supervisors = ["Dr. Smith", "Dr. Johnson", "Dr. Brown", "Dr. Davis"];
-  // Unique values for filters
   const supervisorsList = Array.from(
     new Set(studentsState.map((s) => s.supervisor))
   );
-  // Assign supervisor handler
+
   const handleAssignSupervisor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent || !supervisorInput) return;
@@ -110,7 +178,12 @@ export default function StudentsPage() {
     setSupervisorInput("");
     setSelectedStudent(null);
     setSelectedStudentInput("");
+    setShowStudentDropdown(false);
   };
+
+  function goMessage() {
+    router.push("/dashboard/university/messages");
+  }
 
   const filteredStudents = studentsState.filter(
     (student) =>
@@ -121,6 +194,7 @@ export default function StudentsPage() {
         student.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.position.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
   const totalPages = Math.ceil(filteredStudents.length / pageSize);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * pageSize,
@@ -135,6 +209,8 @@ export default function StudentsPage() {
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
       case "pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -150,7 +226,7 @@ export default function StudentsPage() {
   return (
     <DashboardLayout requiredRole="university">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header & Assign Supervisor */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Students</h1>
@@ -164,33 +240,43 @@ export default function StudentsPage() {
                 onClick={() => {
                   setShowAssign(true);
                   setSelectedStudent(null);
+                  setShowStudentDropdown(false);
                 }}
+                className="text-white bg-black"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Assign Supervisor
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-white rounded-md p-6 shadow-lg space-y-4">
               <DialogHeader>
                 <DialogTitle>Assign Supervisor</DialogTitle>
               </DialogHeader>
               <form className="space-y-4" onSubmit={handleAssignSupervisor}>
-                <div className="relative">
+                {/* Student Input */}
+                <div className="relative mb-6">
                   <Input
                     placeholder="Type student name..."
                     value={selectedStudentInput}
                     onChange={(e) => {
                       setSelectedStudentInput(e.target.value);
+                      setShowStudentDropdown(true);
                       const found = studentsState.find(
                         (s) =>
                           s.name.toLowerCase() === e.target.value.toLowerCase()
                       );
                       setSelectedStudent(found || null);
                     }}
+                    onFocus={() => {
+                      if (selectedStudentInput) setShowStudentDropdown(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowStudentDropdown(false), 150);
+                    }}
                     autoFocus
                   />
-                  {selectedStudentInput && (
-                    <div className="absolute left-0 right-0 bg-white border rounded shadow z-10 mt-1 max-h-32 overflow-y-auto">
+                  {showStudentDropdown && selectedStudentInput && (
+                    <div className="absolute left-0 right-0 bg-white border rounded shadow z-50 mt-1 max-h-32 overflow-y-auto">
                       {studentsState
                         .filter((s) =>
                           s.name
@@ -201,9 +287,11 @@ export default function StudentsPage() {
                           <div
                             key={s.id}
                             className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                            onClick={() => {
+                            onMouseDown={(e) => {
+                              e.preventDefault();
                               setSelectedStudentInput(s.name);
                               setSelectedStudent(s);
+                              setShowStudentDropdown(false);
                             }}
                           >
                             {s.name} ({s.company})
@@ -212,16 +300,21 @@ export default function StudentsPage() {
                     </div>
                   )}
                 </div>
-                <div className="relative">
+
+                {/* Supervisor Input */}
+                <div className="relative z-40 mb-6">
                   <Input
                     placeholder="Type supervisor name..."
                     value={supervisorInput}
                     onChange={(e) => setSupervisorInput(e.target.value)}
-                    autoFocus
+                    onFocus={() => setShowSupervisorDropdown(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowSupervisorDropdown(false), 150);
+                    }}
                   />
-                  {supervisorInput && (
-                    <div className="absolute left-0 right-0 bg-white border rounded shadow z-10 mt-1 max-h-32 overflow-y-auto">
-                      {(supervisors as string[])
+                  {supervisorInput && showSupervisorDropdown && (
+                    <div className="absolute left-0 right-0 bg-white border rounded shadow z-50 mt-1 max-h-40 overflow-y-auto">
+                      {supervisors
                         .filter((sup) =>
                           sup
                             .toLowerCase()
@@ -231,7 +324,11 @@ export default function StudentsPage() {
                           <div
                             key={sup}
                             className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                            onClick={() => setSupervisorInput(sup)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setSupervisorInput(sup);
+                              setShowSupervisorDropdown(false);
+                            }}
                           >
                             {sup}
                           </div>
@@ -239,8 +336,15 @@ export default function StudentsPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex space-x-2">
-                  <Button type="submit">Assign</Button>
+
+                {/* Buttons */}
+                <div className="flex space-x-2 justify-end">
+                  <Button
+                    type="submit"
+                    disabled={!selectedStudent || !supervisorInput}
+                  >
+                    Assign
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -256,49 +360,48 @@ export default function StudentsPage() {
 
         {/* Search and Filters */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search students by name, company, or position..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-10"
-                />
-              </div>
-              <select
-                className="border rounded px-2 py-1"
-                value={statusFilter}
+          <CardContent className="p-6 flex items-center space-x-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search students by name, company, or position..."
+                value={searchTerm}
                 onChange={(e) => {
-                  setStatusFilter(e.target.value);
+                  setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-              </select>
-              <select
-                className="border rounded px-2 py-1"
-                value={supervisorFilter}
-                onChange={(e) => {
-                  setSupervisorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Supervisors</option>
-                {supervisorsList.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                className="pl-10"
+              />
             </div>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={supervisorFilter}
+              onChange={(e) => {
+                setSupervisorFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All Supervisors</option>
+              {supervisorsList.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </CardContent>
         </Card>
 
@@ -312,7 +415,7 @@ export default function StudentsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(paginatedStudents as typeof students).map((student) => (
+              {paginatedStudents.map((student) => (
                 <div
                   key={student.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -331,34 +434,45 @@ export default function StudentsPage() {
                       <p className="text-sm text-gray-600">{student.email}</p>
                       <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
                         <span>
-                          {student.company} • {student.position}
+                          {student.company &&
+                            student.position &&
+                            `${student.company} • ${student.position}`}
                         </span>
-                        <span>Supervisor: {student.supervisor}</span>
-                        <span>Started: {student.startDate}</span>
+                        <span>Supervisor: {student.supervisor || "N/A"}</span>
+                        {student.status !== "rejected" &&
+                          student.status !== "pending" && (
+                            <span>Started: {student.startDate}</span>
+                          )}
                       </div>
-                      {/* Progress Bar */}
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                          <span>Progress</span>
-                          <span>{student.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${getProgressColor(
-                              student.progress
-                            )}`}
-                            style={{ width: `${student.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
+                      {student.status !== "rejected" &&
+                        student.status !== "pending" && (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                              <span>Progress</span>
+                              <span>{student.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${getProgressColor(
+                                  student.progress
+                                )}`}
+                                style={{ width: `${student.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewStudent(student)}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={goMessage}>
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Message
                     </Button>
@@ -368,6 +482,7 @@ export default function StudentsPage() {
             </div>
           </CardContent>
         </Card>
+
         {/* Pagination */}
         <Pagination className="mt-6">
           <PaginationContent>

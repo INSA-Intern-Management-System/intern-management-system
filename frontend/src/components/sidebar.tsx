@@ -117,11 +117,6 @@ const sidebarItems = {
       href: "/dashboard/university/messages",
     },
     {
-      icon: Calendar,
-      label: "Schedules",
-      href: "/dashboard/university/schedules",
-    },
-    {
       icon: Bell,
       label: "Notifications",
       href: "/dashboard/university/notifications",

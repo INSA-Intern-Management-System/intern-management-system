@@ -2,16 +2,10 @@
 
 import { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   Send,
   Search,
@@ -169,21 +163,16 @@ function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get URL parameters
   const userIdParam = searchParams.get("userId");
   const nameParam = searchParams.get("name");
 
-  // Update the initial conversations to include dynamic user if provided
   const [conversations, setConversations] = useState(() => {
     const initialConvs = [...initialConversations];
-
-    // If we have URL parameters, add or update the conversation
     if (userIdParam && nameParam) {
       const userId = Number.parseInt(userIdParam);
       const existingConvIndex = initialConvs.findIndex(
         (conv) => conv.id === userId
       );
-
       const newConv: Conversation = {
         id: userId,
         name: decodeURIComponent(nameParam),
@@ -195,29 +184,17 @@ function MessagesContent() {
         online: true,
         type: "individual",
       };
-
-      if (existingConvIndex >= 0) {
-        initialConvs[existingConvIndex] = newConv;
-      } else {
-        initialConvs.unshift(newConv);
-      }
+      if (existingConvIndex >= 0) initialConvs[existingConvIndex] = newConv;
+      else initialConvs.unshift(newConv);
     }
-
     return initialConvs;
   });
 
-  // Update selectedId to use URL parameter if available
-  const [selectedId, setSelectedId] = useState<number>(() => {
-    if (userIdParam) {
-      return Number.parseInt(userIdParam);
-    }
-    return conversations[0]?.id || 1;
-  });
-
-  // Initialize messages for the new conversation if it doesn't exist
+  const [selectedId, setSelectedId] = useState<number>(() =>
+    userIdParam ? Number.parseInt(userIdParam) : conversations[0]?.id || 1
+  );
   const [messages, setMessages] = useState(() => {
     const initialMsgs = { ...initialMessages };
-
     if (userIdParam && !initialMsgs[Number.parseInt(userIdParam)]) {
       initialMsgs[Number.parseInt(userIdParam)] = [
         {
@@ -229,10 +206,8 @@ function MessagesContent() {
         },
       ];
     }
-
     return initialMsgs;
   });
-
   const [messageInput, setMessageInput] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -248,14 +223,18 @@ function MessagesContent() {
 
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
-  // Scroll to bottom on new message
   useEffect(() => {
+    // Reset unread count when selecting a conversation
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === selectedId ? { ...conv, unread: 0 } : conv
+      )
+    );
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, selectedId]);
+  }, [selectedId]);
 
   const handleSend = () => {
     if (!messageInput.trim()) return;
-
     setMessages((prev) => ({
       ...prev,
       [selectedId]: [
@@ -272,10 +251,7 @@ function MessagesContent() {
         },
       ],
     }));
-
     setMessageInput("");
-
-    // Update last message in conversation
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === selectedId
@@ -334,15 +310,15 @@ function MessagesContent() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-y-auto">
               <div className="space-y-1">
                 {filteredConversations.map((conv) => (
                   <div
                     key={conv.id}
-                    className={`flex items-center space-x-3 p-4 cursor-pointer border-l-4 transition-all ${
+                    className={`flex items-center space-x-3 p-4 hover:bg-gray-50 cursor-pointer border-l-4 border-transparent hover:border-blue-500 transition-all ${
                       selectedId === conv.id
                         ? "bg-blue-50 border-l-blue-500"
-                        : "hover:bg-gray-50 border-transparent hover:border-blue-500"
+                        : ""
                     }`}
                     onClick={() => setSelectedId(conv.id)}
                   >
@@ -355,7 +331,7 @@ function MessagesContent() {
                         )}
                       </div>
                       {conv.online && (
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -369,9 +345,6 @@ function MessagesContent() {
                       </div>
                       <p className="text-xs text-gray-600 truncate">
                         {conv.role}
-                      </p>
-                      <p className="text-xs text-blue-600 truncate">
-                        {conv.project}
                       </p>
                       <p className="text-sm text-gray-600 truncate mt-1">
                         {conv.lastMessage}
@@ -393,24 +366,27 @@ function MessagesContent() {
           {/* Chat Area */}
           <Card className="lg:col-span-2">
             <CardHeader className="pb-3 border-b">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    {selectedConversation?.type === "group" ? (
-                      <Users className="h-5 w-5 text-gray-600" />
-                    ) : (
-                      <User className="h-5 w-5 text-gray-600" />
+              <div className="flex items-center overflow-y-auto p-4 space-y-4 bg-gray-50 justify-between">
+                <div className="flex items-center space-x-3 relative">
+                  <div className="relative w-10 h-10">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                      {selectedConversation?.type === "group" ? (
+                        <Users className="h-5 w-5 text-gray-600" />
+                      ) : (
+                        <User className="h-5 w-5 text-gray-600" />
+                      )}
+                    </div>
+                    {selectedConversation?.online && (
+                      <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                     )}
                   </div>
+
                   <div>
                     <h3 className="font-semibold">
                       {selectedConversation?.name}
                     </h3>
                     <p className="text-sm text-gray-600">
                       {selectedConversation?.role}
-                    </p>
-                    <p className="text-xs text-blue-600">
-                      {selectedConversation?.project}
                     </p>
                   </div>
                 </div>
@@ -424,8 +400,8 @@ function MessagesContent() {
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="p-0 flex flex-col h-[450px]">
-              {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {(messages[selectedId] || []).map((msg) => (
                   <div
@@ -455,7 +431,6 @@ function MessagesContent() {
                 <div ref={chatBottomRef} />
               </div>
 
-              {/* Message Input */}
               <div className="border-t p-4">
                 <form
                   className="flex items-center space-x-2"
@@ -471,51 +446,13 @@ function MessagesContent() {
                     onChange={(e) => setMessageInput(e.target.value)}
                   />
                   <Button type="submit" disabled={!messageInput.trim()}>
-                    <Send className="h-4 w-4" />
+                    <Send className="h-5 w-5" />
                   </Button>
                 </form>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Communication Guidelines */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Communication Guidelines</CardTitle>
-            <CardDescription>
-              Best practices for effective communication with interns
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-3">
-                  Professional Communication:
-                </h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Maintain professional tone while being approachable</li>
-                  <li>• Respond to intern messages within 24 hours</li>
-                  <li>• Use clear and specific language in instructions</li>
-                  <li>• Provide constructive feedback regularly</li>
-                  <li>• Schedule regular check-ins and one-on-ones</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-3">Team Collaboration:</h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
-                    • Create project-specific group chats for team coordination
-                  </li>
-                  <li>• Share important updates and announcements</li>
-                  <li>• Encourage peer-to-peer learning and support</li>
-                  <li>• Use video calls for complex discussions</li>
-                  <li>• Document important decisions and agreements</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );

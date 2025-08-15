@@ -68,6 +68,15 @@ export interface Project {
   updated_at: string;
 }
 
+export interface Intern {
+  name: string;
+  role: string;
+}
+
+export interface Milestone {
+  name: string;
+  completed: boolean;
+}
 export interface Team {
   id: number;
   project_id: number;

@@ -88,6 +88,138 @@ const users = [
     reportsSubmitted: 6,
     totalReports: 10,
   },
+  {
+    id: 3,
+    first_name: "Marie",
+    last_name: "Dubois",
+    email: "marie.dubois@email.com",
+    gender: "female",
+    phone_number: "+33 4 72 11 22 33",
+    institution: "INSA Lyon",
+    field_of_study: "Software Engineering",
+    bio: "Full-stack developer with expertise in modern web technologies. Passionate about creating scalable applications.",
+    notify_email: true,
+    visibility: "public",
+    address: "Lyon, France",
+    duration: "5 months",
+    linkedin_url: "https://linkedin.com/in/marie-dubois",
+    github_url: "https://github.com/marie-dubois",
+    cv_url: "/cv/marie-dubois.pdf",
+    profile_pic_url: "/profiles/marie.jpg",
+    role: "intern",
+    created_at: "2024-02-01T00:00:00Z",
+    updated_at: "2024-02-01T00:00:00Z",
+    position: "Software Developer",
+    mentor: "Alex Johnson",
+    startDate: "2024-02-01",
+    endDate: "2024-07-01",
+    progress: 45,
+    project: "E-commerce Platform",
+    rating: 4.9,
+    status: "active",
+    skills: ["React", "Node.js", "MongoDB"],
+    reportsSubmitted: 4,
+    totalReports: 8,
+  },
+  {
+    id: 4,
+    first_name: "Lucas",
+    last_name: "Bernard",
+    email: "lucas.bernard@email.com",
+    gender: "male",
+    phone_number: "+33 4 72 44 55 66",
+    institution: "INSA Lyon",
+    field_of_study: "Software Engineering",
+    bio: "Backend developer with strong experience in Java and Spring framework. Completed successful internship.",
+    notify_email: false,
+    visibility: "public",
+    address: "Lyon, France",
+    duration: "5 months",
+    linkedin_url: "https://linkedin.com/in/lucas-bernard",
+    github_url: "https://github.com/lucas-bernard",
+    cv_url: "/cv/lucas-bernard.pdf",
+    profile_pic_url: "/profiles/lucas.jpg",
+    role: "intern",
+    created_at: "2023-09-01T00:00:00Z",
+    updated_at: "2024-02-01T00:00:00Z",
+    position: "Software Developer",
+    mentor: "Sarah Wilson",
+    startDate: "2023-09-01",
+    endDate: "2024-02-01",
+    progress: 100,
+    project: "Internal Tools Development",
+    rating: 4.7,
+    status: "completed",
+    skills: ["Java", "Spring", "MySQL"],
+    reportsSubmitted: 20,
+    totalReports: 20,
+  },
+  {
+    id: 5,
+    first_name: "Emma",
+    last_name: "Rousseau",
+    email: "emma.rousseau@email.com",
+    gender: "female",
+    phone_number: "+33 2 40 11 22 33",
+    institution: "INSA Rennes",
+    field_of_study: "Marketing",
+    bio: "Digital marketing specialist with focus on social media and content strategy.",
+    notify_email: true,
+    visibility: "public",
+    address: "Rennes, France",
+    duration: "4 months",
+    linkedin_url: "https://linkedin.com/in/emma-rousseau",
+    github_url: null,
+    cv_url: "/cv/emma-rousseau.pdf",
+    profile_pic_url: "/profiles/emma.jpg",
+    role: "intern",
+    created_at: "2024-03-01T00:00:00Z",
+    updated_at: "2024-03-01T00:00:00Z",
+    position: "Marketing Intern",
+    mentor: "Lisa Chen",
+    startDate: "2024-03-01",
+    endDate: "2024-07-01",
+    progress: 30,
+    project: "Social Media Campaign",
+    rating: 4.5,
+    status: "on-leave",
+    skills: ["Social Media", "Content Creation", "Analytics"],
+    reportsSubmitted: 2,
+    totalReports: 8,
+  },
+  {
+    id: 6,
+    first_name: "Thomas",
+    last_name: "Leroy",
+    email: "thomas.leroy@email.com",
+    gender: "male",
+    phone_number: "+33 5 61 77 88 99",
+    institution: "INSA Toulouse",
+    field_of_study: "Mechanical Engineering",
+    bio: "Mechanical engineer with interest in automation and robotics.",
+    notify_email: true,
+    visibility: "private",
+    address: "Toulouse, France",
+    duration: "6 months",
+    linkedin_url: "https://linkedin.com/in/thomas-leroy",
+    github_url: "https://github.com/thomas-leroy",
+    cv_url: "/cv/thomas-leroy.pdf",
+    profile_pic_url: "/profiles/thomas.jpg",
+    role: "intern",
+    created_at: "2024-01-20T00:00:00Z",
+    updated_at: "2024-01-20T00:00:00Z",
+    position: "Engineering Intern",
+    mentor: "David Kim",
+    startDate: "2024-01-20",
+    endDate: "2024-07-20",
+    progress: 55,
+    project: "Automation System",
+    rating: 4.4,
+    status: "on-leave",
+    skills: ["CAD", "Python", "Automation"],
+    reportsSubmitted: 5,
+    totalReports: 12,
+  },
   // Add other users here...
 ];
 
@@ -107,7 +239,7 @@ export default function InternProfilePage() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Intern not found
             </h3>
-            <Button onClick={() => router.push("/company/interns")}>
+            <Button onClick={() => router.push("/dashboard/company/interns")}>
               Back to Interns
             </Button>
           </div>
@@ -142,7 +274,7 @@ export default function InternProfilePage() {
   };
 
   const handleMessageUser = () => {
-    router.push("/company/messages");
+    router.push("/dashboard/company/messages");
   };
 
   return (
@@ -154,7 +286,7 @@ export default function InternProfilePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push("/company/interns")}
+              onClick={() => router.push("/dashboard/company/interns")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Interns
@@ -267,10 +399,6 @@ export default function InternProfilePage() {
                 <Button className="w-full" onClick={handleMessageUser}>
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Send Message
-                </Button>
-                <Button variant="outline" className="w-full bg-transparent">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Meeting
                 </Button>
               </CardContent>
             </Card>

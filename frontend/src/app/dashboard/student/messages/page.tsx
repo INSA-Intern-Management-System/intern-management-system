@@ -3,7 +3,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -11,17 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import {
-  MessageSquare,
   Send,
   Search,
-  Plus,
-  User,
-  Video,
   Phone,
+  Video,
 } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Conversation {
   id: number;
@@ -51,7 +47,7 @@ interface Message {
 }
 
 export default function MessagesPage() {
-  const conversations: Conversation[] = [
+  const initialConversations: Conversation[] = [
     {
       id: 1,
       user_id: 123,
@@ -101,7 +97,7 @@ export default function MessagesPage() {
     },
   ];
 
-  const messages: Message[] = [
+  const initialMessages: Message[] = [
     {
       id: 1,
       conversation_id: 1,
@@ -157,13 +153,14 @@ export default function MessagesPage() {
     },
   ];
 
+  const [conversations, setConversations] = useState(initialConversations);
   const [showSearch, setShowSearch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(conversations[0]);
+    useState<Conversation | null>(initialConversations[0]);
   const [conversationMessages, setConversationMessages] =
-    useState<Message[]>(messages);
+    useState<Message[]>(initialMessages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const formatTime = (dateString: string) => {
@@ -191,7 +188,7 @@ export default function MessagesPage() {
     const newMsg: Message = {
       id: conversationMessages.length + 1,
       conversation_id: selectedConversation.id,
-      sender_id: 123, // Current user ID
+      sender_id: 123,
       content: newMessage,
       created_at: new Date().toISOString(),
       is_read: false,
@@ -205,7 +202,11 @@ export default function MessagesPage() {
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    // In a real app, you would fetch messages for this conversation
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === conversation.id ? { ...conv, unread_count: 0 } : conv
+      )
+    );
   };
 
   useEffect(() => {
@@ -231,10 +232,6 @@ export default function MessagesPage() {
               Communicate with mentors and supervisors
             </p>
           </div>
-          <Button className="bg-black text-white hover:bg-gray-900">
-            <Plus className="h-4 w-4 mr-2" />
-            New Message
-          </Button>
         </div>
 
         <div
@@ -325,11 +322,11 @@ export default function MessagesPage() {
           </Card>
 
           {/* Chat Area */}
-          {selectedConversation ? (
-            <Card className="bg-white rounded-lg lg:col-span-2 p-0 border-0 shadow-none flex flex-col h-full">
-              <div className="flex flex-col h-full">
-                {/* Chat Header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-200">
+          {selectedConversation && (
+            <Card className="lg:col-span-2">
+              {/* Chat Header */}
+              <CardHeader className="pb-3 border-b">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="relative">
                       <Avatar className="w-10 h-10">
@@ -338,7 +335,7 @@ export default function MessagesPage() {
                         </AvatarFallback>
                       </Avatar>
                       {selectedConversation.is_online && (
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                       )}
                     </div>
                     <div>
@@ -352,25 +349,19 @@ export default function MessagesPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border border-gray-200"
-                    >
+                    <Button variant="outline" size="sm">
                       <Phone className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border border-gray-200"
-                    >
+                    <Button variant="outline" size="sm">
                       <Video className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
+              </CardHeader>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50">
+              {/* Chat Content */}
+              <CardContent className="p-0 flex flex-col h-[450px]">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                   {conversationMessages.map((msg) => (
                     <div
                       key={msg.id}
@@ -379,27 +370,27 @@ export default function MessagesPage() {
                       }`}
                     >
                       <div
-                        className={`relative max-w-[70%] px-4 py-2 rounded-[10px] shadow-sm flex flex-col ${
+                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm ${
                           msg.is_me
-                            ? "bg-blue-600 text-white items-end"
-                            : "bg-white border border-gray-200 text-gray-900 items-start"
+                            ? "bg-blue-600 text-white"
+                            : "bg-white border border-gray-200 text-gray-900"
                         }`}
                       >
                         {!msg.is_me && (
-                          <span className="text-xs font-medium text-gray-600 mb-1">
+                          <span className="text-xs font-medium text-gray-600 block mb-1">
                             {msg.sender_name}
                           </span>
                         )}
-                        <span className="text-sm whitespace-pre-line break-words">
+                        <p className="text-sm whitespace-pre-line break-words">
                           {msg.content}
-                        </span>
-                        <span
+                        </p>
+                        <p
                           className={`text-xs mt-1 ${
                             msg.is_me ? "text-blue-100" : "text-gray-500"
-                          } self-end`}
+                          }`}
                         >
                           {formatTime(msg.created_at)}
-                        </span>
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -407,14 +398,11 @@ export default function MessagesPage() {
                 </div>
 
                 {/* Message Input */}
-                <form
-                  onSubmit={handleSendMessage}
-                  className="p-4 border-t border-gray-200 bg-white"
-                >
+                <div className="border-t p-4 bg-white">
                   <div className="flex items-center gap-2">
-                    <Textarea
+                    <Input
                       placeholder="Type your message..."
-                      className="flex-1 rounded-md border border-gray-200 bg-white min-h-[40px] max-h-[120px] resize-none"
+                      className="flex-1"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => {
@@ -425,67 +413,18 @@ export default function MessagesPage() {
                       }}
                     />
                     <Button
-                      type="submit"
-                      className="bg-black text-white hover:bg-gray-900 h-10 w-10 p-0 flex items-center justify-center"
+                      size="icon"
+                      onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
                     >
-                      <Send className="h-4 w-4" />
+                      <Send className="h-5 w-5" />
                     </Button>
                   </div>
-                </form>
-              </div>
-            </Card>
-          ) : (
-            <Card className="lg:col-span-2 flex items-center justify-center bg-white rounded-lg">
-              <div className="text-center p-6">
-                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900">
-                  No conversation selected
-                </h3>
-                <p className="text-gray-600 mt-1">
-                  Select a conversation or start a new one
-                </p>
-              </div>
+                </div>
+              </CardContent>
             </Card>
           )}
         </div>
-
-        {/* Communication Guidelines */}
-        <Card className="bg-white border border-gray-200 rounded-lg mt-6">
-          <CardHeader>
-            <CardTitle>Communication Guidelines</CardTitle>
-            <CardDescription>
-              Best practices for effective communication with mentors and
-              supervisors
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-3">
-                  Professional Communication:
-                </h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Maintain professional tone while being approachable</li>
-                  <li>• Respond to messages within 24 hours</li>
-                  <li>• Use clear and specific language in questions</li>
-                  <li>• Be respectful and constructive in feedback</li>
-                  <li>• Schedule regular check-ins with mentors</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-3">Effective Messaging:</h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Keep messages concise and to the point</li>
-                  <li>• Use subject lines for important topics</li>
-                  <li>• Confirm receipt of important information</li>
-                  <li>• Ask for clarification when needed</li>
-                  <li>• Respect others' time and availability</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );

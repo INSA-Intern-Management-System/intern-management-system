@@ -36,32 +36,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-interface Applicant {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number?: string;
-  institution?: string;
-  field_of_study?: string;
-  gender?: string;
-  duration?: string;
-  linkedin_url?: string;
-  github_url?: string;
-  cv_url?: string;
-  created_at: string;
-}
-
-interface Application {
-  applicant: Applicant;
-  status: string;
-  applied_at: string;
-  updated_at: string;
-}
+import { Applicant, Application } from "@/types/entities";
 
 export default function CompanyApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([
     {
+      id: 1,
       applicant: {
         id: 1,
         first_name: "Mryem",
@@ -82,6 +62,7 @@ export default function CompanyApplicationsPage() {
       updated_at: "2024-01-15T10:30:00Z",
     },
     {
+      id: 2,
       applicant: {
         id: 2,
         first_name: "chala",
@@ -102,6 +83,7 @@ export default function CompanyApplicationsPage() {
       updated_at: "2024-01-14T14:20:00Z",
     },
     {
+      id: 3,
       applicant: {
         id: 3,
         first_name: "Sophia",
@@ -122,6 +104,7 @@ export default function CompanyApplicationsPage() {
       updated_at: "2024-01-12T16:45:00Z",
     },
     {
+      id: 4,
       applicant: {
         id: 4,
         first_name: "Lencho",
@@ -336,7 +319,7 @@ export default function CompanyApplicationsPage() {
 
   return (
     <DashboardLayout requiredRole="company">
-      <div className="space-y-6 bg-gray-50 min-h-screen p-6">
+      <div className="space-y-6 bg-gray-50 min-h-screen ">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

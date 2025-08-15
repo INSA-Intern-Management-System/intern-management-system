@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +17,6 @@ import {
   Search,
   Plus,
   MessageSquare,
-  Users,
   Mail,
   Phone,
 } from "lucide-react";
@@ -36,9 +35,41 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useRouter } from "next/navigation";
+
+// Define your Student type
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+  phone_number: string;
+  institution: string;
+  field_of_study: string;
+  gender: string;
+  address: string;
+  role: string;
+  company: string;
+  position: string;
+  supervisor: string;
+}
+
+// Define your Supervisor type
+interface Supervisor {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  department: string;
+  specialization: string;
+  studentsAssigned: number;
+  maxCapacity: number;
+  experience: string;
+  status: "active" | "inactive";
+  students?: Student[]; // optional, assigned students
+}
 
 // Mock data
-const supervisors = [
+const initialSupervisors: Supervisor[] = [
   {
     id: 1,
     name: "Dr. Smith",
@@ -89,29 +120,120 @@ const supervisors = [
   },
 ];
 
+const students: Student[] = [
+  {
+    id: 1,
+    name: "John Doe",
+    email: "john.doe@student.insa.fr",
+    phone_number: "+251923415262",
+    institution: "AASTU",
+    field_of_study: "Software Engineering",
+    gender: "Male",
+    address: "Addis Ababa, Ethiopia",
+    role: "student",
+    company: "Tech Corp",
+    position: "Software Developer",
+    supervisor: "Dr. Smith",
+  },
+  {
+    id: 2,
+    name: "Dani Davison",
+    email: "dani.dav@student.insa.fr",
+    phone_number: "+251923208423",
+    institution: "ASTU",
+    field_of_study: "Software Engineering",
+    gender: "Male",
+    address: "Addis Ababa, Ethiopia",
+    role: "student",
+    company: "Tech Corp",
+    position: "Software Developer",
+    supervisor: "Dr. Smith",
+  },
+  {
+    id: 3,
+    name: "Jane Smith",
+    email: "jane.smith@student.insa.fr",
+    phone_number: "+251911223344",
+    institution: "Addis Ababa University",
+    field_of_study: "Data Science",
+    gender: "Female",
+    address: "Bole, Addis Ababa",
+    role: "student",
+    company: "Innovation Labs",
+    position: "Data Analyst",
+    supervisor: "Dr. Johnson",
+  },
+  {
+    id: 4,
+    name: "Mike Johnson",
+    email: "mike.johnson@student.insa.fr",
+    phone_number: "+251922334455",
+    institution: "AAiT",
+    field_of_study: "Human-Computer Interaction",
+    gender: "Male",
+    address: "Gullele, Addis Ababa",
+    role: "student",
+    company: "StartupXYZ",
+    position: "UI/UX Designer",
+    supervisor: "Dr. Brown",
+  },
+  {
+    id: 5,
+    name: "Sarah Wilson",
+    email: "sarah.wilson@student.insa.fr",
+    phone_number: "+251934567890",
+    institution: "Mekelle University",
+    field_of_study: "Marketing",
+    gender: "Female",
+    address: "Piassa, Addis Ababa",
+    role: "student",
+    company: "Digital Agency",
+    position: "Marketing Intern",
+    supervisor: "Dr. Davis",
+  },
+];
+
 export default function SupervisorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [newSup, setNewSup] = useState({
+  const [newSup, setNewSup] = useState<
+    Omit<Supervisor, "id" | "studentsAssigned" | "maxCapacity" | "students"> & {
+      studentsAssigned: string;
+      maxCapacity: string;
+    }
+  >({
     name: "",
     email: "",
     phone: "",
     department: "",
     specialization: "",
-    studentsAssigned: 0,
-    maxCapacity: 5,
     experience: "",
     status: "active",
+    studentsAssigned: "",
+    maxCapacity: "",
   });
-  const [supervisorsState, setSupervisorsState] = useState(supervisors);
+  const [supervisorsState, setSupervisorsState] =
+    useState<Supervisor[]>(initialSupervisors);
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = 3;
+  const [editSup, setEditSup] = useState<Supervisor | null>(null);
+  const [messageSup, setMessageSup] = useState<Supervisor | null>(null);
+
+  // Typed selected students state
+  const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  const router = useRouter();
+
+  // Departments and statuses for filters
   const departments = Array.from(
     new Set(supervisorsState.map((s) => s.department))
-  );
+  ).sort();
   const statuses = ["active", "inactive"];
+
+  // Filter supervisors by department, status and search term
   const filteredSupervisors = supervisorsState.filter(
     (supervisor) =>
       (departmentFilter === "all" ||
@@ -125,32 +247,97 @@ export default function SupervisorsPage() {
           .toLowerCase()
           .includes(searchTerm.toLowerCase()))
   );
+
+  // Pagination logic
   const totalPages = Math.ceil(filteredSupervisors.length / pageSize);
   const paginatedSupervisors = filteredSupervisors.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
-  const handleAddSupervisor = (e: React.FormEvent) => {
+
+  // Validation for new supervisor form
+  function validateSupervisorForm() {
+    const errors: { studentsAssigned?: string; maxCapacity?: string } = {};
+
+    const maxCapNum = Number(newSup.maxCapacity);
+    const studentsAssignedNum = Number(newSup.studentsAssigned);
+
+    if (!newSup.maxCapacity || isNaN(maxCapNum) || maxCapNum <= 0) {
+      errors.maxCapacity = "Max Capacity must be a positive number";
+    }
+
+    if (
+      newSup.studentsAssigned === "" ||
+      isNaN(studentsAssignedNum) ||
+      studentsAssignedNum < 0
+    ) {
+      errors.studentsAssigned = "Students Assigned cannot be negative";
+    }
+
+    if (
+      !errors.maxCapacity &&
+      !errors.studentsAssigned &&
+      studentsAssignedNum > maxCapNum
+    ) {
+      errors.studentsAssigned = "Assigned students cannot exceed Max Capacity";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  // Form errors state for validation
+  const [formErrors, setFormErrors] = useState<{
+    studentsAssigned?: string;
+    maxCapacity?: string;
+  }>({});
+
+  // Add supervisor submit handler
+  const handleAddSupervisor = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!validateSupervisorForm()) {
+      return;
+    }
+
+    const newId = supervisorsState.length
+      ? Math.max(...supervisorsState.map((s) => s.id)) + 1
+      : 1;
+
     setSupervisorsState([
-      { id: supervisorsState.length + 1, ...newSup },
+      {
+        id: newId,
+        name: newSup.name,
+        email: newSup.email,
+        phone: newSup.phone,
+        department: newSup.department,
+        specialization: newSup.specialization,
+        experience: newSup.experience,
+        status: newSup.status,
+        studentsAssigned: Number(newSup.studentsAssigned),
+        maxCapacity: Number(newSup.maxCapacity),
+      },
       ...supervisorsState,
     ]);
-    setShowAdd(false);
+
     setNewSup({
       name: "",
       email: "",
       phone: "",
       department: "",
       specialization: "",
-      studentsAssigned: 0,
-      maxCapacity: 5,
       experience: "",
       status: "active",
+      studentsAssigned: "",
+      maxCapacity: "",
     });
+
+    setFormErrors({});
+    setShowAdd(false);
     setPage(1);
   };
 
+  // Capacity badge helper
   const getCapacityBadge = (assigned: number, max: number) => {
     const percentage = (assigned / max) * 100;
     if (percentage >= 90)
@@ -160,11 +347,61 @@ export default function SupervisorsPage() {
     return <Badge className="bg-green-100 text-green-800">Available</Badge>;
   };
 
+  // Capacity color helper for progress bar
   const getCapacityColor = (assigned: number, max: number) => {
     const percentage = (assigned / max) * 100;
     if (percentage >= 90) return "bg-red-500";
     if (percentage >= 70) return "bg-yellow-500";
     return "bg-green-500";
+  };
+
+  // Edit supervisor save handler
+  const handleEditSave = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editSup) return;
+
+    const maxCapNum = Number(editSup.maxCapacity);
+    const studentsAssignedNum = Number(editSup.studentsAssigned);
+    if (
+      isNaN(maxCapNum) ||
+      maxCapNum <= 0 ||
+      isNaN(studentsAssignedNum) ||
+      studentsAssignedNum < 0 ||
+      studentsAssignedNum > maxCapNum
+    ) {
+      alert(
+        "Please ensure Max Capacity is positive and Students Assigned is not negative or greater than Max Capacity."
+      );
+      return;
+    }
+
+    setSupervisorsState((prev) =>
+      prev.map((s) =>
+        s.id === editSup.id
+          ? {
+              ...editSup,
+              maxCapacity: maxCapNum,
+              studentsAssigned: studentsAssignedNum,
+            }
+          : s
+      )
+    );
+    setEditSup(null);
+  };
+
+  // Navigate to messages page
+  function goMessage() {
+    router.push("/dashboard/university/messages");
+  }
+
+  // Handle View Students button click - set selected students by supervisor name
+  const handleViewStudents = (supervisorName: string) => {
+    // Filter students assigned to the selected supervisor
+    const assignedStudents = students.filter(
+      (student) => student.supervisor === supervisorName
+    );
+    setSelectedStudents(assignedStudents);
+    setIsViewModalOpen(true);
   };
 
   return (
@@ -178,14 +415,18 @@ export default function SupervisorsPage() {
               Manage academic supervisors and their assignments
             </p>
           </div>
+          {/* Add Supervisor Modal */}
           <Dialog open={showAdd} onOpenChange={setShowAdd}>
             <DialogTrigger asChild>
-              <Button onClick={() => setShowAdd(true)}>
+              <Button
+                className="bg-black text-white flex items-center"
+                onClick={() => setShowAdd(true)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Supervisor
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-white text-black">
               <DialogHeader>
                 <DialogTitle>Add Supervisor</DialogTitle>
               </DialogHeader>
@@ -199,6 +440,7 @@ export default function SupervisorsPage() {
                   required
                 />
                 <Input
+                  type="email"
                   placeholder="Email"
                   value={newSup.email}
                   onChange={(e) =>
@@ -241,31 +483,41 @@ export default function SupervisorsPage() {
                 <Input
                   type="number"
                   placeholder="Max Capacity"
+                  min={1}
                   value={newSup.maxCapacity}
                   onChange={(e) =>
-                    setNewSup({
-                      ...newSup,
-                      maxCapacity: Number(e.target.value),
-                    })
+                    setNewSup({ ...newSup, maxCapacity: e.target.value })
                   }
-                  min={1}
                   required
                 />
-                <select
-                  className="border rounded px-2 py-1 w-full"
-                  value={newSup.status}
+                {formErrors.maxCapacity && (
+                  <p className="text-red-500 text-sm">
+                    {formErrors.maxCapacity}
+                  </p>
+                )}
+                <Input
+                  type="number"
+                  placeholder="Students Assigned"
+                  min={0}
+                  value={newSup.studentsAssigned}
                   onChange={(e) =>
-                    setNewSup({ ...newSup, status: e.target.value })
+                    setNewSup({ ...newSup, studentsAssigned: e.target.value })
                   }
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                  required
+                />
+                {formErrors.studentsAssigned && (
+                  <p className="text-red-500 text-sm">
+                    {formErrors.studentsAssigned}
+                  </p>
+                )}
                 <div className="flex space-x-2">
-                  <Button type="submit">Add</Button>
+                  <Button type="submit" className="flex-1">
+                    Add
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
+                    className="flex-1"
                     onClick={() => setShowAdd(false)}
                   >
                     Cancel
@@ -293,7 +545,7 @@ export default function SupervisorsPage() {
                 />
               </div>
               <select
-                className="border rounded px-2 py-1"
+                className="border rounded px-2 py-1 text-sm leading-tight"
                 value={departmentFilter}
                 onChange={(e) => {
                   setDepartmentFilter(e.target.value);
@@ -304,21 +556,6 @@ export default function SupervisorsPage() {
                 {departments.map((d) => (
                   <option key={d} value={d}>
                     {d}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="border rounded px-2 py-1"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Statuses</option>
-                {statuses.map((s) => (
-                  <option key={s} value={s}>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
                   </option>
                 ))}
               </select>
@@ -352,126 +589,207 @@ export default function SupervisorsPage() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Contact Information */}
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Mail className="h-4 w-4" />
-                    <span>{supervisor.email}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Phone className="h-4 w-4" />
-                    <span>{supervisor.phone}</span>
-                  </div>
+              <CardContent className="space-y-2">
+                <p>
+                  <span className="font-semibold">Specialization:</span>{" "}
+                  {supervisor.specialization}
+                </p>
+                <p>
+                  <span className="font-semibold">Email:</span>{" "}
+                  {supervisor.email}
+                </p>
+                <p>
+                  <span className="font-semibold">Phone:</span>{" "}
+                  {supervisor.phone}
+                </p>
+                <p>
+                  <span className="font-semibold">Experience:</span>{" "}
+                  {supervisor.experience}
+                </p>
+                {/* Capacity Progress Bar */}
+                <div className="w-full bg-gray-200 rounded h-2 mt-2">
+                  <div
+                    className={`h-2 rounded ${getCapacityColor(
+                      supervisor.studentsAssigned,
+                      supervisor.maxCapacity
+                    )}`}
+                    style={{
+                      width: `${
+                        (supervisor.studentsAssigned / supervisor.maxCapacity) *
+                        100
+                      }%`,
+                    }}
+                  />
                 </div>
-
-                {/* Specialization */}
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    Specialization
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {supervisor.specialization}
-                  </p>
-                </div>
-
-                {/* Experience */}
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    Experience
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {supervisor.experience}
-                  </p>
-                </div>
-
-                {/* Capacity */}
-                <div>
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="font-medium text-gray-700">
-                      Student Capacity
-                    </span>
-                    <span className="text-gray-600">
-                      {supervisor.studentsAssigned}/{supervisor.maxCapacity}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${getCapacityColor(
-                        supervisor.studentsAssigned,
-                        supervisor.maxCapacity
-                      )}`}
-                      style={{
-                        width: `${
-                          (supervisor.studentsAssigned /
-                            supervisor.maxCapacity) *
-                          100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center space-x-2 pt-2">
+                {/* Action Buttons */}
+                <div className="flex space-x-2 mt-4">
+                  {/* View Students Button */}
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
+                    onClick={() => handleViewStudents(supervisor.name)}
                   >
-                    <Users className="h-4 w-4 mr-2" />
                     View Students
                   </Button>
+                  {/* Message Button */}
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
+                    onClick={() => {
+                      setMessageSup(supervisor);
+                      goMessage();
+                    }}
                   >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Contact
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Message
+                  </Button>
+                  {/* Edit Button */}
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditSup(supervisor)}
+                  >
+                    Edit
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-        {/* Pagination */}
-        <Pagination className="mt-6">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage((p) => Math.max(1, p - 1));
-                }}
-              />
-            </PaginationItem>
-            {[...Array(totalPages)].map((_, i) => (
-              <PaginationItem key={i}>
-                <PaginationLink
-                  href="#"
-                  isActive={page === i + 1}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage(i + 1);
-                  }}
-                >
-                  {i + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage((p) => Math.min(totalPages, p + 1));
-                }}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+
+        {/* View Students Modal */}
+        <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+          <DialogContent className="max-w-3xl bg-white">
+            <DialogHeader>
+              <DialogTitle>Assigned Students</DialogTitle>
+            </DialogHeader>
+            <div>
+              {selectedStudents.length === 0 ? (
+                <p className="p-4 text-center text-gray-600">
+                  No students assigned.
+                </p>
+              ) : (
+                <table className="min-w-full border  border-gray-300">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border px-4 py-2 text-left">Name</th>
+                      <th className="border px-4 py-2 text-left">Company</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedStudents.map((student) => (
+                      <tr key={student.id}>
+                        <td className="border px-4 py-2">{student.name}</td>
+                        <td className="border px-4 py-2">{student.company}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="flex justify-end mt-4">
+              <Button onClick={() => setIsViewModalOpen(false)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Supervisor Modal */}
+        <Dialog open={!!editSup} onOpenChange={() => setEditSup(null)}>
+          <DialogContent className="bg-white">
+            <DialogHeader>
+              <DialogTitle>Edit Supervisor</DialogTitle>
+            </DialogHeader>
+            {editSup && (
+              <form className="space-y-4" onSubmit={handleEditSave}>
+                <Input
+                  placeholder="Name"
+                  value={editSup.name}
+                  onChange={(e) =>
+                    setEditSup({ ...editSup, name: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={editSup.email}
+                  onChange={(e) =>
+                    setEditSup({ ...editSup, email: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  placeholder="Phone"
+                  value={editSup.phone}
+                  onChange={(e) =>
+                    setEditSup({ ...editSup, phone: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  placeholder="Department"
+                  value={editSup.department}
+                  onChange={(e) =>
+                    setEditSup({ ...editSup, department: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  placeholder="Specialization"
+                  value={editSup.specialization}
+                  onChange={(e) =>
+                    setEditSup({ ...editSup, specialization: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  placeholder="Experience"
+                  value={editSup.experience}
+                  onChange={(e) =>
+                    setEditSup({ ...editSup, experience: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  type="number"
+                  placeholder="Max Capacity"
+                  min={1}
+                  value={editSup.maxCapacity}
+                  onChange={(e) =>
+                    setEditSup({
+                      ...editSup,
+                      maxCapacity: Number(e.target.value),
+                    })
+                  }
+                  required
+                />
+                <Input
+                  type="number"
+                  placeholder="Students Assigned"
+                  min={0}
+                  value={editSup.studentsAssigned}
+                  onChange={(e) =>
+                    setEditSup({
+                      ...editSup,
+                      studentsAssigned: Number(e.target.value),
+                    })
+                  }
+                  required
+                />
+                <div className="flex space-x-2">
+                  <Button type="submit" className="flex-1">
+                    Save
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setEditSup(null)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

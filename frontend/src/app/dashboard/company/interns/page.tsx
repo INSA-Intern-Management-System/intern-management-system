@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useMemo } from "react";
 import {
   Card,
@@ -11,12 +10,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   User,
   Search,
   MessageSquare,
-  Calendar,
   Star,
   TrendingUp,
   Download,
@@ -31,7 +29,6 @@ import {
 } from "@/components/ui/pagination";
 import { useRouter } from "next/navigation";
 
-// Updated data structure to match the database schema
 const users = [
   {
     id: 1,
@@ -54,7 +51,6 @@ const users = [
     role: "intern",
     created_at: "2024-01-15T00:00:00Z",
     updated_at: "2024-01-15T00:00:00Z",
-    // Additional intern-specific fields
     position: "UI/UX Designer",
     mentor: "Sarah Wilson",
     startDate: "2024-01-15",
@@ -161,7 +157,7 @@ const users = [
     progress: 100,
     project: "Internal Tools Development",
     rating: 4.7,
-    status: "active",
+    status: "completed",
     skills: ["Java", "Spring", "MySQL"],
     reportsSubmitted: 20,
     totalReports: 20,
@@ -194,7 +190,7 @@ const users = [
     progress: 30,
     project: "Social Media Campaign",
     rating: 4.5,
-    status: "completed",
+    status: "on-leave",
     skills: ["Social Media", "Content Creation", "Analytics"],
     reportsSubmitted: 2,
     totalReports: 8,
@@ -244,7 +240,7 @@ export default function CompanyInternsPage() {
   const pageSize = 3;
   const router = useRouter();
 
-  // Get unique values for filters
+  // Extract unique filter options
   const institutions = Array.from(
     new Set(users.map((user) => user.institution))
   );
@@ -252,25 +248,19 @@ export default function CompanyInternsPage() {
     new Set(users.map((user) => user.field_of_study))
   );
 
-  // Filter and search logic - works on ALL data, not just current page
+  // Filter and search logic
   const filteredAndSearchedUsers = useMemo(() => {
-    const filtered = users.filter((user) => {
-      // Status filter
+    return users.filter((user) => {
       const statusMatch =
         statusFilter === "all" || user.status === statusFilter;
-
-      // Institution filter
       const institutionMatch =
         institutionFilter === "all" || user.institution === institutionFilter;
-
-      // Field of study filter
       const fieldMatch =
         fieldOfStudyFilter === "all" ||
         user.field_of_study === fieldOfStudyFilter;
 
-      // Search query - searches across multiple fields
       const searchMatch =
-        searchQuery === "" ||
+        !searchQuery ||
         `${user.first_name} ${user.last_name}`
           .toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
@@ -286,11 +276,9 @@ export default function CompanyInternsPage() {
 
       return statusMatch && institutionMatch && fieldMatch && searchMatch;
     });
-
-    return filtered;
   }, [statusFilter, institutionFilter, fieldOfStudyFilter, searchQuery]);
 
-  // Reset page when filters or search change
+  // Handle filter changes and reset pagination
   const handleFilterChange = (filterType: string, value: string) => {
     setPage(1);
     switch (filterType) {
@@ -311,13 +299,14 @@ export default function CompanyInternsPage() {
     setPage(1);
   };
 
-  // Pagination logic
+  // Pagination
   const totalPages = Math.ceil(filteredAndSearchedUsers.length / pageSize);
   const paginatedUsers = filteredAndSearchedUsers.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
 
+  // Status badge component
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -345,8 +334,8 @@ export default function CompanyInternsPage() {
 
   const activeInterns = users.filter((user) => user.status === "active");
 
+  // Export to CSV
   const handleExport = () => {
-    // Create CSV content
     const headers = [
       "ID",
       "First Name",
@@ -390,10 +379,9 @@ export default function CompanyInternsPage() {
       ),
     ].join("\n");
 
-    // Create and download file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
@@ -406,7 +394,6 @@ export default function CompanyInternsPage() {
   };
 
   const handleMessageUser = () => {
-    // Navigate to general messages page
     router.push("/dashboard/company/messages");
   };
 
@@ -414,11 +401,9 @@ export default function CompanyInternsPage() {
     <DashboardLayout requiredRole="company">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Interns</h1>
-            <p className="text-gray-600">Manage and track your intern team</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Interns</h1>
+          <p className="text-gray-600">Manage and track your intern team</p>
         </div>
 
         {/* Stats Cards */}
@@ -492,13 +477,13 @@ export default function CompanyInternsPage() {
           </Card>
         </div>
 
-        {/* Search and Filter */}
+        {/* Search & Filter */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     placeholder="Search by name, email, position, project, institution, skills..."
                     className="pl-10"
@@ -507,97 +492,91 @@ export default function CompanyInternsPage() {
                   />
                 </div>
               </div>
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  onClick={() => setFilterOpen((o) => !o)}
-                >
-                  Filter
-                </Button>
-                {filterOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg z-10 p-4 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Status
-                      </label>
-                      <select
-                        className="w-full border rounded px-2 py-1"
-                        value={statusFilter}
-                        onChange={(e) =>
-                          handleFilterChange("status", e.target.value)
-                        }
-                      >
-                        <option value="all">All</option>
-                        <option value="active">Active</option>
-                        <option value="completed">Completed</option>
-                        <option value="on-leave">On Leave</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Institution
-                      </label>
-                      <select
-                        className="w-full border rounded px-2 py-1"
-                        value={institutionFilter}
-                        onChange={(e) =>
-                          handleFilterChange("institution", e.target.value)
-                        }
-                      >
-                        <option value="all">All</option>
-                        {institutions.map((institution) => (
-                          <option key={institution} value={institution}>
-                            {institution}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Field of Study
-                      </label>
-                      <select
-                        className="w-full border rounded px-2 py-1"
-                        value={fieldOfStudyFilter}
-                        onChange={(e) =>
-                          handleFilterChange("fieldOfStudy", e.target.value)
-                        }
-                      >
-                        <option value="all">All</option>
-                        {fieldsOfStudy.map((field) => (
-                          <option key={field} value={field}>
-                            {field}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-transparent"
-                        onClick={() => {
-                          setStatusFilter("all");
-                          setInstitutionFilter("all");
-                          setFieldOfStudyFilter("all");
-                          setSearchQuery("");
-                          setPage(1);
-                        }}
-                      >
-                        Clear All Filters
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="relative">
-                <Button variant="outline" onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                onClick={() => setFilterOpen((o) => !o)}
+              >
+                Filter
+              </Button>
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
             </div>
-            {/* Search Results Info */}
+
+            {/* Filter Dropdown */}
+            {filterOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg z-10 p-4 space-y-4 text-sm">
+                <div>
+                  <label className="block font-medium mb-1">Status</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={statusFilter}
+                    onChange={(e) =>
+                      handleFilterChange("status", e.target.value)
+                    }
+                  >
+                    <option value="all">All</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="on-leave">On Leave</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Institution</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={institutionFilter}
+                    onChange={(e) =>
+                      handleFilterChange("institution", e.target.value)
+                    }
+                  >
+                    <option value="all">All</option>
+                    {institutions.map((institution) => (
+                      <option key={institution} value={institution}>
+                        {institution}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">
+                    Field of Study
+                  </label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={fieldOfStudyFilter}
+                    onChange={(e) =>
+                      handleFilterChange("fieldOfStudy", e.target.value)
+                    }
+                  >
+                    <option value="all">All</option>
+                    {fieldsOfStudy.map((field) => (
+                      <option key={field} value={field}>
+                        {field}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setInstitutionFilter("all");
+                      setFieldOfStudyFilter("all");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            )}
+            {/* Results Info */}
             <div className="mt-4 text-sm text-gray-600">
               Showing {paginatedUsers.length} of{" "}
               {filteredAndSearchedUsers.length} interns
@@ -606,7 +585,7 @@ export default function CompanyInternsPage() {
           </CardContent>
         </Card>
 
-        {/* Interns List */}
+        {/* Intern List */}
         <div className="space-y-4">
           {paginatedUsers.length === 0 ? (
             <Card>
@@ -647,21 +626,22 @@ export default function CompanyInternsPage() {
                             </span>
                           </div>
                         </div>
-                        {/* Info Row - aligned with 4 columns */}
+
+                        {/* Dynamic Info Row - Aligned across all cards */}
                         <div className="flex text-sm text-gray-700 gap-6">
                           <div className="w-1/4">
                             <div className="font-semibold mb-1">Position:</div>
-                            <div>UI/UX Designer</div>
+                            <div>{user.position}</div>
                           </div>
                           <div className="w-1/4">
                             <div className="font-semibold mb-1">
                               Institution:
                             </div>
-                            <div>INSA Rennes</div>
+                            <div>{user.institution}</div>
                           </div>
                           <div className="w-1/4">
                             <div className="font-semibold mb-1">Project:</div>
-                            <div>Mobile App Redesign</div>
+                            <div>{user.project}</div>
                           </div>
                           <div className="w-1/4">
                             <div className="font-semibold mb-1">Progress:</div>
@@ -669,10 +649,10 @@ export default function CompanyInternsPage() {
                               <div className="w-24 h-2 bg-gray-200 rounded">
                                 <div
                                   className="h-2 bg-blue-500 rounded"
-                                  style={{ width: "75%" }}
+                                  style={{ width: `${user.progress}%` }}
                                 ></div>
                               </div>
-                              <span>75%</span>
+                              <span>{user.progress}%</span>
                             </div>
                           </div>
                         </div>
@@ -717,7 +697,7 @@ export default function CompanyInternsPage() {
                   className={page === 1 ? "pointer-events-none opacity-50" : ""}
                 />
               </PaginationItem>
-              {[...Array(totalPages)].map((_, i) => (
+              {Array.from({ length: totalPages }, (_, i) => (
                 <PaginationItem key={i}>
                   <PaginationLink
                     href="#"
@@ -747,7 +727,7 @@ export default function CompanyInternsPage() {
           </Pagination>
         )}
 
-        {/* Intern Management Tips */}
+        {/* Tips */}
         <Card>
           <CardHeader>
             <CardTitle>Intern Management Best Practices</CardTitle>
