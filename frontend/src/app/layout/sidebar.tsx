@@ -5,10 +5,10 @@ import React from "react";
 interface SidebarProps {
   userRole: string;
   userName: string;
-  onLogout: () => void;
+  // onLogout: () => void;
 }
 
-export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
+export function Sidebar({ userRole, userName /*, onLogout*/ }: SidebarProps) {
   return (
     <aside className="fixed top-0 left-0 h-full w-64 bg-white shadow-md flex flex-col">
       <div className="p-6 border-b">
@@ -29,12 +29,10 @@ export function Sidebar({ userRole, userName, onLogout }: SidebarProps) {
       </nav>
       <button
         className="m-6 p-2 bg-red-500 text-white rounded"
-        onClick={onLogout}
+        // onClick={onLogout}
       >
         Logout
       </button>
     </aside>
   );
 }
-
-

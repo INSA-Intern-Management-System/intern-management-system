@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Edit,
   Plus,
@@ -34,32 +40,32 @@ import {
   Bell,
   Star,
   CheckCircle,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 
 export default function RoleManagement() {
-  const [user, setUser] = useState<any>(null)
-  const [isAddRoleOpen, setIsAddRoleOpen] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<any>(null)
-  const [isEditRoleOpen, setIsEditRoleOpen] = useState(false)
-  const router = useRouter()
+  const [user, setUser] = useState<any>(null);
+  const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<any>(null);
+  const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
+    const userData = localStorage.getItem("user");
     if (userData) {
-      const parsedUser = JSON.parse(userData)
+      const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== "admin") {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
-      setUser(parsedUser)
+      setUser(parsedUser);
     } else {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [router])
+  }, [router]);
 
-  if (!user) return null
+  if (!user) return null;
 
   // Mock data
   const roles = [
@@ -117,7 +123,8 @@ export default function RoleManagement() {
       id: 3,
       name: "university",
       displayName: "University",
-      description: "University staff supervising students and managing evaluations",
+      description:
+        "University staff supervising students and managing evaluations",
       userCount: 12,
       permissions: {
         dashboard: { view: true, edit: false, delete: false },
@@ -160,52 +167,52 @@ export default function RoleManagement() {
         "Full system access",
       ],
     },
-  ]
+  ];
 
   const getRoleIcon = (roleName: string) => {
     switch (roleName) {
       case "student":
-        return <GraduationCap className="h-6 w-6 text-blue-600" />
+        return <GraduationCap className="h-6 w-6 text-blue-600" />;
       case "company":
-        return <Building2 className="h-6 w-6 text-green-600" />
+        return <Building2 className="h-6 w-6 text-green-600" />;
       case "university":
-        return <University className="h-6 w-6 text-purple-600" />
+        return <University className="h-6 w-6 text-purple-600" />;
       case "admin":
-        return <Shield className="h-6 w-6 text-red-600" />
+        return <Shield className="h-6 w-6 text-red-600" />;
       default:
-        return <User className="h-6 w-6 text-gray-600" />
+        return <User className="h-6 w-6 text-gray-600" />;
     }
-  }
+  };
 
   const getPermissionIcon = (permission: string) => {
     switch (permission) {
       case "dashboard":
-        return <Eye className="h-4 w-4" />
+        return <Eye className="h-4 w-4" />;
       case "applications":
-        return <FileText className="h-4 w-4" />
+        return <FileText className="h-4 w-4" />;
       case "messages":
-        return <MessageSquare className="h-4 w-4" />
+        return <MessageSquare className="h-4 w-4" />;
       case "leave":
-        return <Calendar className="h-4 w-4" />
+        return <Calendar className="h-4 w-4" />;
       case "notifications":
-        return <Bell className="h-4 w-4" />
+        return <Bell className="h-4 w-4" />;
       case "users":
-        return <Users className="h-4 w-4" />
+        return <Users className="h-4 w-4" />;
       case "settings":
-        return <Settings className="h-4 w-4" />
+        return <Settings className="h-4 w-4" />;
       case "performance":
-        return <Star className="h-4 w-4" />
+        return <Star className="h-4 w-4" />;
       case "evaluations":
-        return <CheckCircle className="h-4 w-4" />
+        return <CheckCircle className="h-4 w-4" />;
       default:
-        return <Eye className="h-4 w-4" />
+        return <Eye className="h-4 w-4" />;
     }
-  }
+  };
 
   const handleEditRole = (role: any) => {
-    setSelectedRole(role)
-    setIsEditRoleOpen(true)
-  }
+    setSelectedRole(role);
+    setIsEditRoleOpen(true);
+  };
 
   return (
     <DashboardLayout userRole="admin" userName={user.name}>
@@ -213,8 +220,12 @@ export default function RoleManagement() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Role Management</h1>
-            <p className="text-gray-600">Configure role permissions and access levels</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Role Management
+            </h1>
+            <p className="text-gray-600">
+              Configure role permissions and access levels
+            </p>
           </div>
           <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
             <DialogTrigger asChild>
@@ -226,7 +237,9 @@ export default function RoleManagement() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Role</DialogTitle>
-                <DialogDescription>Define a new role with specific permissions</DialogDescription>
+                <DialogDescription>
+                  Define a new role with specific permissions
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -249,10 +262,15 @@ export default function RoleManagement() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddRoleOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddRoleOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={() => setIsAddRoleOpen(false)}>Create Role</Button>
+                <Button onClick={() => setIsAddRoleOpen(false)}>
+                  Create Role
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -265,7 +283,9 @@ export default function RoleManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{role.displayName}</p>
+                    <p className="text-sm font-medium text-gray-600">
+                      {role.displayName}
+                    </p>
                     <p className="text-2xl font-bold">{role.userCount}</p>
                     <p className="text-xs text-gray-500">users</p>
                   </div>
@@ -285,13 +305,19 @@ export default function RoleManagement() {
                   <div className="flex items-center space-x-3">
                     {getRoleIcon(role.name)}
                     <div>
-                      <CardTitle className="capitalize">{role.displayName}</CardTitle>
+                      <CardTitle className="capitalize">
+                        {role.displayName}
+                      </CardTitle>
                       <CardDescription>{role.description}</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="outline">{role.userCount} users</Badge>
-                    <Button variant="outline" size="sm" onClick={() => handleEditRole(role)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditRole(role)}
+                    >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Permissions
                     </Button>
@@ -305,7 +331,11 @@ export default function RoleManagement() {
                     <h4 className="font-semibold mb-2">Key Features</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {role.features.map((feature, index) => (
-                        <Badge key={index} variant="outline" className="justify-start">
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="justify-start"
+                        >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           {feature}
                         </Badge>
@@ -317,27 +347,45 @@ export default function RoleManagement() {
                   <div>
                     <h4 className="font-semibold mb-2">Permissions</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(role.permissions).map(([permission, access]) => (
-                        <div key={permission} className="border rounded-lg p-3">
-                          <div className="flex items-center space-x-2 mb-2">
-                            {getPermissionIcon(permission)}
-                            <span className="font-medium capitalize">{permission}</span>
+                      {Object.entries(role.permissions).map(
+                        ([permission, access]) => (
+                          <div
+                            key={permission}
+                            className="border rounded-lg p-3"
+                          >
+                            <div className="flex items-center space-x-2 mb-2">
+                              {getPermissionIcon(permission)}
+                              <span className="font-medium capitalize">
+                                {permission}
+                              </span>
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              {Object.entries(access as any).map(
+                                ([action, allowed]) => (
+                                  <div
+                                    key={action}
+                                    className="flex items-center justify-between"
+                                  >
+                                    <span className="capitalize">{action}</span>
+                                    <Badge
+                                      variant={
+                                        allowed ? "default" : "secondary"
+                                      }
+                                      className={
+                                        allowed
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-gray-100 text-gray-600"
+                                      }
+                                    >
+                                      {allowed ? "Allowed" : "Denied"}
+                                    </Badge>
+                                  </div>
+                                )
+                              )}
+                            </div>
                           </div>
-                          <div className="space-y-1 text-sm">
-                            {Object.entries(access as any).map(([action, allowed]) => (
-                              <div key={action} className="flex items-center justify-between">
-                                <span className="capitalize">{action}</span>
-                                <Badge
-                                  variant={allowed ? "default" : "secondary"}
-                                  className={allowed ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}
-                                >
-                                  {allowed ? "Allowed" : "Denied"}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
@@ -350,48 +398,69 @@ export default function RoleManagement() {
         <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Edit Role Permissions - {selectedRole?.displayName}</DialogTitle>
-              <DialogDescription>Configure permissions for this role</DialogDescription>
+              <DialogTitle>
+                Edit Role Permissions - {selectedRole?.displayName}
+              </DialogTitle>
+              <DialogDescription>
+                Configure permissions for this role
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
               {selectedRole && (
                 <div className="space-y-4">
-                  {Object.entries(selectedRole.permissions).map(([permission, access]) => (
-                    <div key={permission} className="border rounded-lg p-4">
-                      <div className="flex items-center space-x-2 mb-3">
-                        {getPermissionIcon(permission)}
-                        <h4 className="font-semibold capitalize">{permission}</h4>
+                  {Object.entries(selectedRole.permissions).map(
+                    ([permission, access]) => (
+                      <div key={permission} className="border rounded-lg p-4">
+                        <div className="flex items-center space-x-2 mb-3">
+                          {getPermissionIcon(permission)}
+                          <h4 className="font-semibold capitalize">
+                            {permission}
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          {Object.entries(access as any).map(
+                            ([action, allowed]) => (
+                              <div
+                                key={action}
+                                className="flex items-center justify-between"
+                              >
+                                <Label
+                                  htmlFor={`${permission}-${action}`}
+                                  className="capitalize"
+                                >
+                                  {action}
+                                </Label>
+                                <Switch
+                                  id={`${permission}-${action}`}
+                                  checked={allowed as boolean}
+                                  onCheckedChange={() => {
+                                    // Handle permission change
+                                  }}
+                                />
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        {Object.entries(access as any).map(([action, allowed]) => (
-                          <div key={action} className="flex items-center justify-between">
-                            <Label htmlFor={`${permission}-${action}`} className="capitalize">
-                              {action}
-                            </Label>
-                            <Switch
-                              id={`${permission}-${action}`}
-                              checked={allowed as boolean}
-                              onCheckedChange={() => {
-                                // Handle permission change
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditRoleOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditRoleOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button onClick={() => setIsEditRoleOpen(false)}>Save Changes</Button>
+              <Button onClick={() => setIsEditRoleOpen(false)}>
+                Save Changes
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
     </DashboardLayout>
-  )
+  );
 }

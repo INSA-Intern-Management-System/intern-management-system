@@ -1,21 +1,43 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Settings, Bell, Shield, Clock, Save, RefreshCw, AlertTriangle, CheckCircle, GraduationCap } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Settings,
+  Bell,
+  Shield,
+  Clock,
+  Save,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
+  GraduationCap,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 
 export default function SystemSettings() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<any>(null);
   const [settings, setSettings] = useState({
     general: {
       systemName: "INSA Internship Portal",
@@ -50,34 +72,34 @@ export default function SystemSettings() {
       autoApproveApplications: false,
       requireUniversityApproval: true,
     },
-  })
-  const router = useRouter()
+  });
+  const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
+    const userData = localStorage.getItem("user");
     if (userData) {
-      const parsedUser = JSON.parse(userData)
+      const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== "admin") {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
-      setUser(parsedUser)
+      setUser(parsedUser);
     } else {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [router])
+  }, [router]);
 
-  if (!user) return null
+  if (!user) return null;
 
   const handleSaveSettings = () => {
     // Save settings logic
-    console.log("Settings saved:", settings)
-  }
+    console.log("Settings saved:", settings);
+  };
 
   const handleResetSettings = () => {
     // Reset to defaults logic
-    console.log("Settings reset to defaults")
-  }
+    console.log("Settings reset to defaults");
+  };
 
   const systemStatus = {
     database: "healthy",
@@ -85,33 +107,33 @@ export default function SystemSettings() {
     storage: "warning",
     api: "healthy",
     backup: "error",
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "healthy":
-        return <Badge className="bg-green-100 text-green-800">Healthy</Badge>
+        return <Badge className="bg-green-100 text-green-800">Healthy</Badge>;
       case "warning":
-        return <Badge className="bg-yellow-100 text-yellow-800">Warning</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-800">Warning</Badge>;
       case "error":
-        return <Badge className="bg-red-100 text-red-800">Error</Badge>
+        return <Badge className="bg-red-100 text-red-800">Error</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "healthy":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case "warning":
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
       case "error":
-        return <AlertTriangle className="h-4 w-4 text-red-600" />
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-600" />
+        return <Clock className="h-4 w-4 text-gray-600" />;
     }
-  }
+  };
 
   return (
     <DashboardLayout userRole="admin" userName={user.name}>
@@ -119,8 +141,12 @@ export default function SystemSettings() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
-            <p className="text-gray-600">Configure system-wide settings and preferences</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              System Settings
+            </h1>
+            <p className="text-gray-600">
+              Configure system-wide settings and preferences
+            </p>
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={handleResetSettings}>
@@ -141,12 +167,17 @@ export default function SystemSettings() {
               <Shield className="h-5 w-5" />
               <span>System Status</span>
             </CardTitle>
-            <CardDescription>Current status of system components</CardDescription>
+            <CardDescription>
+              Current status of system components
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {Object.entries(systemStatus).map(([component, status]) => (
-                <div key={component} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={component}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(status)}
                     <span className="font-medium capitalize">{component}</span>
@@ -188,7 +219,10 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            general: { ...settings.general, systemName: e.target.value },
+                            general: {
+                              ...settings.general,
+                              systemName: e.target.value,
+                            },
                           })
                         }
                       />
@@ -202,7 +236,10 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            general: { ...settings.general, adminEmail: e.target.value },
+                            general: {
+                              ...settings.general,
+                              adminEmail: e.target.value,
+                            },
                           })
                         }
                       />
@@ -216,7 +253,10 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            general: { ...settings.general, supportEmail: e.target.value },
+                            general: {
+                              ...settings.general,
+                              supportEmail: e.target.value,
+                            },
                           })
                         }
                       />
@@ -232,7 +272,10 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            general: { ...settings.general, systemUrl: e.target.value },
+                            general: {
+                              ...settings.general,
+                              systemUrl: e.target.value,
+                            },
                           })
                         }
                       />
@@ -252,9 +295,15 @@ export default function SystemSettings() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Europe/Paris">Europe/Paris</SelectItem>
-                          <SelectItem value="Europe/London">Europe/London</SelectItem>
-                          <SelectItem value="America/New_York">America/New_York</SelectItem>
+                          <SelectItem value="Europe/Paris">
+                            Europe/Paris
+                          </SelectItem>
+                          <SelectItem value="Europe/London">
+                            Europe/London
+                          </SelectItem>
+                          <SelectItem value="America/New_York">
+                            America/New_York
+                          </SelectItem>
                           <SelectItem value="Asia/Tokyo">Asia/Tokyo</SelectItem>
                         </SelectContent>
                       </Select>
@@ -289,7 +338,10 @@ export default function SystemSettings() {
                         onCheckedChange={(checked) =>
                           setSettings({
                             ...settings,
-                            general: { ...settings.general, maintenanceMode: checked },
+                            general: {
+                              ...settings.general,
+                              maintenanceMode: checked,
+                            },
                           })
                         }
                       />
@@ -308,49 +360,68 @@ export default function SystemSettings() {
                   <Bell className="h-5 w-5" />
                   <span>Notification Settings</span>
                 </CardTitle>
-                <CardDescription>Configure system notifications and alerts</CardDescription>
+                <CardDescription>
+                  Configure system notifications and alerts
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Notification Channels</h3>
+                      <h3 className="text-lg font-semibold">
+                        Notification Channels
+                      </h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="emailNotifications">Email Notifications</Label>
+                          <Label htmlFor="emailNotifications">
+                            Email Notifications
+                          </Label>
                           <Switch
                             id="emailNotifications"
                             checked={settings.notifications.emailNotifications}
                             onCheckedChange={(checked) =>
                               setSettings({
                                 ...settings,
-                                notifications: { ...settings.notifications, emailNotifications: checked },
+                                notifications: {
+                                  ...settings.notifications,
+                                  emailNotifications: checked,
+                                },
                               })
                             }
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="smsNotifications">SMS Notifications</Label>
+                          <Label htmlFor="smsNotifications">
+                            SMS Notifications
+                          </Label>
                           <Switch
                             id="smsNotifications"
                             checked={settings.notifications.smsNotifications}
                             onCheckedChange={(checked) =>
                               setSettings({
                                 ...settings,
-                                notifications: { ...settings.notifications, smsNotifications: checked },
+                                notifications: {
+                                  ...settings.notifications,
+                                  smsNotifications: checked,
+                                },
                               })
                             }
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="pushNotifications">Push Notifications</Label>
+                          <Label htmlFor="pushNotifications">
+                            Push Notifications
+                          </Label>
                           <Switch
                             id="pushNotifications"
                             checked={settings.notifications.pushNotifications}
                             onCheckedChange={(checked) =>
                               setSettings({
                                 ...settings,
-                                notifications: { ...settings.notifications, pushNotifications: checked },
+                                notifications: {
+                                  ...settings.notifications,
+                                  pushNotifications: checked,
+                                },
                               })
                             }
                           />
@@ -359,17 +430,26 @@ export default function SystemSettings() {
                     </div>
 
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Notification Types</h3>
+                      <h3 className="text-lg font-semibold">
+                        Notification Types
+                      </h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="applicationNotifications">Application Updates</Label>
+                          <Label htmlFor="applicationNotifications">
+                            Application Updates
+                          </Label>
                           <Switch
                             id="applicationNotifications"
-                            checked={settings.notifications.applicationNotifications}
+                            checked={
+                              settings.notifications.applicationNotifications
+                            }
                             onCheckedChange={(checked) =>
                               setSettings({
                                 ...settings,
-                                notifications: { ...settings.notifications, applicationNotifications: checked },
+                                notifications: {
+                                  ...settings.notifications,
+                                  applicationNotifications: checked,
+                                },
                               })
                             }
                           />
@@ -382,19 +462,27 @@ export default function SystemSettings() {
                             onCheckedChange={(checked) =>
                               setSettings({
                                 ...settings,
-                                notifications: { ...settings.notifications, systemAlerts: checked },
+                                notifications: {
+                                  ...settings.notifications,
+                                  systemAlerts: checked,
+                                },
                               })
                             }
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="reportReminders">Report Reminders</Label>
+                          <Label htmlFor="reportReminders">
+                            Report Reminders
+                          </Label>
                           <Select
                             value={settings.notifications.reportReminders}
                             onValueChange={(value) =>
                               setSettings({
                                 ...settings,
-                                notifications: { ...settings.notifications, reportReminders: value },
+                                notifications: {
+                                  ...settings.notifications,
+                                  reportReminders: value,
+                                },
                               })
                             }
                           >
@@ -425,14 +513,18 @@ export default function SystemSettings() {
                   <Shield className="h-5 w-5" />
                   <span>Security Settings</span>
                 </CardTitle>
-                <CardDescription>Configure security policies and authentication</CardDescription>
+                <CardDescription>
+                  Configure security policies and authentication
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Password Policy</h3>
                     <div className="space-y-2">
-                      <Label htmlFor="passwordMinLength">Minimum Password Length</Label>
+                      <Label htmlFor="passwordMinLength">
+                        Minimum Password Length
+                      </Label>
                       <Input
                         id="passwordMinLength"
                         type="number"
@@ -440,26 +532,38 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, passwordMinLength: Number.parseInt(e.target.value) },
+                            security: {
+                              ...settings.security,
+                              passwordMinLength: Number.parseInt(
+                                e.target.value
+                              ),
+                            },
                           })
                         }
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="requireSpecialChars">Require Special Characters</Label>
+                      <Label htmlFor="requireSpecialChars">
+                        Require Special Characters
+                      </Label>
                       <Switch
                         id="requireSpecialChars"
                         checked={settings.security.requireSpecialChars}
                         onCheckedChange={(checked) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, requireSpecialChars: checked },
+                            security: {
+                              ...settings.security,
+                              requireSpecialChars: checked,
+                            },
                           })
                         }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                      <Label htmlFor="sessionTimeout">
+                        Session Timeout (minutes)
+                      </Label>
                       <Input
                         id="sessionTimeout"
                         type="number"
@@ -467,7 +571,10 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, sessionTimeout: Number.parseInt(e.target.value) },
+                            security: {
+                              ...settings.security,
+                              sessionTimeout: Number.parseInt(e.target.value),
+                            },
                           })
                         }
                       />
@@ -477,7 +584,9 @@ export default function SystemSettings() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Access Control</h3>
                     <div className="space-y-2">
-                      <Label htmlFor="maxLoginAttempts">Max Login Attempts</Label>
+                      <Label htmlFor="maxLoginAttempts">
+                        Max Login Attempts
+                      </Label>
                       <Input
                         id="maxLoginAttempts"
                         type="number"
@@ -485,26 +594,36 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, maxLoginAttempts: Number.parseInt(e.target.value) },
+                            security: {
+                              ...settings.security,
+                              maxLoginAttempts: Number.parseInt(e.target.value),
+                            },
                           })
                         }
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="twoFactorAuth">Two-Factor Authentication</Label>
+                      <Label htmlFor="twoFactorAuth">
+                        Two-Factor Authentication
+                      </Label>
                       <Switch
                         id="twoFactorAuth"
                         checked={settings.security.twoFactorAuth}
                         onCheckedChange={(checked) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, twoFactorAuth: checked },
+                            security: {
+                              ...settings.security,
+                              twoFactorAuth: checked,
+                            },
                           })
                         }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="ipWhitelist">IP Whitelist (comma-separated)</Label>
+                      <Label htmlFor="ipWhitelist">
+                        IP Whitelist (comma-separated)
+                      </Label>
                       <Textarea
                         id="ipWhitelist"
                         placeholder="192.168.1.1, 10.0.0.1"
@@ -512,7 +631,10 @@ export default function SystemSettings() {
                         onChange={(e) =>
                           setSettings({
                             ...settings,
-                            security: { ...settings.security, ipWhitelist: e.target.value },
+                            security: {
+                              ...settings.security,
+                              ipWhitelist: e.target.value,
+                            },
                           })
                         }
                       />
@@ -531,14 +653,18 @@ export default function SystemSettings() {
                   <GraduationCap className="h-5 w-5" />
                   <span>Internship Settings</span>
                 </CardTitle>
-                <CardDescription>Configure internship-specific policies and rules</CardDescription>
+                <CardDescription>
+                  Configure internship-specific policies and rules
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Company Policies</h3>
                     <div className="space-y-2">
-                      <Label htmlFor="maxInternsPerCompany">Max Interns per Company</Label>
+                      <Label htmlFor="maxInternsPerCompany">
+                        Max Interns per Company
+                      </Label>
                       <Input
                         id="maxInternsPerCompany"
                         type="number"
@@ -548,14 +674,18 @@ export default function SystemSettings() {
                             ...settings,
                             internships: {
                               ...settings.internships,
-                              maxInternsPerCompany: Number.parseInt(e.target.value),
+                              maxInternsPerCompany: Number.parseInt(
+                                e.target.value
+                              ),
                             },
                           })
                         }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="internshipDuration">Default Internship Duration (months)</Label>
+                      <Label htmlFor="internshipDuration">
+                        Default Internship Duration (months)
+                      </Label>
                       <Input
                         id="internshipDuration"
                         type="number"
@@ -565,21 +695,28 @@ export default function SystemSettings() {
                             ...settings,
                             internships: {
                               ...settings.internships,
-                              internshipDuration: Number.parseInt(e.target.value),
+                              internshipDuration: Number.parseInt(
+                                e.target.value
+                              ),
                             },
                           })
                         }
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="autoApproveApplications">Auto-approve Applications</Label>
+                      <Label htmlFor="autoApproveApplications">
+                        Auto-approve Applications
+                      </Label>
                       <Switch
                         id="autoApproveApplications"
                         checked={settings.internships.autoApproveApplications}
                         onCheckedChange={(checked) =>
                           setSettings({
                             ...settings,
-                            internships: { ...settings.internships, autoApproveApplications: checked },
+                            internships: {
+                              ...settings.internships,
+                              autoApproveApplications: checked,
+                            },
                           })
                         }
                       />
@@ -587,7 +724,9 @@ export default function SystemSettings() {
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Evaluation Policies</h3>
+                    <h3 className="text-lg font-semibold">
+                      Evaluation Policies
+                    </h3>
                     <div className="space-y-2">
                       <Label htmlFor="reportFrequency">Report Frequency</Label>
                       <Select
@@ -595,7 +734,10 @@ export default function SystemSettings() {
                         onValueChange={(value) =>
                           setSettings({
                             ...settings,
-                            internships: { ...settings.internships, reportFrequency: value },
+                            internships: {
+                              ...settings.internships,
+                              reportFrequency: value,
+                            },
                           })
                         }
                       >
@@ -611,7 +753,9 @@ export default function SystemSettings() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="evaluationDeadline">Evaluation Deadline (days)</Label>
+                      <Label htmlFor="evaluationDeadline">
+                        Evaluation Deadline (days)
+                      </Label>
                       <Input
                         id="evaluationDeadline"
                         type="number"
@@ -621,21 +765,28 @@ export default function SystemSettings() {
                             ...settings,
                             internships: {
                               ...settings.internships,
-                              evaluationDeadline: Number.parseInt(e.target.value),
+                              evaluationDeadline: Number.parseInt(
+                                e.target.value
+                              ),
                             },
                           })
                         }
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="requireUniversityApproval">Require University Approval</Label>
+                      <Label htmlFor="requireUniversityApproval">
+                        Require University Approval
+                      </Label>
                       <Switch
                         id="requireUniversityApproval"
                         checked={settings.internships.requireUniversityApproval}
                         onCheckedChange={(checked) =>
                           setSettings({
                             ...settings,
-                            internships: { ...settings.internships, requireUniversityApproval: checked },
+                            internships: {
+                              ...settings.internships,
+                              requireUniversityApproval: checked,
+                            },
                           })
                         }
                       />
@@ -648,5 +799,5 @@ export default function SystemSettings() {
         </Tabs>
       </div>
     </DashboardLayout>
-  )
+  );
 }

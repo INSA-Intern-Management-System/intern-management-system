@@ -1,21 +1,42 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Progress } from "@/components/ui/progress"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { User, Search, TrendingUp, TrendingDown, FileText, Calendar } from "lucide-react"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  User,
+  Search,
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  Calendar,
+} from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { useRouter } from "next/navigation";
+import { Star, StarHalf, StarOff } from "lucide-react";
 export default function PerformancePage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [supervisorFilter, setSupervisorFilter] = useState("all")
-  const [gradeFilter, setGradeFilter] = useState("all")
-  const [page, setPage] = useState(1)
-  const pageSize = 3
+  const [searchTerm, setSearchTerm] = useState("");
+  const [supervisorFilter, setSupervisorFilter] = useState("all");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
 
   // Mock data
   const performanceData = [
@@ -26,7 +47,7 @@ export default function PerformancePage() {
       supervisor: "Dr. Smith",
       attendance: 95,
       weeklyReports: { submitted: 8, total: 8 },
-      companyFeedback: "Excellent",
+      companyFeedback: 4.8,
       academicGrade: "A",
       overallScore: 92,
       trend: "up",
@@ -39,7 +60,7 @@ export default function PerformancePage() {
       supervisor: "Dr. Johnson",
       attendance: 98,
       weeklyReports: { submitted: 8, total: 8 },
-      companyFeedback: "Outstanding",
+      companyFeedback: 5.0,
       academicGrade: "A+",
       overallScore: 96,
       trend: "up",
@@ -52,7 +73,7 @@ export default function PerformancePage() {
       supervisor: "Dr. Brown",
       attendance: 92,
       weeklyReports: { submitted: 7, total: 8 },
-      companyFeedback: "Good",
+      companyFeedback: 3.9,
       academicGrade: "B+",
       overallScore: 85,
       trend: "down",
@@ -65,38 +86,46 @@ export default function PerformancePage() {
       supervisor: "Dr. Davis",
       attendance: 88,
       weeklyReports: { submitted: 6, total: 8 },
-      companyFeedback: "Satisfactory",
+      companyFeedback: 3.4,
       academicGrade: "B",
       overallScore: 78,
       trend: "up",
       lastUpdate: "2024-03-07",
     },
-  ]
+  ];
 
   // Unique values for filters
-  const supervisorsList = Array.from(new Set(performanceData.map(s => s.supervisor)))
-  const gradesList = Array.from(new Set(performanceData.map(s => s.academicGrade)))
-
+  const supervisorsList = Array.from(
+    new Set(performanceData.map((s) => s.supervisor))
+  );
+  const gradesList = Array.from(
+    new Set(performanceData.map((s) => s.academicGrade))
+  );
+  const router = useRouter();
   // Filtering logic
   const filteredData = performanceData.filter(
     (item) =>
       (supervisorFilter === "all" || item.supervisor === supervisorFilter) &&
       (gradeFilter === "all" || item.academicGrade === gradeFilter) &&
-      (
-        item.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.supervisor.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-  )
-  const totalPages = Math.ceil(filteredData.length / pageSize)
-  const paginatedData = filteredData.slice((page - 1) * pageSize, page * pageSize)
+        item.supervisor.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = filteredData.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const getPerformanceBadge = (score: number) => {
-    if (score >= 90) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>
-    if (score >= 80) return <Badge className="bg-blue-100 text-blue-800">Good</Badge>
-    if (score >= 70) return <Badge className="bg-yellow-100 text-yellow-800">Average</Badge>
-    return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>
-  }
+    if (score >= 90)
+      return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
+    if (score >= 80)
+      return <Badge className="bg-blue-100 text-blue-800">Good</Badge>;
+    if (score >= 70)
+      return <Badge className="bg-yellow-100 text-yellow-800">Average</Badge>;
+    return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>;
+  };
 
   const getGradeBadge = (grade: string) => {
     const gradeColors: { [key: string]: string } = {
@@ -106,16 +135,52 @@ export default function PerformancePage() {
       B: "bg-blue-100 text-blue-800",
       "C+": "bg-yellow-100 text-yellow-800",
       C: "bg-yellow-100 text-yellow-800",
-    }
-    return <Badge className={gradeColors[grade] || "bg-gray-100 text-gray-800"}>{grade}</Badge>
-  }
+    };
+    return (
+      <Badge className={gradeColors[grade] || "bg-gray-100 text-gray-800"}>
+        {grade}
+      </Badge>
+    );
+  };
 
   const getAttendanceColor = (attendance: number) => {
-    if (attendance >= 95) return "text-green-600"
-    if (attendance >= 90) return "text-blue-600"
-    if (attendance >= 85) return "text-yellow-600"
-    return "text-red-600"
-  }
+    if (attendance >= 95) return "text-green-600";
+    if (attendance >= 90) return "text-blue-600";
+    if (attendance >= 85) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  // Add this helper inside the component, above `return`
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating - fullStars >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <Star
+          key={`full-${i}`}
+          className="w-4 h-4 text-yellow-500 fill-yellow-500"
+        />
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <StarHalf
+          key="half"
+          className="w-4 h-4 text-yellow-500 fill-yellow-500"
+        />
+      );
+    }
+
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<Star key={`empty-${i}`} className="w-4 h-4 text-gray-300" />);
+    }
+
+    return <div className="flex items-center space-x-1">{stars}</div>;
+  };
 
   return (
     <DashboardLayout requiredRole="university">
@@ -123,10 +188,15 @@ export default function PerformancePage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Performance Tracking</h1>
-            <p className="text-gray-600">Monitor student performance and attendance</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Performance Tracking
+            </h1>
+            <p className="text-gray-600">
+              Monitor student performance and attendance
+            </p>
           </div>
-          <Button>
+
+          <Button className="bg-black text-white">
             <FileText className="h-4 w-4 mr-2" />
             Generate Report
           </Button>
@@ -141,20 +211,26 @@ export default function PerformancePage() {
                 <Input
                   placeholder="Search by student name, company, or supervisor..."
                   value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
                   className="pl-10"
                 />
               </div>
-              <select className="border rounded px-2 py-1" value={supervisorFilter} onChange={e => { setSupervisorFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border rounded px-2 py-1 text-sm "
+                value={supervisorFilter}
+                onChange={(e) => {
+                  setSupervisorFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
                 <option value="all">All Supervisors</option>
-                {supervisorsList.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <select className="border rounded px-2 py-1" value={gradeFilter} onChange={e => { setGradeFilter(e.target.value); setPage(1); }}>
-                <option value="all">All Grades</option>
-                {gradesList.map(g => (
-                  <option key={g} value={g}>{g}</option>
+                {supervisorsList.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </div>
@@ -171,14 +247,7 @@ export default function PerformancePage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">87.8</p>
-                <p className="text-sm text-gray-600">Average Score</p>
-              </div>
-            </CardContent>
-          </Card>
+
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
@@ -201,7 +270,9 @@ export default function PerformancePage() {
         <Card>
           <CardHeader>
             <CardTitle>Student Performance Details</CardTitle>
-            <CardDescription>Detailed performance metrics for each student</CardDescription>
+            <CardDescription>
+              Detailed performance metrics for each student
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -213,30 +284,40 @@ export default function PerformancePage() {
                         <User className="h-6 w-6 text-gray-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{student.student}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          {student.student}
+                        </h3>
                         <p className="text-sm text-gray-600">
                           {student.company} • Supervisor: {student.supervisor}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {getPerformanceBadge(student.overallScore)}
-                      {getGradeBadge(student.academicGrade)}
-                      {student.trend === "up" ? (
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-red-600" />
-                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Attendance */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Attendance</p>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={student.attendance} className="flex-1" />
-                        <span className={`text-sm font-medium ${getAttendanceColor(student.attendance)}`}>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Attendance
+                      </p>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Progress
+                          value={student.attendance}
+                          className="flex-1"
+                        />
+                        <div className="relative w-full h-3 bg-gray-300 rounded-4xl overflow-hidden mb-3">
+                          <div
+                            className="h-full bg-black flex items-center rounded-4xl justify-center"
+                            style={{
+                              width: `${Math.min(student.attendance, 100)}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span
+                          className={`text-sm text-gray-700 mb-3 ml-2 ${getAttendanceColor(
+                            student.attendance
+                          )}`}
+                        >
                           {student.attendance}%
                         </span>
                       </div>
@@ -244,32 +325,75 @@ export default function PerformancePage() {
 
                     {/* Weekly Reports */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Weekly Reports</p>
-                      <div className="flex items-center space-x-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Weekly Reports
+                      </p>
+                      <div className="flex items-center space-x-2 mb-2">
                         <Progress
-                          value={(student.weeklyReports.submitted / student.weeklyReports.total) * 100}
+                          value={
+                            (student.weeklyReports.submitted /
+                              student.weeklyReports.total) *
+                            100
+                          }
                           className="flex-1"
                         />
-                        <span className="text-sm font-medium text-gray-600">
-                          {student.weeklyReports.submitted}/{student.weeklyReports.total}
+                        <div className="relative w-full h-3 bg-gray-300 rounded-4xl overflow-hidden mb-1">
+                          <div
+                            className="h-full bg-black flex items-center rounded-4xl justify-center "
+                            style={{
+                              width: `${Math.min(
+                                (student.weeklyReports.submitted /
+                                  student.weeklyReports.total) *
+                                  100,
+                                100
+                              )}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-gray-700 ml-2">
+                          {" "}
+                          {student.weeklyReports.submitted}/
+                          {student.weeklyReports.total}
                         </span>
                       </div>
                     </div>
 
                     {/* Company Feedback */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Company Feedback</p>
-                      <Badge variant="outline" className="w-full justify-center">
-                        {student.companyFeedback}
-                      </Badge>
+                      <p className="text-sm font-medium text-gray-700 mb-2 ">
+                        Company Feedback
+                      </p>
+                      <div className="flex items-center space-x-2 mb-2  ml-4">
+                        <div className="flex space-x-1">
+                          {renderStars(student.companyFeedback)}
+                        </div>
+                        <span className="text-sm text-gray-700 ml-2">
+                          {student.companyFeedback.toFixed(1)} / 5
+                        </span>
+                      </div>
                     </div>
 
                     {/* Overall Score */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Overall Score</p>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={student.overallScore} className="flex-1" />
-                        <span className="text-sm font-medium text-gray-900">{student.overallScore}</span>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Overall Score
+                      </p>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Progress
+                          value={student.overallScore}
+                          className="flex-1"
+                        />
+                        <div className="relative w-full h-3 bg-gray-300 rounded-4xl overflow-hidden mb-3">
+                          <div
+                            className="h-full bg-black flex items-center justify-center "
+                            style={{
+                              width: `${Math.min(student.overallScore, 100)}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 mb-3 ml-2">
+                          {student.overallScore}%
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -280,10 +404,13 @@ export default function PerformancePage() {
                       <span>Last updated: {student.lastUpdate}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/dashboard/university/messages`)
+                        }
+                      >
                         Contact Student
                       </Button>
                     </div>
@@ -291,7 +418,9 @@ export default function PerformancePage() {
                 </div>
               ))}
               {paginatedData.length === 0 && (
-                <div className="text-center text-gray-500 py-8">No results found.</div>
+                <div className="text-center text-gray-500 py-8">
+                  No results found.
+                </div>
               )}
             </div>
           </CardContent>
@@ -300,25 +429,40 @@ export default function PerformancePage() {
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
                   href="#"
                   isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
     </DashboardLayout>
-  )
+  );
 }
