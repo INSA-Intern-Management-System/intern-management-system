@@ -94,13 +94,6 @@ export interface TeamMember {
   joined_at: string;
 }
 
-export interface Application {
-  id: number;
-  applicant_id: number;
-  status?: string;
-  created_at: string;
-}
-
 export interface Task {
   id: number;
   project_id: number;
@@ -193,21 +186,18 @@ export interface Activity {
 }
 export interface Applicant {
   id: number;
-  user_id?: number;
   first_name: string;
   last_name: string;
   email: string;
-  phone_number: string;
-  institution: string;
-  field_of_study: string;
-  gender: string;
-  duration: string;
+  phone_number?: string;
+  institution?: string;
+  field_of_study?: string;
+  gender?: string;
+  duration?: string;
   linkedin_url?: string;
   github_url?: string;
   cv_url?: string;
-  application_status?: string;
   created_at: string;
-  updated_at: string;
 }
 export interface StudentTask {
   id: number;
@@ -217,5 +207,12 @@ export interface StudentTask {
   due_date: string;
   is_completed?: boolean;
   created_at: string;
+  updated_at: string;
+}
+export interface Application {
+  id: number;
+  applicant: Applicant;
+  status: string;
+  applied_at: string;
   updated_at: string;
 }
