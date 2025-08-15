@@ -1,81 +1,119 @@
 
 "use client";
-
-import { useState } from "react";
+import { getMe, login } from "@/services/authService";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Eye, EyeOff } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    role: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true); // NEW
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mock authentication - in real app, this would call an API
-    if (formData.email && formData.password && formData.role) {
-      // Store user data in localStorage for demo purposes
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email: formData.email,
-          role: formData.role,
-          name: formData.email.split("@")[0],
-        })
-      );
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const cookies = document.cookie.split("; ");
+        const userId = cookies
+          .find((cookie) => cookie.startsWith("userId="))
+          ?.split("=")[1];
 
-      // Redirect based on role
-      switch (formData.role) {
+        if (!userId) {
+          setCheckingAuth(false); // Not logged in, show form
+          return;
+        }
+
+        const user = await getMe(userId);
+        if (user) {
+          // Redirect immediately without showing login
+          switch (user.roles.name?.toLowerCase()) {
+            case "student":
+              router.replace("/dashboard/student");
+              break;
+            case "company":
+              router.replace("/dashboard/company");
+              break;
+            case "university":
+              router.replace("/dashboard/university");
+              break;
+            case "admin":
+              router.replace("/dashboard/admin");
+              break;
+            default:
+              router.replace("/dashboard");
+          }
+        } else {
+          setCheckingAuth(false); // No valid user, show form
+        }
+      } catch (error) {
+        console.error("Not authenticated", error);
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const loginResponse = await login(formData);
+
+      switch (loginResponse.user.roles.name?.toLowerCase()) {
         case "student":
-          router.push("/dashboard/student");
+          router.replace("/dashboard/student");
           break;
         case "company":
-          router.push("/dashboard/company");
+          router.replace("/dashboard/company");
           break;
         case "university":
-          router.push("/dashboard/university");
+          router.replace("/dashboard/university");
           break;
         case "admin":
-          router.push("/dashboard/admin");
+          router.replace("/dashboard/admin");
           break;
         default:
-          router.push("/dashboard");
+          router.replace("/dashboard");
       }
+    } catch (err) {
+      console.error("Login failed", err);
+      alert("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Don't render form while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid" />
+        <span className="ml-4 text-blue-700 font-semibold">
+          Checking login status...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white shadow-lg">
         <CardHeader className="text-center pb-2">
-          <div className="text-3xl font-extrabold text-blue-800 mb-1 tracking-tight leading-tight">
+          <div className="text-3xl font-extrabold text-blue-800 mb-1">
             Welcome Back!
           </div>
-          <CardDescription className="text-base text-gray-600">
-            Sign in to your account to continue
-          </CardDescription>
+          <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -113,48 +151,17 @@ export default function LoginPage() {
                   className="absolute right-0 top-0 h-full px-3 py-2 bg-blue-200 hover:bg-blue-300"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </Button>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, role: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem className="hover:bg-gray-200" value="student">
-                    Student
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-200" value="company">
-                    Company
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-200" value="university">
-                    University
-                  </SelectItem>
-                  <SelectItem className="hover:bg-gray-200" value="admin">
-                    Admin
-                  </SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <Button
               type="submit"
               className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
             >
-              Sign In
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
           <div className="mt-4 text-center">

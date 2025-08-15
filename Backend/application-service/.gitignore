@@ -4,6 +4,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# application.properties
+
 ### STS ###
 .apt_generated
 .classpath
@@ -12,6 +14,7 @@ target/
 .settings
 .springBeans
 .sts4-cache
+
 
 ### IntelliJ IDEA ###
 .idea
@@ -31,3 +34,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Environment (do not commit real secrets)
+/.env
+/.env.*

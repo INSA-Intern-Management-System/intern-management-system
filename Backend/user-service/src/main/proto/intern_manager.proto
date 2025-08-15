@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package com.example.userservice.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.userservice.gRPC";
+option java_outer_classname = "InternManagerProto";
+
+service InternManagerService {
+  rpc getInternManagerInfo (InternManagerRequest) returns (InternManagerResponse);
+}
+
+
+message InternManagerRequest {
+  int64 user_id = 1;
+}
+
+message InternManagerResponse {
+  int64 id = 1;
+  int64 user_id = 2;
+  int64 manager_id = 3;
+  int64 project_id = 4;
+  int64 mentor_id = 5;
+  int64 team_id = 6;
+}
+

@@ -16,7 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Calendar, Search, CheckCircle, X, Clock, MessageCircle, AlertTriangle } from "lucide-react";
+import {
+  Calendar,
+  Search,
+  CheckCircle,
+  X,
+  Clock,
+  MessageCircle,
+  AlertTriangle,
+} from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -54,7 +62,7 @@ interface LeaveRequest {
 // Update ConfirmationState to include 'message'
 interface ConfirmationState {
   id: number;
-  action: 'approve' | 'reject' | 'message';
+  action: "approve" | "reject" | "message";
 }
 
 export default function CompanyLeavePage() {
@@ -128,7 +136,8 @@ export default function CompanyLeavePage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [page, setPage] = useState<number>(1);
-  const [showConfirmation, setShowConfirmation] = useState<ConfirmationState | null>(null);
+  const [showConfirmation, setShowConfirmation] =
+    useState<ConfirmationState | null>(null);
   const [message, setMessage] = useState<string>("");
   const pageSize = 3;
 
@@ -159,71 +168,90 @@ export default function CompanyLeavePage() {
   };
 
   // Apply search and filters
-  const filteredRequests = leaveRequests.filter(request => {
-    const matchesSearch = searchTerm === "" || 
-                          request.intern.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          request.project.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || 
-                         (statusFilter === "pending" && request.status === "pending") ||
-                         (statusFilter === "approved" && request.status === "approved") ||
-                         (statusFilter === "rejected" && request.status === "rejected");
-    
-    const matchesType = typeFilter === "all" || 
-                       (typeFilter === "sick" && request.type === "Sick Leave") ||
-                       (typeFilter === "personal" && request.type === "Personal Leave") ||
-                       (typeFilter === "vacation" && request.type === "Vacation") ||
-                       (typeFilter === "study" && request.type === "Study Leave");
-    
+  const filteredRequests = leaveRequests.filter((request) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      request.intern.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.project.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "pending" && request.status === "pending") ||
+      (statusFilter === "approved" && request.status === "approved") ||
+      (statusFilter === "rejected" && request.status === "rejected");
+
+    const matchesType =
+      typeFilter === "all" ||
+      (typeFilter === "sick" && request.type === "Sick Leave") ||
+      (typeFilter === "personal" && request.type === "Personal Leave") ||
+      (typeFilter === "vacation" && request.type === "Vacation") ||
+      (typeFilter === "study" && request.type === "Study Leave");
+
     return matchesSearch && matchesStatus && matchesType;
   });
 
   // Disable pagination during search
-  const paginatedLeaveRequests = searchTerm 
-    ? filteredRequests 
+  const paginatedLeaveRequests = searchTerm
+    ? filteredRequests
     : filteredRequests.slice((page - 1) * pageSize, page * pageSize);
 
-  const totalPages = searchTerm ? 1 : Math.ceil(filteredRequests.length / pageSize);
+  const totalPages = searchTerm
+    ? 1
+    : Math.ceil(filteredRequests.length / pageSize);
 
   const handleApprove = (id: number) => {
-    setLeaveRequests(prev => prev.map(req => 
-      req.id === id 
-        ? { 
-            ...req, 
-            status: "approved", 
-            approvedBy: "You", 
-            approvedOn: new Date().toISOString().split('T')[0]
-          } 
-        : req
-    ));
+    setLeaveRequests((prev) =>
+      prev.map((req) =>
+        req.id === id
+          ? {
+              ...req,
+              status: "approved",
+              approvedBy: "You",
+              approvedOn: new Date().toISOString().split("T")[0],
+            }
+          : req
+      )
+    );
     setShowConfirmation(null);
   };
 
   const handleReject = (id: number) => {
-    setLeaveRequests(prev => prev.map(req => 
-      req.id === id 
-        ? { 
-            ...req, 
-            status: "rejected", 
-            rejectedBy: "You", 
-            rejectedOn: new Date().toISOString().split('T')[0],
-            rejectionReason: message || "Leave request declined"
-          } 
-        : req
-    ));
+    setLeaveRequests((prev) =>
+      prev.map((req) =>
+        req.id === id
+          ? {
+              ...req,
+              status: "rejected",
+              rejectedBy: "You",
+              rejectedOn: new Date().toISOString().split("T")[0],
+              rejectionReason: message || "Leave request declined",
+            }
+          : req
+      )
+    );
     setShowConfirmation(null);
     setMessage("");
   };
 
   const handleMessage = (id: number) => {
-    alert(`Message sent to ${leaveRequests.find(r => r.id === id)?.intern} successfully!`);
+    alert(
+      `Message sent to ${
+        leaveRequests.find((r) => r.id === id)?.intern
+      } successfully!`
+    );
     setShowConfirmation(null);
     setMessage("");
   };
 
-  const pendingRequests = filteredRequests.filter(req => req.status === "pending");
-  const approvedRequests = filteredRequests.filter(req => req.status === "approved");
-  const rejectedRequests = filteredRequests.filter(req => req.status === "rejected");
+  const pendingRequests = filteredRequests.filter(
+    (req) => req.status === "pending"
+  );
+  const approvedRequests = filteredRequests.filter(
+    (req) => req.status === "approved"
+  );
+  const rejectedRequests = filteredRequests.filter(
+    (req) => req.status === "rejected"
+  );
 
   return (
     <DashboardLayout requiredRole="company">
@@ -249,7 +277,9 @@ export default function CompanyLeavePage() {
                   <p className="text-sm font-medium text-gray-600">
                     Total Requests
                   </p>
-                  <p className="text-2xl font-bold">{filteredRequests.length}</p>
+                  <p className="text-2xl font-bold">
+                    {filteredRequests.length}
+                  </p>
                 </div>
                 <Calendar className="h-8 w-8 text-blue-600" />
               </div>
@@ -314,8 +344,8 @@ export default function CompanyLeavePage() {
                   />
                 </div>
               </div>
-              <Select 
-                value={statusFilter} 
+              <Select
+                value={statusFilter}
                 onValueChange={(value) => {
                   setStatusFilter(value);
                   setPage(1); // Reset to first page when filter changes
@@ -331,8 +361,8 @@ export default function CompanyLeavePage() {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              <Select 
-                value={typeFilter} 
+              <Select
+                value={typeFilter}
                 onValueChange={(value) => {
                   setTypeFilter(value);
                   setPage(1); // Reset to first page when filter changes
@@ -358,8 +388,12 @@ export default function CompanyLeavePage() {
           {filteredRequests.length === 0 ? (
             <div className="bg-white rounded-lg p-6 text-center">
               <Search className="mx-auto mb-4 h-10 w-10 text-gray-400" />
-              <p className="text-lg font-medium text-gray-600">No applications found</p>
-              <p className="text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+              <p className="text-lg font-medium text-gray-600">
+                No applications found
+              </p>
+              <p className="text-sm text-gray-500">
+                Try adjusting your search or filter criteria.
+              </p>
             </div>
           ) : (
             paginatedLeaveRequests.map((request) => (
@@ -452,9 +486,12 @@ export default function CompanyLeavePage() {
                       {request.status === "pending" && (
                         <>
                           {/* Approve Button with Confirmation */}
-                          {showConfirmation?.id === request.id && showConfirmation.action === 'approve' ? (
+                          {showConfirmation?.id === request.id &&
+                          showConfirmation.action === "approve" ? (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
-                              <p className="text-sm font-medium text-green-800">Approve Leave Request?</p>
+                              <p className="text-sm font-medium text-green-800">
+                                Approve Leave Request?
+                              </p>
                               <p className="text-xs text-green-600">
                                 Approve {request.intern}'s leave request?
                               </p>
@@ -480,17 +517,25 @@ export default function CompanyLeavePage() {
                             <Button
                               size="sm"
                               className="bg-green-600 text-white hover:bg-green-700"
-                              onClick={() => setShowConfirmation({ id: request.id, action: 'approve' })}
+                              onClick={() =>
+                                setShowConfirmation({
+                                  id: request.id,
+                                  action: "approve",
+                                })
+                              }
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Approve
                             </Button>
                           )}
-                          
+
                           {/* Reject Button with Confirmation */}
-                          {showConfirmation?.id === request.id && showConfirmation.action === 'reject' ? (
+                          {showConfirmation?.id === request.id &&
+                          showConfirmation.action === "reject" ? (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
-                              <p className="text-sm font-medium text-red-800">Reject Leave Request?</p>
+                              <p className="text-sm font-medium text-red-800">
+                                Reject Leave Request?
+                              </p>
                               <p className="text-xs text-red-600">
                                 Reject {request.intern}'s leave request?
                               </p>
@@ -526,7 +571,10 @@ export default function CompanyLeavePage() {
                               variant="outline"
                               className="text-red-600 border-red-600 hover:bg-red-100 bg-red-50"
                               onClick={() => {
-                                setShowConfirmation({ id: request.id, action: 'reject' });
+                                setShowConfirmation({
+                                  id: request.id,
+                                  action: "reject",
+                                });
                                 setMessage("");
                               }}
                             >
@@ -536,11 +584,14 @@ export default function CompanyLeavePage() {
                           )}
                         </>
                       )}
-                      
+
                       {/* Message Button with Confirmation */}
-                      {showConfirmation?.id === request.id && showConfirmation.action === 'message' ? (
+                      {showConfirmation?.id === request.id &&
+                      showConfirmation.action === "message" ? (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                          <p className="text-sm font-medium text-blue-800">Send Message</p>
+                          <p className="text-sm font-medium text-blue-800">
+                            Send Message
+                          </p>
                           <p className="text-xs text-blue-600">
                             Send a message to {request.intern}?
                           </p>
@@ -571,12 +622,15 @@ export default function CompanyLeavePage() {
                           </div>
                         </div>
                       ) : (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="border-blue-600 text-blue-600 bg-blue-50 hover:bg-blue-100"
                           onClick={() => {
-                            setShowConfirmation({ id: request.id, action: 'message' });
+                            setShowConfirmation({
+                              id: request.id,
+                              action: "message",
+                            });
                             setMessage("");
                           }}
                         >
@@ -591,7 +645,7 @@ export default function CompanyLeavePage() {
             ))
           )}
         </div>
-        
+
         {/* Pagination */}
         {!searchTerm && totalPages > 1 && (
           <Pagination className="mt-6">
@@ -631,7 +685,7 @@ export default function CompanyLeavePage() {
             </PaginationContent>
           </Pagination>
         )}
-        
+
         {/* Leave Policy */}
         <Card>
           <CardDescription className="px-6 pt-6">
@@ -644,7 +698,7 @@ export default function CompanyLeavePage() {
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li>
                     • <strong>Sick Leave:</strong> Approve immediately, may
-                    require medical certificate for {'>'} 3 days
+                    require medical certificate for {">"} 3 days
                   </li>
                   <li>
                     • <strong>Personal Leave:</strong> Consider urgency and

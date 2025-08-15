@@ -1,9 +1,15 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   Shield,
@@ -15,29 +21,29 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 
 export default function AdminDashboard() {
-  const [user, setUser] = useState<any>(null)
-  const router = useRouter()
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
+    const userData = localStorage.getItem("user");
     if (userData) {
-      const parsedUser = JSON.parse(userData)
+      const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== "admin") {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
-      setUser(parsedUser)
+      setUser(parsedUser);
     } else {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [router])
+  }, [router]);
 
-  if (!user) return null
+  if (!user) return null;
 
   // Mock data
   const systemStats = {
@@ -49,7 +55,7 @@ export default function AdminDashboard() {
     companiesCount: 23,
     universitiesCount: 12,
     adminsCount: 4,
-  }
+  };
 
   const recentActivities = [
     {
@@ -80,7 +86,7 @@ export default function AdminDashboard() {
       timestamp: "1 day ago",
       status: "warning",
     },
-  ]
+  ];
 
   const pendingActions = [
     {
@@ -111,50 +117,50 @@ export default function AdminDashboard() {
       description: "Internship reports awaiting review",
       priority: "low",
     },
-  ]
+  ];
 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "user_registration":
-        return <Users className="h-4 w-4" />
+        return <Users className="h-4 w-4" />;
       case "internship_application":
-        return <GraduationCap className="h-4 w-4" />
+        return <GraduationCap className="h-4 w-4" />;
       case "evaluation_submitted":
-        return <CheckCircle className="h-4 w-4" />
+        return <CheckCircle className="h-4 w-4" />;
       case "system_alert":
-        return <AlertTriangle className="h-4 w-4" />
+        return <AlertTriangle className="h-4 w-4" />;
       default:
-        return <Bell className="h-4 w-4" />
+        return <Bell className="h-4 w-4" />;
     }
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-blue-100 text-blue-800">Active</Badge>
+        return <Badge className="bg-blue-100 text-blue-800">Active</Badge>;
       case "completed":
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case "warning":
-        return <Badge className="bg-red-100 text-red-800">Warning</Badge>
+        return <Badge className="bg-red-100 text-red-800">Warning</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "border-l-red-500"
+        return "border-l-red-500";
       case "medium":
-        return "border-l-yellow-500"
+        return "border-l-yellow-500";
       case "low":
-        return "border-l-green-500"
+        return "border-l-green-500";
       default:
-        return "border-l-gray-500"
+        return "border-l-gray-500";
     }
-  }
+  };
 
   return (
     <DashboardLayout requiredRole="admin">
@@ -171,7 +177,9 @@ export default function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Users</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Users
+                  </p>
                   <p className="text-2xl font-bold">{systemStats.totalUsers}</p>
                   <p className="text-xs text-green-600">+12% from last month</p>
                 </div>
@@ -184,8 +192,12 @@ export default function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Users</p>
-                  <p className="text-2xl font-bold">{systemStats.activeUsers}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Users
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {systemStats.activeUsers}
+                  </p>
                   <p className="text-xs text-green-600">91% active rate</p>
                 </div>
                 <Shield className="h-8 w-8 text-green-600" />
@@ -197,8 +209,12 @@ export default function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                  <p className="text-2xl font-bold">{systemStats.pendingApprovals}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Pending Approvals
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {systemStats.pendingApprovals}
+                  </p>
                   <p className="text-xs text-orange-600">Requires attention</p>
                 </div>
                 <Bell className="h-8 w-8 text-orange-600" />
@@ -222,7 +238,9 @@ export default function AdminDashboard() {
                     <span>Students</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-semibold">{systemStats.studentsCount}</span>
+                    <span className="font-semibold">
+                      {systemStats.studentsCount}
+                    </span>
                     <Badge className="bg-blue-100 text-blue-800">57%</Badge>
                   </div>
                 </div>
@@ -232,7 +250,9 @@ export default function AdminDashboard() {
                     <span>Companies</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-semibold">{systemStats.companiesCount}</span>
+                    <span className="font-semibold">
+                      {systemStats.companiesCount}
+                    </span>
                     <Badge className="bg-green-100 text-green-800">15%</Badge>
                   </div>
                 </div>
@@ -242,7 +262,9 @@ export default function AdminDashboard() {
                     <span>Universities</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-semibold">{systemStats.universitiesCount}</span>
+                    <span className="font-semibold">
+                      {systemStats.universitiesCount}
+                    </span>
                     <Badge className="bg-purple-100 text-purple-800">8%</Badge>
                   </div>
                 </div>
@@ -252,7 +274,9 @@ export default function AdminDashboard() {
                     <span>Admins</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-semibold">{systemStats.adminsCount}</span>
+                    <span className="font-semibold">
+                      {systemStats.adminsCount}
+                    </span>
                     <Badge className="bg-red-100 text-red-800">3%</Badge>
                   </div>
                 </div>
@@ -268,11 +292,18 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {pendingActions.map((action) => (
-                  <div key={action.id} className={`border-l-4 pl-4 ${getPriorityColor(action.priority)}`}>
+                  <div
+                    key={action.id}
+                    className={`border-l-4 pl-4 ${getPriorityColor(
+                      action.priority
+                    )}`}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="font-semibold">{action.title}</h4>
-                        <p className="text-sm text-gray-600">{action.description}</p>
+                        <p className="text-sm text-gray-600">
+                          {action.description}
+                        </p>
                       </div>
                       <Badge variant="outline">{action.count}</Badge>
                     </div>
@@ -289,7 +320,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Recent Activities</CardTitle>
-                <CardDescription>Latest system activities and events</CardDescription>
+                <CardDescription>
+                  Latest system activities and events
+                </CardDescription>
               </div>
               <Button variant="outline" size="sm">
                 View All
@@ -299,9 +332,14 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div
+                  key={activity.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gray-100 rounded-full">{getActivityIcon(activity.type)}</div>
+                    <div className="p-2 bg-gray-100 rounded-full">
+                      {getActivityIcon(activity.type)}
+                    </div>
                     <div>
                       <p className="font-medium">{activity.message}</p>
                       <p className="text-sm text-gray-600 flex items-center">
@@ -325,19 +363,35 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button className="h-20 flex-col space-y-2 bg-transparent" variant="outline" onClick={() => router.push('/dashboard/admin/users')}>
+              <Button
+                className="h-20 flex-col space-y-2 bg-transparent"
+                variant="outline"
+                onClick={() => router.push("/dashboard/admin/users")}
+              >
                 <Users className="h-6 w-6" />
                 <span>Manage Users</span>
               </Button>
-              <Button className="h-20 flex-col space-y-2 bg-transparent" variant="outline" onClick={() => router.push('/dashboard/admin/roles')}>
+              <Button
+                className="h-20 flex-col space-y-2 bg-transparent"
+                variant="outline"
+                onClick={() => router.push("/dashboard/admin/roles")}
+              >
                 <Shield className="h-6 w-6" />
                 <span>Role Settings</span>
               </Button>
-              <Button className="h-20 flex-col space-y-2 bg-transparent" variant="outline" onClick={() => router.push('/dashboard/admin/notifications')}>
+              <Button
+                className="h-20 flex-col space-y-2 bg-transparent"
+                variant="outline"
+                onClick={() => router.push("/dashboard/admin/notifications")}
+              >
                 <Bell className="h-6 w-6" />
                 <span>Send Notification</span>
               </Button>
-              <Button className="h-20 flex-col space-y-2 bg-transparent" variant="outline" onClick={() => router.push('/dashboard/admin/settings')}>
+              <Button
+                className="h-20 flex-col space-y-2 bg-transparent"
+                variant="outline"
+                onClick={() => router.push("/dashboard/admin/settings")}
+              >
                 <TrendingUp className="h-6 w-6" />
                 <span>View Analytics</span>
               </Button>
@@ -346,5 +400,5 @@ export default function AdminDashboard() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }

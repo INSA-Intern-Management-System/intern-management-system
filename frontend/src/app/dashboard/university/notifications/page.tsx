@@ -1,12 +1,33 @@
-"use client"
+"use client";
 
-import React, { useRef } from "react"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Bell, CheckCircle, Clock, MessageSquare, FileText, Calendar, Settings } from "lucide-react"
+import React, { useRef } from "react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import {
+  Bell,
+  CheckCircle,
+  Clock,
+  MessageSquare,
+  FileText,
+  Calendar,
+  Settings,
+} from "lucide-react";
 
 export default function NotificationsPage() {
   const notifications = [
@@ -46,41 +67,46 @@ export default function NotificationsPage() {
       read: true,
       priority: "low",
     },
-  ]
+  ];
 
   const preferencesRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = React.useState(1);
   const [notifs, setNotifs] = React.useState(notifications);
   const pageSize = 3;
   const totalPages = Math.ceil(notifs.length / pageSize);
-  const paginatedNotifications = notifs.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedNotifications = notifs.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "feedback":
-        return <MessageSquare className="h-5 w-5 text-blue-600" />
+        return <MessageSquare className="h-5 w-5 text-blue-600" />;
       case "deadline":
-        return <Clock className="h-5 w-5 text-red-600" />
+        return <Clock className="h-5 w-5 text-red-600" />;
       case "meeting":
-        return <Calendar className="h-5 w-5 text-purple-600" />
+        return <Calendar className="h-5 w-5 text-purple-600" />;
       case "application":
-        return <FileText className="h-5 w-5 text-green-600" />
+        return <FileText className="h-5 w-5 text-green-600" />;
       case "system":
-        return <Settings className="h-5 w-5 text-gray-600" />
+        return <Settings className="h-5 w-5 text-gray-600" />;
       default:
-        return <Bell className="h-5 w-5 text-gray-600" />
+        return <Bell className="h-5 w-5 text-gray-600" />;
     }
-  }
+  };
 
-  const unreadCount = notifs.filter((n) => !n.read).length
+  const unreadCount = notifs.filter((n) => !n.read).length;
 
   const handleMarkRead = (id: number) => {
-    setNotifs((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  }
+    setNotifs((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
 
   const handleMarkAllRead = () => {
-    setNotifs((prev) => prev.map(n => ({ ...n, read: true })));
-  }
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
 
   const handleSettingsClick = () => {
     preferencesRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -93,10 +119,14 @@ export default function NotificationsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-            <p className="text-gray-600">Stay updated with important information</p>
+            <p className="text-gray-600">
+              Stay updated with important information
+            </p>
           </div>
           <div className="flex items-center space-x-3">
-            <Button variant="outline" onClick={handleMarkAllRead}>Mark All Read</Button>
+            <Button variant="outline" onClick={handleMarkAllRead}>
+              Mark All Read
+            </Button>
           </div>
         </div>
 
@@ -106,7 +136,9 @@ export default function NotificationsPage() {
             <Card
               key={notification.id}
               className={`hover:shadow-md transition-shadow ${
-                !notification.read ? "border-l-4 border-l-blue-500 bg-blue-50/30" : ""
+                !notification.read
+                  ? "border-l-4 border-l-blue-500 bg-blue-50/30"
+                  : ""
               }`}
             >
               <CardContent className="p-6">
@@ -117,18 +149,34 @@ export default function NotificationsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className={`font-semibold ${!notification.read ? "text-gray-900" : "text-gray-700"}`}>
+                        <h3
+                          className={`font-semibold ${
+                            !notification.read
+                              ? "text-gray-900"
+                              : "text-gray-700"
+                          }`}
+                        >
                           {notification.title}
                         </h3>
-                        {!notification.read && <div className="w-2 h-2 bg-blue-600 rounded-full"></div>}
+                        {!notification.read && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        )}
                       </div>
-                      <p className="text-gray-600 mb-2">{notification.message}</p>
-                      <p className="text-sm text-gray-500">{notification.time}</p>
+                      <p className="text-gray-600 mb-2">
+                        {notification.message}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {notification.time}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     {!notification.read && (
-                      <Button variant="outline" size="sm" onClick={() => handleMarkRead(notification.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMarkRead(notification.id)}
+                      >
                         Mark Read
                       </Button>
                     )}
@@ -142,21 +190,36 @@ export default function NotificationsPage() {
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
                   href="#"
                   isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
@@ -165,7 +228,9 @@ export default function NotificationsPage() {
         <Card ref={preferencesRef}>
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
-            <CardDescription>Choose how you want to be notified</CardDescription>
+            <CardDescription>
+              Choose how you want to be notified
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
@@ -190,5 +255,5 @@ export default function NotificationsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
-} 
+  );
+}
