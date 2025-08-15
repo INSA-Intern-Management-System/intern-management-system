@@ -1,6 +1,5 @@
-"use client";
 
-import type React from "react";
+"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GraduationCap, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -158,8 +157,16 @@ export default function LoginPage() {
               Sign In
             </Button>
           </form>
+          <div className="mt-4 text-center">
+            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+              ← Back to Home
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+
+
