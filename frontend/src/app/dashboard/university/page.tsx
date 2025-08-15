@@ -70,31 +70,31 @@ export default function UniversityDashboard() {
   const recentActivities = [
     {
       id: 1,
-      type: "evaluation",
-      message: "New evaluation submitted for John Doe at Tech Corp",
+      title: "evaluation",
+      description: "New evaluation submitted for John Doe at Tech Corp",
       time: "2 hours ago",
-      status: "pending",
+      // status: "pending",
     },
     {
       id: 2,
-      type: "assignment",
-      message: "Dr. Smith assigned as supervisor for 3 new students",
+      title: "assignment",
+      description: "Dr. Smith assigned as supervisor for 3 new students",
       time: "4 hours ago",
-      status: "completed",
+      // status: "completed",
     },
     {
       id: 3,
-      type: "report",
-      message: "Weekly report submitted by Jane Smith",
+      title: "report",
+      description: "Weekly report submitted by Jane Smith",
       time: "1 day ago",
-      status: "completed",
+      // status: "completed",
     },
     {
       id: 4,
-      type: "application",
-      message: "New internship application requires supervisor assignment",
+     title: "application",
+     description: "New internship application requires supervisor assignment",
       time: "2 days ago",
-      status: "pending",
+      // status: "pending",
     },
   ];
 
@@ -123,7 +123,7 @@ export default function UniversityDashboard() {
   ];
 
   return (
-    <DashboardLayout userRole="university" userName={user.organization}>
+    <DashboardLayout requiredRole="university" >
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between">
@@ -138,7 +138,7 @@ export default function UniversityDashboard() {
           </div>
         </div>
 
-        {/* Stats Grid */}
+   
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -203,7 +203,7 @@ export default function UniversityDashboard() {
                       }
                     >
                       {activity.status}
-                    </Badge>
+                    </Badge> */}
                   </div>
                 ))}
               </div>
