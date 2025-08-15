@@ -31,7 +31,7 @@ interface SidebarProps {
   userRole: string;
   userName: string;
   userEmail?: string;
-  onLogout: () => void;
+  // onLogout: () => void;
 }
 
 const sidebarItems = {
@@ -162,8 +162,8 @@ export function Sidebar({
   userRole,
   userName,
   userEmail,
-  onLogout,
-}: SidebarProps) {
+}: // onLogout,
+SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
@@ -280,7 +280,7 @@ export function Sidebar({
               "w-full justify-start text-gray-700 hover:bg-gray-100",
               isCollapsed && "justify-center"
             )}
-            onClick={onLogout}
+            // onClick={onLogout}
           >
             <LogOut className="h-5 w-5" />
             {!isCollapsed && <span className="ml-2 text-sm">Logout</span>}
