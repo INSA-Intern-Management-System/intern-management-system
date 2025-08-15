@@ -1,28 +1,57 @@
-// TypeScript interfaces for all major entities based on the database schema
-
+// src/types/user.ts
 export interface User {
-  id: number;
-  first_name: string;
-  last_name: string;
+  id: string; // Backend returns Long, but use string for frontend consistency
+  firstName: string | null;
+  lastName: string | null;
   email: string;
-  password_hash: string;
-  gender?: string;
-  phone_number?: string;
-  institution?: string;
-  field_of_study?: string;
-  bio?: string;
-  notify_email?: boolean;
-  visibility?: string;
-  address?: string;
-  duration?: string;
-  linkedin_url?: string;
-  github_url?: string;
-  cv_url?: string;
-  profile_pic_url?: string;
-  role: string;
-  last_read_notification_at?: string;
-  created_at: string;
-  updated_at: string;
+  password?: string; // Not returned in responses, so optional
+  phoneNumber: string | null;
+  address: string | null;
+  gender: string | null;
+  fieldOfStudy: string | null;
+  institution: string | null;
+  bio: string | null;
+  notifyEmail: boolean | null;
+  visibility: boolean | null;
+  duration: string | null;
+  linkedInUrl: string | null;
+  githubUrl: string | null;
+  cvUrl: string | null;
+  profilePicUrl: string | null;
+  lastReadNotificationAt: string | null; // ISO date string
+  createdAt: string | null; // ISO date string
+  updatedAt: string | null; // ISO date string
+  lastLogin: string | null; // ISO date string
+  supervisor: User | null; // Recursive type for supervisor
+  supervisedInterns: User[] | null; // Array of users
+  roles: Role;
+  userStatus: "PENDING" | "APPROVED" | "REJECTED"; // Based on UserStatus enum
+  status: "ONLINE" | "OFFLINE"; // Based on Status enum
+  isFirstLogin: boolean;
+}
+
+// src/types/role.ts
+export interface Role {
+  id: string;
+  name: string; // e.g., "STUDENT", "ADMIN"
+  displayName: string; // e.g., "Student role"
+  description: string; // e.g., "Student role"
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  message: string;
+  forcePasswordChange: boolean;
+  token: string | null;
+  user: User;
+}
+
+export interface LogoutResponse {
+  message: string;
 }
 
 export interface Project {

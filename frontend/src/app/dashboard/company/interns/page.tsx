@@ -1,12 +1,26 @@
-"use client"
+"use client";
 
-import { useState, useMemo } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { User, Search, MessageSquare, Calendar, Star, TrendingUp, Download } from "lucide-react"
+import { useState, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import {
+  User,
+  Search,
+  MessageSquare,
+  Calendar,
+  Star,
+  TrendingUp,
+  Download,
+} from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -14,8 +28,8 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/pagination";
+import { useRouter } from "next/navigation";
 
 // Updated data structure to match the database schema
 const users = [
@@ -218,91 +232,118 @@ const users = [
     reportsSubmitted: 5,
     totalReports: 12,
   },
-]
+];
 
 export default function CompanyInternsPage() {
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [institutionFilter, setInstitutionFilter] = useState("all")
-  const [fieldOfStudyFilter, setFieldOfStudyFilter] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [page, setPage] = useState(1)
-  const pageSize = 3
-  const router = useRouter()
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [institutionFilter, setInstitutionFilter] = useState("all");
+  const [fieldOfStudyFilter, setFieldOfStudyFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
+  const router = useRouter();
 
   // Get unique values for filters
-  const institutions = Array.from(new Set(users.map((user) => user.institution)))
-  const fieldsOfStudy = Array.from(new Set(users.map((user) => user.field_of_study)))
+  const institutions = Array.from(
+    new Set(users.map((user) => user.institution))
+  );
+  const fieldsOfStudy = Array.from(
+    new Set(users.map((user) => user.field_of_study))
+  );
 
   // Filter and search logic - works on ALL data, not just current page
   const filteredAndSearchedUsers = useMemo(() => {
     const filtered = users.filter((user) => {
       // Status filter
-      const statusMatch = statusFilter === "all" || user.status === statusFilter
+      const statusMatch =
+        statusFilter === "all" || user.status === statusFilter;
 
       // Institution filter
-      const institutionMatch = institutionFilter === "all" || user.institution === institutionFilter
+      const institutionMatch =
+        institutionFilter === "all" || user.institution === institutionFilter;
 
       // Field of study filter
-      const fieldMatch = fieldOfStudyFilter === "all" || user.field_of_study === fieldOfStudyFilter
+      const fieldMatch =
+        fieldOfStudyFilter === "all" ||
+        user.field_of_study === fieldOfStudyFilter;
 
       // Search query - searches across multiple fields
       const searchMatch =
         searchQuery === "" ||
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${user.first_name} ${user.last_name}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.institution.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.field_of_study.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.mentor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
+        user.skills.some((skill) =>
+          skill.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
-      return statusMatch && institutionMatch && fieldMatch && searchMatch
-    })
+      return statusMatch && institutionMatch && fieldMatch && searchMatch;
+    });
 
-    return filtered
-  }, [statusFilter, institutionFilter, fieldOfStudyFilter, searchQuery])
+    return filtered;
+  }, [statusFilter, institutionFilter, fieldOfStudyFilter, searchQuery]);
 
   // Reset page when filters or search change
   const handleFilterChange = (filterType: string, value: string) => {
-    setPage(1)
+    setPage(1);
     switch (filterType) {
       case "status":
-        setStatusFilter(value)
-        break
+        setStatusFilter(value);
+        break;
       case "institution":
-        setInstitutionFilter(value)
-        break
+        setInstitutionFilter(value);
+        break;
       case "fieldOfStudy":
-        setFieldOfStudyFilter(value)
-        break
+        setFieldOfStudyFilter(value);
+        break;
     }
-  }
+  };
 
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value)
-    setPage(1)
-  }
+    setSearchQuery(value);
+    setPage(1);
+  };
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredAndSearchedUsers.length / pageSize)
-  const paginatedUsers = filteredAndSearchedUsers.slice((page - 1) * pageSize, page * pageSize)
+  const totalPages = Math.ceil(filteredAndSearchedUsers.length / pageSize);
+  const paginatedUsers = filteredAndSearchedUsers.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-500 text-white hover:bg-green-600">Active</Badge>
+        return (
+          <Badge className="bg-green-500 text-white hover:bg-green-600">
+            Active
+          </Badge>
+        );
       case "completed":
-        return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Completed</Badge>
+        return (
+          <Badge className="bg-blue-500 text-white hover:bg-blue-600">
+            Completed
+          </Badge>
+        );
       case "on-leave":
-        return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">On Leave</Badge>
+        return (
+          <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
+            On Leave
+          </Badge>
+        );
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
-  const activeInterns = users.filter((user) => user.status === "active")
+  const activeInterns = users.filter((user) => user.status === "active");
 
   const handleExport = () => {
     // Create CSV content
@@ -323,7 +364,7 @@ export default function CompanyInternsPage() {
       "Phone",
       "Address",
       "Duration",
-    ]
+    ];
 
     const csvContent = [
       headers.join(","),
@@ -345,26 +386,29 @@ export default function CompanyInternsPage() {
           `"${user.phone_number}"`,
           `"${user.address}"`,
           `"${user.duration}"`,
-        ].join(","),
+        ].join(",")
       ),
-    ].join("\n")
+    ].join("\n");
 
     // Create and download file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", `interns-export-${new Date().toISOString().split("T")[0]}.csv`)
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `interns-export-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleMessageUser = () => {
     // Navigate to general messages page
-    router.push("/dashboard/company/messages")
-  }
+    router.push("/dashboard/company/messages");
+  };
 
   return (
     <DashboardLayout requiredRole="company">
@@ -383,7 +427,9 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Interns</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Interns
+                  </p>
                   <p className="text-2xl font-bold">{users.length}</p>
                 </div>
                 <User className="h-8 w-8 text-blue-600" />
@@ -394,8 +440,12 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Interns</p>
-                  <p className="text-2xl font-bold text-green-600">{activeInterns.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Interns
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {activeInterns.length}
+                  </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-600" />
               </div>
@@ -405,9 +455,14 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Rating</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg. Rating
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {(users.reduce((sum, user) => sum + user.rating, 0) / users.length).toFixed(1)}
+                    {(
+                      users.reduce((sum, user) => sum + user.rating, 0) /
+                      users.length
+                    ).toFixed(1)}
                   </p>
                 </div>
                 <Star className="h-8 w-8 text-purple-600" />
@@ -418,9 +473,16 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Progress</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg. Progress
+                  </p>
                   <p className="text-2xl font-bold text-orange-600">
-                    {Math.round(activeInterns.reduce((sum, intern) => sum + intern.progress, 0) / activeInterns.length)}
+                    {Math.round(
+                      activeInterns.reduce(
+                        (sum, intern) => sum + intern.progress,
+                        0
+                      ) / activeInterns.length
+                    )}
                     %
                   </p>
                 </div>
@@ -446,17 +508,24 @@ export default function CompanyInternsPage() {
                 </div>
               </div>
               <div className="relative">
-                <Button variant="outline" onClick={() => setFilterOpen((o) => !o)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setFilterOpen((o) => !o)}
+                >
                   Filter
                 </Button>
                 {filterOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg z-10 p-4 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Status</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Status
+                      </label>
                       <select
                         className="w-full border rounded px-2 py-1"
                         value={statusFilter}
-                        onChange={(e) => handleFilterChange("status", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("status", e.target.value)
+                        }
                       >
                         <option value="all">All</option>
                         <option value="active">Active</option>
@@ -465,11 +534,15 @@ export default function CompanyInternsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Institution</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Institution
+                      </label>
                       <select
                         className="w-full border rounded px-2 py-1"
                         value={institutionFilter}
-                        onChange={(e) => handleFilterChange("institution", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("institution", e.target.value)
+                        }
                       >
                         <option value="all">All</option>
                         {institutions.map((institution) => (
@@ -480,11 +553,15 @@ export default function CompanyInternsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Field of Study</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Field of Study
+                      </label>
                       <select
                         className="w-full border rounded px-2 py-1"
                         value={fieldOfStudyFilter}
-                        onChange={(e) => handleFilterChange("fieldOfStudy", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("fieldOfStudy", e.target.value)
+                        }
                       >
                         <option value="all">All</option>
                         {fieldsOfStudy.map((field) => (
@@ -500,11 +577,11 @@ export default function CompanyInternsPage() {
                         size="sm"
                         className="w-full bg-transparent"
                         onClick={() => {
-                          setStatusFilter("all")
-                          setInstitutionFilter("all")
-                          setFieldOfStudyFilter("all")
-                          setSearchQuery("")
-                          setPage(1)
+                          setStatusFilter("all");
+                          setInstitutionFilter("all");
+                          setFieldOfStudyFilter("all");
+                          setSearchQuery("");
+                          setPage(1);
                         }}
                       >
                         Clear All Filters
@@ -522,7 +599,8 @@ export default function CompanyInternsPage() {
             </div>
             {/* Search Results Info */}
             <div className="mt-4 text-sm text-gray-600">
-              Showing {paginatedUsers.length} of {filteredAndSearchedUsers.length} interns
+              Showing {paginatedUsers.length} of{" "}
+              {filteredAndSearchedUsers.length} interns
               {searchQuery && <span> matching "{searchQuery}"</span>}
             </div>
           </CardContent>
@@ -534,9 +612,14 @@ export default function CompanyInternsPage() {
             <Card>
               <CardContent className="p-12 text-center">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No interns found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No interns found
+                </h3>
                 <p className="text-gray-600">
-                  {searchQuery || statusFilter !== "all" || institutionFilter !== "all" || fieldOfStudyFilter !== "all"
+                  {searchQuery ||
+                  statusFilter !== "all" ||
+                  institutionFilter !== "all" ||
+                  fieldOfStudyFilter !== "all"
                     ? "Try adjusting your search or filters"
                     : "No interns have been added yet"}
                 </p>
@@ -559,42 +642,57 @@ export default function CompanyInternsPage() {
                           {getStatusBadge(user.status)}
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-sm text-gray-600 ml-1">{user.rating}</span>
+                            <span className="text-sm text-gray-600 ml-1">
+                              {user.rating}
+                            </span>
                           </div>
                         </div>
- {/* Info Row - aligned with 4 columns */}
-<div className="flex text-sm text-gray-700 gap-6">
-  <div className="w-1/4">
-    <div className="font-semibold mb-1">Position:</div>
-    <div>UI/UX Designer</div>
-  </div>
-  <div className="w-1/4">
-    <div className="font-semibold mb-1">Institution:</div>
-    <div>INSA Rennes</div>
-  </div>
-  <div className="w-1/4">
-    <div className="font-semibold mb-1">Project:</div>
-    <div>Mobile App Redesign</div>
-  </div>
-  <div className="w-1/4">
-    <div className="font-semibold mb-1">Progress:</div>
-    <div className="flex items-center gap-2">
-      <div className="w-24 h-2 bg-gray-200 rounded">
-        <div className="h-2 bg-blue-500 rounded" style={{ width: '75%' }}></div>
-      </div>
-      <span>75%</span>
-    </div>
-  </div>
-</div>
-
-
+                        {/* Info Row - aligned with 4 columns */}
+                        <div className="flex text-sm text-gray-700 gap-6">
+                          <div className="w-1/4">
+                            <div className="font-semibold mb-1">Position:</div>
+                            <div>UI/UX Designer</div>
+                          </div>
+                          <div className="w-1/4">
+                            <div className="font-semibold mb-1">
+                              Institution:
+                            </div>
+                            <div>INSA Rennes</div>
+                          </div>
+                          <div className="w-1/4">
+                            <div className="font-semibold mb-1">Project:</div>
+                            <div>Mobile App Redesign</div>
+                          </div>
+                          <div className="w-1/4">
+                            <div className="font-semibold mb-1">Progress:</div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-24 h-2 bg-gray-200 rounded">
+                                <div
+                                  className="h-2 bg-blue-500 rounded"
+                                  style={{ width: "75%" }}
+                                ></div>
+                              </div>
+                              <span>75%</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/company/interns/${user.id}`)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/dashboard/company/interns/${user.id}`)
+                        }
+                      >
                         View Profile
                       </Button>
-                      <Button variant="outline" size="sm" onClick={handleMessageUser}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMessageUser}
+                      >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     </div>
@@ -613,8 +711,8 @@ export default function CompanyInternsPage() {
                 <PaginationPrevious
                   href="#"
                   onClick={(e) => {
-                    e.preventDefault()
-                    if (page > 1) setPage(page - 1)
+                    e.preventDefault();
+                    if (page > 1) setPage(page - 1);
                   }}
                   className={page === 1 ? "pointer-events-none opacity-50" : ""}
                 />
@@ -625,8 +723,8 @@ export default function CompanyInternsPage() {
                     href="#"
                     isActive={page === i + 1}
                     onClick={(e) => {
-                      e.preventDefault()
-                      setPage(i + 1)
+                      e.preventDefault();
+                      setPage(i + 1);
                     }}
                   >
                     {i + 1}
@@ -637,10 +735,12 @@ export default function CompanyInternsPage() {
                 <PaginationNext
                   href="#"
                   onClick={(e) => {
-                    e.preventDefault()
-                    if (page < totalPages) setPage(page + 1)
+                    e.preventDefault();
+                    if (page < totalPages) setPage(page + 1);
                   }}
-                  className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+                  className={
+                    page === totalPages ? "pointer-events-none opacity-50" : ""
+                  }
                 />
               </PaginationItem>
             </PaginationContent>
@@ -651,7 +751,9 @@ export default function CompanyInternsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Intern Management Best Practices</CardTitle>
-            <CardDescription>Tips for successful intern supervision</CardDescription>
+            <CardDescription>
+              Tips for successful intern supervision
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
@@ -678,5 +780,5 @@ export default function CompanyInternsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }

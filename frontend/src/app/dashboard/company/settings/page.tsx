@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import { Building2, Bell, Shield, Users } from "lucide-react";
 import { useState } from "react";
 

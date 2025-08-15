@@ -1,14 +1,33 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { User, Search, Plus, MessageSquare, Eye } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import { User, Search, Plus, MessageSquare, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 // Mock data
 const students = [
@@ -62,7 +81,9 @@ export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAssign, setShowAssign] = useState(false);
   const [selectedStudentInput, setSelectedStudentInput] = useState<string>("");
-  const [selectedStudent, setSelectedStudent] = useState<typeof students[0] | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<
+    (typeof students)[0] | null
+  >(null);
   const [supervisorInput, setSupervisorInput] = useState<string>("");
   const [studentsState, setStudentsState] = useState<typeof students>(students);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -71,19 +92,20 @@ export default function StudentsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 3;
   // Supervisor list from supervisors page
-  const supervisors = [
-    "Dr. Smith",
-    "Dr. Johnson",
-    "Dr. Brown",
-    "Dr. Davis",
-  ];
+  const supervisors = ["Dr. Smith", "Dr. Johnson", "Dr. Brown", "Dr. Davis"];
   // Unique values for filters
-  const supervisorsList = Array.from(new Set(studentsState.map(s => s.supervisor)));
+  const supervisorsList = Array.from(
+    new Set(studentsState.map((s) => s.supervisor))
+  );
   // Assign supervisor handler
   const handleAssignSupervisor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent || !supervisorInput) return;
-    setStudentsState(studentsState.map(s => s.id === selectedStudent.id ? { ...s, supervisor: supervisorInput } : s));
+    setStudentsState(
+      studentsState.map((s) =>
+        s.id === selectedStudent.id ? { ...s, supervisor: supervisorInput } : s
+      )
+    );
     setShowAssign(false);
     setSupervisorInput("");
     setSelectedStudent(null);
@@ -100,27 +122,30 @@ export default function StudentsPage() {
         student.position.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   const totalPages = Math.ceil(filteredStudents.length / pageSize);
-  const paginatedStudents = filteredStudents.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedStudents = filteredStudents.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-blue-100 text-blue-800">Active</Badge>
+        return <Badge className="bg-blue-100 text-blue-800">Active</Badge>;
       case "completed":
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
   const getProgressColor = (progress: number) => {
-    if (progress >= 80) return "bg-green-500"
-    if (progress >= 60) return "bg-blue-500"
-    if (progress >= 40) return "bg-yellow-500"
-    return "bg-red-500"
-  }
+    if (progress >= 80) return "bg-green-500";
+    if (progress >= 60) return "bg-blue-500";
+    if (progress >= 40) return "bg-yellow-500";
+    return "bg-red-500";
+  };
 
   return (
     <DashboardLayout requiredRole="university">
@@ -129,11 +154,18 @@ export default function StudentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Students</h1>
-            <p className="text-gray-600">Manage and track student internships</p>
+            <p className="text-gray-600">
+              Manage and track student internships
+            </p>
           </div>
           <Dialog open={showAssign} onOpenChange={setShowAssign}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setShowAssign(true); setSelectedStudent(null); }}>
+              <Button
+                onClick={() => {
+                  setShowAssign(true);
+                  setSelectedStudent(null);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Assign Supervisor
               </Button>
@@ -147,20 +179,36 @@ export default function StudentsPage() {
                   <Input
                     placeholder="Type student name..."
                     value={selectedStudentInput}
-                    onChange={e => {
+                    onChange={(e) => {
                       setSelectedStudentInput(e.target.value);
-                      const found = studentsState.find(s => s.name.toLowerCase() === e.target.value.toLowerCase());
+                      const found = studentsState.find(
+                        (s) =>
+                          s.name.toLowerCase() === e.target.value.toLowerCase()
+                      );
                       setSelectedStudent(found || null);
                     }}
                     autoFocus
                   />
                   {selectedStudentInput && (
                     <div className="absolute left-0 right-0 bg-white border rounded shadow z-10 mt-1 max-h-32 overflow-y-auto">
-                      {studentsState.filter(s => s.name.toLowerCase().includes(selectedStudentInput.toLowerCase())).map(s => (
-                        <div key={s.id} className="px-3 py-2 hover:bg-blue-100 cursor-pointer" onClick={() => { setSelectedStudentInput(s.name); setSelectedStudent(s); }}>
-                          {s.name} ({s.company})
-                        </div>
-                      ))}
+                      {studentsState
+                        .filter((s) =>
+                          s.name
+                            .toLowerCase()
+                            .includes(selectedStudentInput.toLowerCase())
+                        )
+                        .map((s) => (
+                          <div
+                            key={s.id}
+                            className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                            onClick={() => {
+                              setSelectedStudentInput(s.name);
+                              setSelectedStudent(s);
+                            }}
+                          >
+                            {s.name} ({s.company})
+                          </div>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -168,20 +216,38 @@ export default function StudentsPage() {
                   <Input
                     placeholder="Type supervisor name..."
                     value={supervisorInput}
-                    onChange={e => setSupervisorInput(e.target.value)}
+                    onChange={(e) => setSupervisorInput(e.target.value)}
                     autoFocus
                   />
                   {supervisorInput && (
                     <div className="absolute left-0 right-0 bg-white border rounded shadow z-10 mt-1 max-h-32 overflow-y-auto">
-                      {(supervisors as string[]).filter(sup => sup.toLowerCase().includes(supervisorInput.toLowerCase())).map(sup => (
-                        <div key={sup} className="px-3 py-2 hover:bg-blue-100 cursor-pointer" onClick={() => setSupervisorInput(sup)}>{sup}</div>
-                      ))}
+                      {(supervisors as string[])
+                        .filter((sup) =>
+                          sup
+                            .toLowerCase()
+                            .includes(supervisorInput.toLowerCase())
+                        )
+                        .map((sup) => (
+                          <div
+                            key={sup}
+                            className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                            onClick={() => setSupervisorInput(sup)}
+                          >
+                            {sup}
+                          </div>
+                        ))}
                     </div>
                   )}
                 </div>
                 <div className="flex space-x-2">
                   <Button type="submit">Assign</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowAssign(false)}>Cancel</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAssign(false)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -197,20 +263,39 @@ export default function StudentsPage() {
                 <Input
                   placeholder="Search students by name, company, or position..."
                   value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
                   className="pl-10"
                 />
               </div>
-              <select className="border rounded px-2 py-1" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border rounded px-2 py-1"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="pending">Pending</option>
               </select>
-              <select className="border rounded px-2 py-1" value={supervisorFilter} onChange={e => { setSupervisorFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border rounded px-2 py-1"
+                value={supervisorFilter}
+                onChange={(e) => {
+                  setSupervisorFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
                 <option value="all">All Supervisors</option>
-                {supervisorsList.map(s => (
-                  <option key={s} value={s}>{s}</option>
+                {supervisorsList.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </div>
@@ -221,7 +306,9 @@ export default function StudentsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Student List ({filteredStudents.length})</CardTitle>
-            <CardDescription>Overview of all students in internship programs</CardDescription>
+            <CardDescription>
+              Overview of all students in internship programs
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -236,7 +323,9 @@ export default function StudentsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          {student.name}
+                        </h3>
                         {getStatusBadge(student.status)}
                       </div>
                       <p className="text-sm text-gray-600">{student.email}</p>
@@ -255,7 +344,9 @@ export default function StudentsPage() {
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full ${getProgressColor(student.progress)}`}
+                            className={`h-2 rounded-full ${getProgressColor(
+                              student.progress
+                            )}`}
                             style={{ width: `${student.progress}%` }}
                           ></div>
                         </div>
@@ -281,25 +372,40 @@ export default function StudentsPage() {
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
                   href="#"
                   isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
     </DashboardLayout>
-  )
+  );
 }

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import {
   MessageSquare,
   Send,

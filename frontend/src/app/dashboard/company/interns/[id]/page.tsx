@@ -1,8 +1,8 @@
-"use client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+"use client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import {
   User,
   MessageSquare,
@@ -17,8 +17,8 @@ import {
   FileText,
   ArrowLeft,
   Edit,
-} from "lucide-react"
-import { useRouter, useParams } from "next/navigation"
+} from "lucide-react";
+import { useRouter, useParams } from "next/navigation";
 
 // Same user data as in the main page
 const users = [
@@ -89,14 +89,14 @@ const users = [
     totalReports: 10,
   },
   // Add other users here...
-]
+];
 
 export default function InternProfilePage() {
-  const router = useRouter()
-  const params = useParams()
-  const internId = Number.parseInt(params.id as string)
+  const router = useRouter();
+  const params = useParams();
+  const internId = Number.parseInt(params.id as string);
 
-  const intern = users.find((user) => user.id === internId)
+  const intern = users.find((user) => user.id === internId);
 
   if (!intern) {
     return (
@@ -104,30 +104,46 @@ export default function InternProfilePage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Intern not found</h3>
-            <Button onClick={() => router.push("/company/interns")}>Back to Interns</Button>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Intern not found
+            </h3>
+            <Button onClick={() => router.push("/company/interns")}>
+              Back to Interns
+            </Button>
           </div>
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-500 text-white hover:bg-green-600">Active</Badge>
+        return (
+          <Badge className="bg-green-500 text-white hover:bg-green-600">
+            Active
+          </Badge>
+        );
       case "completed":
-        return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Completed</Badge>
+        return (
+          <Badge className="bg-blue-500 text-white hover:bg-blue-600">
+            Completed
+          </Badge>
+        );
       case "on-leave":
-        return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">On Leave</Badge>
+        return (
+          <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
+            On Leave
+          </Badge>
+        );
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
   const handleMessageUser = () => {
-    router.push("/company/messages")
-  }
+    router.push("/company/messages");
+  };
 
   return (
     <DashboardLayout requiredRole="company">
@@ -135,7 +151,11 @@ export default function InternProfilePage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => router.push("/company/interns")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/company/interns")}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Interns
             </Button>
@@ -171,7 +191,9 @@ export default function InternProfilePage() {
                 {getStatusBadge(intern.status)}
                 <div className="flex items-center justify-center mt-3">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-sm text-gray-600 ml-1">{intern.rating} Rating</span>
+                  <span className="text-sm text-gray-600 ml-1">
+                    {intern.rating} Rating
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -275,39 +297,59 @@ export default function InternProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Position</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Position
+                      </label>
                       <p className="text-gray-900">{intern.position}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Project</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Project
+                      </label>
                       <p className="text-gray-900">{intern.project}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Mentor</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Mentor
+                      </label>
                       <p className="text-gray-900">{intern.mentor}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Duration</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Duration
+                      </label>
                       <p className="text-gray-900">{intern.duration}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Start Date</label>
-                      <p className="text-gray-900">{new Date(intern.startDate).toLocaleDateString()}</p>
+                      <label className="text-sm font-medium text-gray-600">
+                        Start Date
+                      </label>
+                      <p className="text-gray-900">
+                        {new Date(intern.startDate).toLocaleDateString()}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">End Date</label>
-                      <p className="text-gray-900">{new Date(intern.endDate).toLocaleDateString()}</p>
+                      <label className="text-sm font-medium text-gray-600">
+                        End Date
+                      </label>
+                      <p className="text-gray-900">
+                        {new Date(intern.endDate).toLocaleDateString()}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Reports Submitted</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Reports Submitted
+                      </label>
                       <p className="text-gray-900">
                         {intern.reportsSubmitted} / {intern.totalReports}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Progress</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Progress
+                      </label>
                       <div className="flex items-center space-x-3 mt-1">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div
@@ -315,7 +357,9 @@ export default function InternProfilePage() {
                             style={{ width: `${intern.progress}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm font-medium">{intern.progress}%</span>
+                        <span className="text-sm font-medium">
+                          {intern.progress}%
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -331,14 +375,18 @@ export default function InternProfilePage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Institution</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Institution
+                    </label>
                     <p className="text-gray-900 flex items-center">
                       <GraduationCap className="h-4 w-4 mr-2 text-gray-400" />
                       {intern.institution}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Field of Study</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Field of Study
+                    </label>
                     <p className="text-gray-900">{intern.field_of_study}</p>
                   </div>
                 </div>
@@ -364,5 +412,5 @@ export default function InternProfilePage() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

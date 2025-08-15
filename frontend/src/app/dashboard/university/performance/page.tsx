@@ -1,21 +1,41 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Progress } from "@/components/ui/progress"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { User, Search, TrendingUp, TrendingDown, FileText, Calendar } from "lucide-react"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import {
+  User,
+  Search,
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  Calendar,
+} from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function PerformancePage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [supervisorFilter, setSupervisorFilter] = useState("all")
-  const [gradeFilter, setGradeFilter] = useState("all")
-  const [page, setPage] = useState(1)
-  const pageSize = 3
+  const [searchTerm, setSearchTerm] = useState("");
+  const [supervisorFilter, setSupervisorFilter] = useState("all");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
 
   // Mock data
   const performanceData = [
@@ -71,32 +91,40 @@ export default function PerformancePage() {
       trend: "up",
       lastUpdate: "2024-03-07",
     },
-  ]
+  ];
 
   // Unique values for filters
-  const supervisorsList = Array.from(new Set(performanceData.map(s => s.supervisor)))
-  const gradesList = Array.from(new Set(performanceData.map(s => s.academicGrade)))
+  const supervisorsList = Array.from(
+    new Set(performanceData.map((s) => s.supervisor))
+  );
+  const gradesList = Array.from(
+    new Set(performanceData.map((s) => s.academicGrade))
+  );
 
   // Filtering logic
   const filteredData = performanceData.filter(
     (item) =>
       (supervisorFilter === "all" || item.supervisor === supervisorFilter) &&
       (gradeFilter === "all" || item.academicGrade === gradeFilter) &&
-      (
-        item.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.supervisor.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-  )
-  const totalPages = Math.ceil(filteredData.length / pageSize)
-  const paginatedData = filteredData.slice((page - 1) * pageSize, page * pageSize)
+        item.supervisor.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = filteredData.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const getPerformanceBadge = (score: number) => {
-    if (score >= 90) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>
-    if (score >= 80) return <Badge className="bg-blue-100 text-blue-800">Good</Badge>
-    if (score >= 70) return <Badge className="bg-yellow-100 text-yellow-800">Average</Badge>
-    return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>
-  }
+    if (score >= 90)
+      return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
+    if (score >= 80)
+      return <Badge className="bg-blue-100 text-blue-800">Good</Badge>;
+    if (score >= 70)
+      return <Badge className="bg-yellow-100 text-yellow-800">Average</Badge>;
+    return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>;
+  };
 
   const getGradeBadge = (grade: string) => {
     const gradeColors: { [key: string]: string } = {
@@ -106,16 +134,20 @@ export default function PerformancePage() {
       B: "bg-blue-100 text-blue-800",
       "C+": "bg-yellow-100 text-yellow-800",
       C: "bg-yellow-100 text-yellow-800",
-    }
-    return <Badge className={gradeColors[grade] || "bg-gray-100 text-gray-800"}>{grade}</Badge>
-  }
+    };
+    return (
+      <Badge className={gradeColors[grade] || "bg-gray-100 text-gray-800"}>
+        {grade}
+      </Badge>
+    );
+  };
 
   const getAttendanceColor = (attendance: number) => {
-    if (attendance >= 95) return "text-green-600"
-    if (attendance >= 90) return "text-blue-600"
-    if (attendance >= 85) return "text-yellow-600"
-    return "text-red-600"
-  }
+    if (attendance >= 95) return "text-green-600";
+    if (attendance >= 90) return "text-blue-600";
+    if (attendance >= 85) return "text-yellow-600";
+    return "text-red-600";
+  };
 
   return (
     <DashboardLayout requiredRole="university">
@@ -123,8 +155,12 @@ export default function PerformancePage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Performance Tracking</h1>
-            <p className="text-gray-600">Monitor student performance and attendance</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Performance Tracking
+            </h1>
+            <p className="text-gray-600">
+              Monitor student performance and attendance
+            </p>
           </div>
           <Button>
             <FileText className="h-4 w-4 mr-2" />
@@ -141,20 +177,41 @@ export default function PerformancePage() {
                 <Input
                   placeholder="Search by student name, company, or supervisor..."
                   value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
                   className="pl-10"
                 />
               </div>
-              <select className="border rounded px-2 py-1" value={supervisorFilter} onChange={e => { setSupervisorFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border rounded px-2 py-1"
+                value={supervisorFilter}
+                onChange={(e) => {
+                  setSupervisorFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
                 <option value="all">All Supervisors</option>
-                {supervisorsList.map(s => (
-                  <option key={s} value={s}>{s}</option>
+                {supervisorsList.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
-              <select className="border rounded px-2 py-1" value={gradeFilter} onChange={e => { setGradeFilter(e.target.value); setPage(1); }}>
+              <select
+                className="border rounded px-2 py-1"
+                value={gradeFilter}
+                onChange={(e) => {
+                  setGradeFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
                 <option value="all">All Grades</option>
-                {gradesList.map(g => (
-                  <option key={g} value={g}>{g}</option>
+                {gradesList.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
                 ))}
               </select>
             </div>
@@ -201,7 +258,9 @@ export default function PerformancePage() {
         <Card>
           <CardHeader>
             <CardTitle>Student Performance Details</CardTitle>
-            <CardDescription>Detailed performance metrics for each student</CardDescription>
+            <CardDescription>
+              Detailed performance metrics for each student
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -213,7 +272,9 @@ export default function PerformancePage() {
                         <User className="h-6 w-6 text-gray-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{student.student}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          {student.student}
+                        </h3>
                         <p className="text-sm text-gray-600">
                           {student.company} • Supervisor: {student.supervisor}
                         </p>
@@ -233,10 +294,19 @@ export default function PerformancePage() {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Attendance */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Attendance</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Attendance
+                      </p>
                       <div className="flex items-center space-x-2">
-                        <Progress value={student.attendance} className="flex-1" />
-                        <span className={`text-sm font-medium ${getAttendanceColor(student.attendance)}`}>
+                        <Progress
+                          value={student.attendance}
+                          className="flex-1"
+                        />
+                        <span
+                          className={`text-sm font-medium ${getAttendanceColor(
+                            student.attendance
+                          )}`}
+                        >
                           {student.attendance}%
                         </span>
                       </div>
@@ -244,32 +314,51 @@ export default function PerformancePage() {
 
                     {/* Weekly Reports */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Weekly Reports</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Weekly Reports
+                      </p>
                       <div className="flex items-center space-x-2">
                         <Progress
-                          value={(student.weeklyReports.submitted / student.weeklyReports.total) * 100}
+                          value={
+                            (student.weeklyReports.submitted /
+                              student.weeklyReports.total) *
+                            100
+                          }
                           className="flex-1"
                         />
                         <span className="text-sm font-medium text-gray-600">
-                          {student.weeklyReports.submitted}/{student.weeklyReports.total}
+                          {student.weeklyReports.submitted}/
+                          {student.weeklyReports.total}
                         </span>
                       </div>
                     </div>
 
                     {/* Company Feedback */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Company Feedback</p>
-                      <Badge variant="outline" className="w-full justify-center">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Company Feedback
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className="w-full justify-center"
+                      >
                         {student.companyFeedback}
                       </Badge>
                     </div>
 
                     {/* Overall Score */}
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Overall Score</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Overall Score
+                      </p>
                       <div className="flex items-center space-x-2">
-                        <Progress value={student.overallScore} className="flex-1" />
-                        <span className="text-sm font-medium text-gray-900">{student.overallScore}</span>
+                        <Progress
+                          value={student.overallScore}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-medium text-gray-900">
+                          {student.overallScore}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -291,7 +380,9 @@ export default function PerformancePage() {
                 </div>
               ))}
               {paginatedData.length === 0 && (
-                <div className="text-center text-gray-500 py-8">No results found.</div>
+                <div className="text-center text-gray-500 py-8">
+                  No results found.
+                </div>
               )}
             </div>
           </CardContent>
@@ -300,25 +391,40 @@ export default function PerformancePage() {
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
                   href="#"
                   isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
     </DashboardLayout>
-  )
+  );
 }
