@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 
 interface DashboardLayoutProps {
+   userRole?: string
+  userName?: string
   children: React.ReactNode;
   requiredRole?: string;
 }
@@ -16,6 +18,7 @@ export function DashboardLayout({
   requiredRole,
 }: DashboardLayoutProps) {
   interface User {
+    
     name: string;
     role: string;
   }
