@@ -2,6 +2,7 @@ package com.example.application_service.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -26,11 +27,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            System.out.println("JWT Token: " + token);
+        String token = null;
+
+        // ✅ Get token from cookies
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) { // name must match what you set in login
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (token != null) {
+            System.out.println("JWT Token from cookie: " + token);
             try {
                 // validate token
                 if (!jwtUtil.isTokenValid(token)) {
@@ -65,10 +76,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
         } else {
-            // missing header → reject
-            System.out.println("Missing Authorization header");
+            // missing token → reject
+            System.out.println("Missing access_token cookie");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Missing Authorization header");
+            response.getWriter().write("Missing access_token cookie");
             return;
         }
 

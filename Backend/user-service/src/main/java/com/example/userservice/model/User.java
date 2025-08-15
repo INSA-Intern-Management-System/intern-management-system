@@ -75,6 +75,10 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private UserStatus userStatus = UserStatus.PENDING;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.OFFLINE; // Default status
+
     public Date getLastLogin() {
         return lastLogin;
     }
@@ -108,6 +112,7 @@ public class User implements UserDetails {
     Date lastLogin,
     Role role,
     UserStatus userStatus,
+    Status status,
     Date createdAt, 
     Date updatedAt,
     Boolean isFirstLogin,
@@ -137,6 +142,7 @@ public class User implements UserDetails {
         this.lastLogin = lastLogin;
         this.role = role;
         this.userStatus = userStatus;
+        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.isFirstLogin = isFirstLogin;
@@ -184,6 +190,7 @@ public class User implements UserDetails {
     public void setFirstLogin(Boolean firstLogin) {
         isFirstLogin = firstLogin;
     }
+    
 
     public String getFirstName() {
         return firstName;
@@ -384,5 +391,12 @@ public class User implements UserDetails {
 
     public void setUserStatus(UserStatus userStatus) {
         this.userStatus = userStatus;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+    public void setStatus(Status status) {
+        this.status = status;
     }
 }

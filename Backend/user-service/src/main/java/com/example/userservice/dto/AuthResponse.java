@@ -3,14 +3,14 @@ package com.example.userservice.dto;
 public class AuthResponse {
     private String message;
     private boolean forcePasswordChange; // ✅ New field
-    private String token;
+//    private String token;
     private UserResponseDto user;
 
 
-    public AuthResponse(String message,boolean forcePasswordChange, String token, UserResponseDto user) {
+    public AuthResponse(String message,boolean forcePasswordChange, UserResponseDto user) {
         this.message = message;
         this.forcePasswordChange = forcePasswordChange;
-        this.token = token;
+//        this.token = token;
         this.user = user;
     }
 
@@ -23,13 +23,13 @@ public class AuthResponse {
         this.message = message;
     }
 
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
+//    public String getToken() {
+//        return token;
+//    }
+//
+//    public void setToken(String token) {
+//        this.token = token;
+//    }
 
     public UserResponseDto getUser() {
         return user;

@@ -1,7 +1,6 @@
 
 package com.example.notification_service.security;
 
-import com.example.notification_service.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

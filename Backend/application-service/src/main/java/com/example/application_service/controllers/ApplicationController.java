@@ -199,12 +199,12 @@ public class ApplicationController {
         response.put("application", responseDTO);
 
         // Send notification to UNIVERSITY and COMPANY (example)
-        notificationGrpcClient.sendNotification(
-                Set.of(RecipientRole.HR),
-                "New Internship Application",
-                "A new internship application has been submitted.",
-                Instant.now()
-        );
+        // notificationGrpcClient.sendNotification(
+        //         Set.of(RecipientRole.HR),
+        //         "New Internship Application",
+        //         "A new internship application has been submitted.",
+        //         Instant.now()
+        // );
 
         return ResponseEntity.status(201).body(response);
     }

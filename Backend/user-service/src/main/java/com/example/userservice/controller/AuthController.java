@@ -7,12 +7,11 @@ import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
-import java.util.Collections;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -69,13 +68,24 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
         try {
             User user = userService.loginUser(request);
 
             String token = jwtUtil.generateToken(user);
 
             boolean forcePasswordChange = user.isFirstLogin();
+
+            ResponseCookie cookie = ResponseCookie.from("access_token", token)
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("strict")
+                    .path("/")
+                    .maxAge(60 * 60 * 10) // match token lifetime (10 hrs)
+                    .build();
+
+            // ✅ Add cookie to response
+            response.addHeader("Set-Cookie", cookie.toString());
 
             // ✅ Extract data from the token
             Long userIdFromToken = jwtUtil.extractUserId(token);
@@ -90,7 +100,6 @@ public class AuthController {
             AuthResponse authResponse = new AuthResponse(
                     "User logged in successfully",
                     forcePasswordChange,
-                    token,
                     new UserResponseDto(user)
             );
 

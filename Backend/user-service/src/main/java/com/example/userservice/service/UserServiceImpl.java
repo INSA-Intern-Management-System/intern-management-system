@@ -14,7 +14,6 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.example.userservice.security.SecurityConfig.*;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
