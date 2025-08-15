@@ -128,11 +128,13 @@ export default function SettingsPage() {
                   <Label htmlFor="smsNotifications">SMS Notifications</Label>
                   <p className="text-sm text-gray-600">Receive notifications via SMS</p>
                 </div>
-                <Switch
-                  id="smsNotifications"
-                  checked={settings.smsNotifications}
-                  onCheckedChange={(checked) => setSettings({ ...settings, smsNotifications: checked })}
-                />
+               <Switch
+  id="emailNotifications"
+  checked={settings.emailNotifications}
+  onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
+  className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300"
+/>
+
               </div>
               <div className="flex items-center justify-between">
                 <div>
