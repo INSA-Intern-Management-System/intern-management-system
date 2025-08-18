@@ -1,8 +1,8 @@
-package com.example.schedule_service.config;
+package com.example.userservice.config;
 
 
-import com.example.schedule_service.client.ActivityGrpcClient;
-import com.example.schedule_service.client.ProjectManagerGrpcClient;
+import com.example.userservice.client.ActivityGrpcClient;
+import com.example.userservice.client.ProjectManagerGrpcClient;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -31,5 +31,4 @@ public class GrpcClientConfig {
         return new ProjectManagerGrpcClient(project_host, project_port);
     }
 }
-
 
