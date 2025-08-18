@@ -114,8 +114,29 @@ const students = [
     position: "Marketing Intern",
     supervisor: "Dr. Davis",
     startDate: "2024-02-01",
-    status: "active",
-    progress: 45,
+    status: "pending",
+    progress: 0,
+  },
+  {
+    id: 5,
+    name: "Tom smith",
+    email: "tom.r@student.insa.fr",
+    phone_number: "+251912345678",
+    institution: "AASTU",
+    field_of_study: "Networking",
+    gender: "Male",
+    address: "Addis Ababa",
+    role: "student",
+    profile_pic_url: "https://randomuser.me/api/portraits/men/5.jpg",
+    linkedin_url: "",
+    github_url: "",
+    cv_url: "",
+    company: "",
+    position: "",
+    supervisor: "",
+    startDate: "",
+    status: "rejected",
+    progress: 0,
   },
 ];
 
@@ -158,6 +179,7 @@ export default function StudentsPage() {
     setSupervisorInput("");
     setSelectedStudent(null);
     setSelectedStudentInput("");
+    setShowStudentDropdown(false);
   };
 
   function goMessage() {
@@ -173,6 +195,7 @@ export default function StudentsPage() {
         student.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.position.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
   const totalPages = Math.ceil(filteredStudents.length / pageSize);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * pageSize,
@@ -202,7 +225,7 @@ export default function StudentsPage() {
   return (
     <DashboardLayout requiredRole="university">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header & Assign Supervisor */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Students</h1>
@@ -391,7 +414,7 @@ export default function StudentsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(paginatedStudents as typeof students).map((student) => (
+              {paginatedStudents.map((student) => (
                 <div
                   key={student.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -458,6 +481,7 @@ export default function StudentsPage() {
             </div>
           </CardContent>
         </Card>
+
         {/* Pagination */}
         <Pagination className="mt-6">
           <PaginationContent>
