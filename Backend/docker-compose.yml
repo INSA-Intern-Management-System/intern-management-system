@@ -1,0 +1,163 @@
+version: "3.9"
+
+x-common-env: &common-env
+  SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+  DB_HOST: ${DB_HOST:-postgres}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_NAME: ${DB_NAME:-mydb}
+  DB_USERNAME: ${DB_USERNAME:-user}
+  DB_PASSWORD: ${DB_PASSWORD:-password}
+  DB_SSL_MODE: ${DB_SSL_MODE:-disable}
+  JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+  JPA_SHOW_SQL: ${JPA_SHOW_SQL:-true}
+  JPA_FORMAT_SQL: ${JPA_FORMAT_SQL:-true}
+  LOG_SPRING_LEVEL: ${LOG_SPRING_LEVEL:-INFO}
+  LOG_GRPC_LEVEL: ${LOG_GRPC_LEVEL:-INFO}
+  JWT_SECRET: ${JWT_SECRET:-change_me_jwt_secret}
+  MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-unused}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-unused}
+
+services:
+  activity-service:
+    build: ./activity-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${ACTIVITY_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8081:8080"
+
+  application-service:
+    build: ./application-service
+    environment:
+      <<: *common-env
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+      USER_SERVICE_HTTP_URL: "${USER_SERVICE_HTTP_URL}"
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8082:8080"
+
+  leave-service:
+    build: ./leave-service
+    environment:
+      <<: *common-env
+      ACTIVITY_SERVICE_GRPC_PORT: ${ACTIVITY_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8083:8080"
+
+  message-service:
+    build: ./message-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${MESSAGE_SERVICE_GRPC_PORT:-9090}
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8084:8080"
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${NOTIFICATION_SERVICE_GRPC_PORT:-9094}
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8085:8080"
+
+  project-service:
+    build: ./project-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${PROJECT_SERVICE_GRPC_PORT:-9092}
+      ACTIVITY_SERVICE_GRPC_PORT: ${ACTIVITY_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8086:8080"
+
+  report-service:
+    build: ./report-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${REPORT_SERVICE_GRPC_PORT:-9090}
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+      PROJECT_SERVICE_GRPC_PORT: ${PROJECT_SERVICE_GRPC_PORT:-9092}
+      ACTIVITY_SERVICE_GRPC_PORT: ${ACTIVITY_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8087:8080"
+
+  schedule-service:
+    build: ./schedule-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${SCHEDULE_SERVICE_GRPC_PORT:-9095}
+      ACTIVITY_SERVICE_GRPC_PORT: ${ACTIVITY_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8088:8080"
+
+  user-service:
+    build: ./user-service
+    environment:
+      <<: *common-env
+      GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+    volumes:
+      - "${USERPROFILE}/.m2:/root/.m2"
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mydb}
+      POSTGRES_USER: ${DB_USERNAME:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

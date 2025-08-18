@@ -1,11 +1,24 @@
-"use client"
-import { useState, useMemo } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { User, Search, MessageSquare, Star, TrendingUp, Download } from "lucide-react"
+"use client";
+import { useState, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  User,
+  Search,
+  MessageSquare,
+  Star,
+  TrendingUp,
+  Download,
+} from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -13,8 +26,8 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/pagination";
+import { useRouter } from "next/navigation";
 
 const users = [
   {
@@ -215,84 +228,111 @@ const users = [
     reportsSubmitted: 5,
     totalReports: 12,
   },
-]
+];
 
 export default function CompanyInternsPage() {
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [institutionFilter, setInstitutionFilter] = useState("all")
-  const [fieldOfStudyFilter, setFieldOfStudyFilter] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [page, setPage] = useState(1)
-  const pageSize = 3
-  const router = useRouter()
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [institutionFilter, setInstitutionFilter] = useState("all");
+  const [fieldOfStudyFilter, setFieldOfStudyFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
+  const router = useRouter();
 
   // Extract unique filter options
-  const institutions = Array.from(new Set(users.map((user) => user.institution)))
-  const fieldsOfStudy = Array.from(new Set(users.map((user) => user.field_of_study)))
+  const institutions = Array.from(
+    new Set(users.map((user) => user.institution))
+  );
+  const fieldsOfStudy = Array.from(
+    new Set(users.map((user) => user.field_of_study))
+  );
 
   // Filter and search logic
   const filteredAndSearchedUsers = useMemo(() => {
     return users.filter((user) => {
-      const statusMatch = statusFilter === "all" || user.status === statusFilter
-      const institutionMatch = institutionFilter === "all" || user.institution === institutionFilter
-      const fieldMatch = fieldOfStudyFilter === "all" || user.field_of_study === fieldOfStudyFilter
+      const statusMatch =
+        statusFilter === "all" || user.status === statusFilter;
+      const institutionMatch =
+        institutionFilter === "all" || user.institution === institutionFilter;
+      const fieldMatch =
+        fieldOfStudyFilter === "all" ||
+        user.field_of_study === fieldOfStudyFilter;
 
       const searchMatch =
         !searchQuery ||
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${user.first_name} ${user.last_name}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.institution.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.field_of_study.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.mentor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
+        user.skills.some((skill) =>
+          skill.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
-      return statusMatch && institutionMatch && fieldMatch && searchMatch
-    })
-  }, [statusFilter, institutionFilter, fieldOfStudyFilter, searchQuery])
+      return statusMatch && institutionMatch && fieldMatch && searchMatch;
+    });
+  }, [statusFilter, institutionFilter, fieldOfStudyFilter, searchQuery]);
 
   // Handle filter changes and reset pagination
   const handleFilterChange = (filterType: string, value: string) => {
-    setPage(1)
+    setPage(1);
     switch (filterType) {
       case "status":
-        setStatusFilter(value)
-        break
+        setStatusFilter(value);
+        break;
       case "institution":
-        setInstitutionFilter(value)
-        break
+        setInstitutionFilter(value);
+        break;
       case "fieldOfStudy":
-        setFieldOfStudyFilter(value)
-        break
+        setFieldOfStudyFilter(value);
+        break;
     }
-  }
+  };
 
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value)
-    setPage(1)
-  }
+    setSearchQuery(value);
+    setPage(1);
+  };
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSearchedUsers.length / pageSize)
-  const paginatedUsers = filteredAndSearchedUsers.slice((page - 1) * pageSize, page * pageSize)
+  const totalPages = Math.ceil(filteredAndSearchedUsers.length / pageSize);
+  const paginatedUsers = filteredAndSearchedUsers.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   // Status badge component
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-500 text-white hover:bg-green-600">Active</Badge>
+        return (
+          <Badge className="bg-green-500 text-white hover:bg-green-600">
+            Active
+          </Badge>
+        );
       case "completed":
-        return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Completed</Badge>
+        return (
+          <Badge className="bg-blue-500 text-white hover:bg-blue-600">
+            Completed
+          </Badge>
+        );
       case "on-leave":
-        return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">On Leave</Badge>
+        return (
+          <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
+            On Leave
+          </Badge>
+        );
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status}</Badge>;
     }
-  }
+  };
 
-  const activeInterns = users.filter((user) => user.status === "active")
+  const activeInterns = users.filter((user) => user.status === "active");
 
   // Export to CSV
   const handleExport = () => {
@@ -313,7 +353,7 @@ export default function CompanyInternsPage() {
       "Phone",
       "Address",
       "Duration",
-    ]
+    ];
 
     const csvContent = [
       headers.join(","),
@@ -337,22 +377,25 @@ export default function CompanyInternsPage() {
           `"${user.duration}"`,
         ].join(",")
       ),
-    ].join("\n")
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `interns-export-${new Date().toISOString().split("T")[0]}.csv`)
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `interns-export-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleMessageUser = () => {
-    router.push("/dashboard/company/messages")
-  }
+    router.push("/dashboard/company/messages");
+  };
 
   return (
     <DashboardLayout requiredRole="company">
@@ -369,7 +412,9 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Interns</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Interns
+                  </p>
                   <p className="text-2xl font-bold">{users.length}</p>
                 </div>
                 <User className="h-8 w-8 text-blue-600" />
@@ -380,8 +425,12 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Interns</p>
-                  <p className="text-2xl font-bold text-green-600">{activeInterns.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Interns
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {activeInterns.length}
+                  </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-600" />
               </div>
@@ -391,9 +440,14 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Rating</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg. Rating
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {(users.reduce((sum, user) => sum + user.rating, 0) / users.length).toFixed(1)}
+                    {(
+                      users.reduce((sum, user) => sum + user.rating, 0) /
+                      users.length
+                    ).toFixed(1)}
                   </p>
                 </div>
                 <Star className="h-8 w-8 text-purple-600" />
@@ -404,10 +458,15 @@ export default function CompanyInternsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Progress</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg. Progress
+                  </p>
                   <p className="text-2xl font-bold text-orange-600">
                     {Math.round(
-                      activeInterns.reduce((sum, intern) => sum + intern.progress, 0) / activeInterns.length
+                      activeInterns.reduce(
+                        (sum, intern) => sum + intern.progress,
+                        0
+                      ) / activeInterns.length
                     )}
                     %
                   </p>
@@ -433,7 +492,10 @@ export default function CompanyInternsPage() {
                   />
                 </div>
               </div>
-              <Button variant="outline" onClick={() => setFilterOpen((o) => !o)}>
+              <Button
+                variant="outline"
+                onClick={() => setFilterOpen((o) => !o)}
+              >
                 Filter
               </Button>
               <Button variant="outline" onClick={handleExport}>
@@ -443,72 +505,81 @@ export default function CompanyInternsPage() {
             </div>
 
             {/* Filter Dropdown */}
-           {filterOpen && (
-  <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg z-10 p-4 space-y-4 text-sm">
-    <div>
-      <label className="block font-medium mb-1">Status</label>
-      <select
-        className="w-full border rounded px-2 py-1"
-        value={statusFilter}
-        onChange={(e) => handleFilterChange("status", e.target.value)}
-      >
-        <option value="all">All</option>
-        <option value="active">Active</option>
-        <option value="completed">Completed</option>
-        <option value="on-leave">On Leave</option>
-      </select>
-    </div>
-    <div>
-      <label className="block font-medium mb-1">Institution</label>
-      <select
-        className="w-full border rounded px-2 py-1"
-        value={institutionFilter}
-        onChange={(e) => handleFilterChange("institution", e.target.value)}
-      >
-        <option value="all">All</option>
-        {institutions.map((institution) => (
-          <option key={institution} value={institution}>
-            {institution}
-          </option>
-        ))}
-      </select>
-    </div>
-    <div>
-      <label className="block font-medium mb-1">Field of Study</label>
-      <select
-        className="w-full border rounded px-2 py-1"
-        value={fieldOfStudyFilter}
-        onChange={(e) => handleFilterChange("fieldOfStudy", e.target.value)}
-      >
-        <option value="all">All</option>
-        {fieldsOfStudy.map((field) => (
-          <option key={field} value={field}>
-            {field}
-          </option>
-        ))}
-      </select>
-    </div>
-    <div className="pt-2 border-t">
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={() => {
-          setStatusFilter("all");
-          setInstitutionFilter("all");
-          setFieldOfStudyFilter("all");
-          setSearchQuery("");
-          setPage(1);
-        }}
-      >
-        Clear Filters
-      </Button>
-    </div>
-  </div>
-)}
+            {filterOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg z-10 p-4 space-y-4 text-sm">
+                <div>
+                  <label className="block font-medium mb-1">Status</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={statusFilter}
+                    onChange={(e) =>
+                      handleFilterChange("status", e.target.value)
+                    }
+                  >
+                    <option value="all">All</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="on-leave">On Leave</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">Institution</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={institutionFilter}
+                    onChange={(e) =>
+                      handleFilterChange("institution", e.target.value)
+                    }
+                  >
+                    <option value="all">All</option>
+                    {institutions.map((institution) => (
+                      <option key={institution} value={institution}>
+                        {institution}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">
+                    Field of Study
+                  </label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={fieldOfStudyFilter}
+                    onChange={(e) =>
+                      handleFilterChange("fieldOfStudy", e.target.value)
+                    }
+                  >
+                    <option value="all">All</option>
+                    {fieldsOfStudy.map((field) => (
+                      <option key={field} value={field}>
+                        {field}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setInstitutionFilter("all");
+                      setFieldOfStudyFilter("all");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            )}
             {/* Results Info */}
             <div className="mt-4 text-sm text-gray-600">
-              Showing {paginatedUsers.length} of {filteredAndSearchedUsers.length} interns
+              Showing {paginatedUsers.length} of{" "}
+              {filteredAndSearchedUsers.length} interns
               {searchQuery && <span> matching "{searchQuery}"</span>}
             </div>
           </CardContent>
@@ -520,9 +591,14 @@ export default function CompanyInternsPage() {
             <Card>
               <CardContent className="p-12 text-center">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No interns found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No interns found
+                </h3>
                 <p className="text-gray-600">
-                  {searchQuery || statusFilter !== "all" || institutionFilter !== "all" || fieldOfStudyFilter !== "all"
+                  {searchQuery ||
+                  statusFilter !== "all" ||
+                  institutionFilter !== "all" ||
+                  fieldOfStudyFilter !== "all"
                     ? "Try adjusting your search or filters"
                     : "No interns have been added yet"}
                 </p>
@@ -545,7 +621,9 @@ export default function CompanyInternsPage() {
                           {getStatusBadge(user.status)}
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-sm text-gray-600 ml-1">{user.rating}</span>
+                            <span className="text-sm text-gray-600 ml-1">
+                              {user.rating}
+                            </span>
                           </div>
                         </div>
 
@@ -556,7 +634,9 @@ export default function CompanyInternsPage() {
                             <div>{user.position}</div>
                           </div>
                           <div className="w-1/4">
-                            <div className="font-semibold mb-1">Institution:</div>
+                            <div className="font-semibold mb-1">
+                              Institution:
+                            </div>
                             <div>{user.institution}</div>
                           </div>
                           <div className="w-1/4">
@@ -582,11 +662,17 @@ export default function CompanyInternsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push(`/dashboard/company/interns/${user.id}`)}
+                        onClick={() =>
+                          router.push(`/dashboard/company/interns/${user.id}`)
+                        }
                       >
                         View Profile
                       </Button>
-                      <Button variant="outline" size="sm" onClick={handleMessageUser}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMessageUser}
+                      >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     </div>
@@ -605,8 +691,8 @@ export default function CompanyInternsPage() {
                 <PaginationPrevious
                   href="#"
                   onClick={(e) => {
-                    e.preventDefault()
-                    if (page > 1) setPage(page - 1)
+                    e.preventDefault();
+                    if (page > 1) setPage(page - 1);
                   }}
                   className={page === 1 ? "pointer-events-none opacity-50" : ""}
                 />
@@ -617,8 +703,8 @@ export default function CompanyInternsPage() {
                     href="#"
                     isActive={page === i + 1}
                     onClick={(e) => {
-                      e.preventDefault()
-                      setPage(i + 1)
+                      e.preventDefault();
+                      setPage(i + 1);
                     }}
                   >
                     {i + 1}
@@ -629,10 +715,12 @@ export default function CompanyInternsPage() {
                 <PaginationNext
                   href="#"
                   onClick={(e) => {
-                    e.preventDefault()
-                    if (page < totalPages) setPage(page + 1)
+                    e.preventDefault();
+                    if (page < totalPages) setPage(page + 1);
                   }}
-                  className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+                  className={
+                    page === totalPages ? "pointer-events-none opacity-50" : ""
+                  }
                 />
               </PaginationItem>
             </PaginationContent>
@@ -643,7 +731,9 @@ export default function CompanyInternsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Intern Management Best Practices</CardTitle>
-            <CardDescription>Tips for successful intern supervision</CardDescription>
+            <CardDescription>
+              Tips for successful intern supervision
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
@@ -670,5 +760,5 @@ export default function CompanyInternsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }

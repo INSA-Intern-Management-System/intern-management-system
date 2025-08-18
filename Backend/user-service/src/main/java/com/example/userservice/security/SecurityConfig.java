@@ -1,35 +1,48 @@
 package com.example.userservice.security;
-
-import com.example.userservice.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private JwtAuthFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/internal/**").permitAll() // if you allow internal unauthenticated
                         .requestMatchers(
+                                "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/auth/login"
+                                "/api/universities/login",
+                                "/api/universities/register",
+                                "/api/users",
+                                "/api/users/filter-interns-by-university",
+                                "/api/users/filter-all-users-by-status",
+                                "/api/users/filter-supervisor-by-status",
+                                "/api/users/filter-supervisor-by-field-of-study",
+                                "/api/users/filter-interns-by-status",
+                                "/api/users/interns/search",
+                                "/api/users/status-count",
+                                "/api/users/role-counts",
+                                "/api/users/filter-by-role",
+                                "/api/users/filter-by-institution",
+                                "/api/auth/request-password-change-otp",
+                                "/api/auth/confirm-password-change-otp"
                         ).permitAll()
-                        .requestMatchers("/api/users/*").authenticated() // ✅ Match /api/users and all sub-paths
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // ✅ Register JWT filter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -38,4 +51,9 @@ public class SecurityConfig {
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+//    @Bean
+//    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil, UserService userService) {
+//        return new JwtAuthenticationFilter(jwtUtil, userService);
+//    }
 }

@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 
 import {
   Card,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import {
   FileText,
   MessageSquare,
@@ -97,7 +97,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <DashboardLayout requiredRole="student">
+    <DashboardLayout requiredRole="STUDENT">
       <div className="space-y-6">
         {/* Header */}
         <div>
