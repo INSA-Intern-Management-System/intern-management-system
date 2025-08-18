@@ -2,6 +2,7 @@ package com.example.userservice.service;
 
 import com.example.userservice.dto.*;
 import com.example.userservice.model.*;
+import com.example.userservice.repository.InternManagerReposInterface;
 import com.example.userservice.repository.RoleRepository;
 import com.example.userservice.repository.UserRepository;
 
@@ -27,17 +28,23 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepo;
     private final VerificationCodeRepository verificationCodeRepo;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final InternManagerService internManagerService;
+    private  final InternManagerReposInterface internManagerReposInterface;
 
     @Autowired // <--- Make sure this is present
     private JavaMailSender mailSender;
 
     public UserServiceImpl(UserRepository userRepo,
                            RoleRepository roleRepo,
+                           InternManagerService internManagerService,
+                           InternManagerReposInterface internManagerReposInterface,
                            BCryptPasswordEncoder passwordEncoder,
                            VerificationCodeRepository verificationCodeRepo
                            ) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
+        this.internManagerService = internManagerService;
+        this.internManagerReposInterface = internManagerReposInterface;
         this.verificationCodeRepo = verificationCodeRepo;
         this.passwordEncoder = passwordEncoder;
     }
@@ -494,26 +501,77 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void assignSupervisor(AssignSupervisorRequestDTO dto) {
+        // 1️⃣ Fetch student and Supervisor
         User student = userRepo.findByEmail(dto.getStudentEmail());
-
-        Role studentRole = roleRepo.findByName("STUDENT");
-        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
-
-        if (student == null && student.getRole() != studentRole) {
-            throw new RuntimeException("Student with this email not found");
-        }
-
-        if (student.getUserStatus() != UserStatus.ACTIVE) {
-            throw new RuntimeException("Only Accepted students can be assigned a supervisor");
-        }
-
         User supervisor = userRepo.findByEmail(dto.getSupervisorEmail());
-        if (supervisor == null && supervisor.getRole() !=supervisorRole) {
-            throw new RuntimeException("Supervisor with this email not found");
+
+        // 2️⃣ Validations
+        if (student == null || !student.getRole().getName().equals("STUDENT")) {
+            throw new RuntimeException("Student with this email not found or role mismatch");
+        }
+        if (student.getUserStatus() != UserStatus.ACTIVE) {
+            throw new RuntimeException("Only ACTIVE students can be assigned a Supervisor");
+        }
+        if (supervisor == null || !supervisor.getRole().getName().equals("SUPERVISOR")) {
+            throw new RuntimeException("Supervisor with this email not found or role mismatch");
         }
 
+        // 3️⃣ Update student's supervisor directly
         student.setSupervisor(supervisor);
+
+        // 4️⃣ Find existing InternManager or create new
+        InternManager internManager = null;
+        try {
+            internManager = internManagerReposInterface.getInfo(student.getId());
+        } catch (RuntimeException e) {
+            // Not found → create new
+            internManager = new InternManager();
+            internManager.setUser(student);
+        }
+
+        internManager.setSupervisor(supervisor); // if your entity has `supervisor` field
+
+        // 6️⃣ Save both
         userRepo.save(student);
+        internManagerService.createInternManager(internManager);
+    }
+
+    @Override
+    public void assignProjectManager(AssignProjectManagerRequestDTO dto) {
+
+        // 1️⃣ Fetch student and Project Manager from DB. This is a crucial step to get managed entities.
+        User student = userRepo.findByEmail(dto.getStudentEmail());
+        User projectManager = userRepo.findByEmail(dto.getProjectManagerEmail());
+
+        // 2️⃣ Perform all validations upfront to fail fast.
+        if (student == null || !student.getRole().getName().equals("STUDENT")) {
+            throw new RuntimeException("Student with this email not found or role mismatch");
+        }
+        if (student.getUserStatus() != UserStatus.ACTIVE) {
+            throw new RuntimeException("Only ACTIVE students can be assigned a Project Manager");
+        }
+        if (projectManager == null || !projectManager.getRole().getName().equals("PROJECT_MANAGER")) {
+            throw new RuntimeException("Project Manager with this email not found or role mismatch");
+        }
+
+        // 3️⃣ Update the student's Project Manager.
+        student.setProjectManager(projectManager);
+
+        InternManager internManager = internManagerReposInterface.getInfo(student.getId());
+
+        if (internManager == null) {
+            // If not found, create a new InternManager and link the managed student object.
+            internManager = new InternManager();
+            internManager.setUser(student);
+        }
+
+        // 5️⃣ Set the project manager on the intern manager record.
+        internManager.setManager(projectManager);
+
+        // 6️⃣ Save both entities. The save operations will correctly link the existing,
+        // managed User objects.
+        userRepo.save(student);
+        internManagerService.createInternManager(internManager);
     }
 
     @Override

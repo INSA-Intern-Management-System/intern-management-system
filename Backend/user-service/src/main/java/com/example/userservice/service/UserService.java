@@ -40,6 +40,8 @@ public interface UserService {
     User loadUserByEmail(String email);
 
     void assignSupervisor(AssignSupervisorRequestDTO dto);
+    void assignProjectManager(AssignProjectManagerRequestDTO dto);
+
 
     Page<User> getInterns(Role role, Pageable pageable);
     Page<User> getSupervisors(Role role, Pageable pageable);

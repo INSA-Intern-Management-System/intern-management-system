@@ -20,17 +20,16 @@ public class InternManagerReposImpl implements InternManagerReposInterface {
 
     @Override
     public InternManager getInfo(Long userId) {
-        InternManager internManager = internManagerJpaRepos.findByUser_Id(userId);
-        if (internManager != null) {
-            return internManager;
-        } else {
-            throw new RuntimeException("Intern Manager not found for user ID: " + userId);
-        }
+        return internManagerJpaRepos.findByUser_Id(userId);
     }
 
     @Override
     public List<InternManager> getInfos(List<Long> userIds) {
         return internManagerJpaRepos.findByUser_IdIn(userIds);
     }
-  
+
+    @Override
+    public InternManager save(InternManager internManager) {
+        return internManagerJpaRepos.save(internManager);
+    }
 }

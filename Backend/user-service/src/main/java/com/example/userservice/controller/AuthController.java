@@ -138,7 +138,6 @@ public class AuthController {
         return ResponseEntity.ok(result);
     }
 
-
     // --- New Public Endpoints for OTP-based Password Change ---
 
     @PostMapping("/request-password-change-otp") // ✅ Public: Request OTP
