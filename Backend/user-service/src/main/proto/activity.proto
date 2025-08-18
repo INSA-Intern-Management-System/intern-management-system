@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package com.example.activity_service.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.activity_service.gRPC";
+option java_outer_classname = "ActivityProto";
+
+service ActivityService {
+  rpc CreateActivity (CreateActivityRequest) returns (ActivityResponse);
+  rpc GetRecentActivities (GetRecentActivitiesRequest) returns (GetRecentActivitiesResponse);
+}
+
+message CreateActivityRequest {
+  int64 user_id = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message ActivityResponse {
+  int64 id = 1;
+  int64 user_id = 2;
+  string title = 3;
+  string description = 4;
+  string created_at = 5;
+}
+
+message GetRecentActivitiesRequest {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message GetRecentActivitiesResponse {
+  repeated ActivityResponse activities = 1;
+  int32 total_pages = 2;
+  int64 total_elements = 3;
+  int32 current_page = 4;
+}

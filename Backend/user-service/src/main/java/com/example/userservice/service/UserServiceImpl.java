@@ -525,9 +525,6 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-
-
-
     // --- Helper Methods (no changes needed) ---
     private String generateRandomPassword(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?";

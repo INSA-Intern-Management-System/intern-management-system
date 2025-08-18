@@ -22,4 +22,7 @@ public interface MilestoneReposInterface {
 
     // Get milestone by ID
     Optional<Milestone> getMilestoneById(Long milestoneId);
+
+    // get milestone by execpt compelted status 
+    List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId);
 }

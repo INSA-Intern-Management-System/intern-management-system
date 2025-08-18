@@ -107,6 +107,14 @@ export default function CompanyTeamsPage() {
     );
   };
 
+
+  // destroy a team
+  const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
+  const handleDestroyTeam = (teamId: number) => {
+  setTeams(teams.filter((team) => team.id !== teamId));
+};
+
+
   // Assign project to a team
   const [assignProjectId, setAssignProjectId] = useState<number | null>(null);
   const [projectName, setProjectName] = useState("");
@@ -317,6 +325,46 @@ export default function CompanyTeamsPage() {
                         Assign Project
                       </Button>
                     )}
+
+                    
+{confirmingDelete === team.id ? (
+  <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
+    <p className="text-sm font-medium text-red-800">Destroy Team?</p>
+    <p className="text-xs text-red-600">
+      Are you sure you want to Remove the <strong>{team.name}</strong> ? This action cannot be undone.
+    </p>
+    <div className="flex space-x-2">
+      <Button
+        size="sm"
+        variant="outline"
+        className="text-xs h-7 bg-transparent"
+        onClick={() => setConfirmingDelete(null)}
+      >
+        Cancel
+      </Button>
+      <Button
+        size="sm"
+        className="bg-red-600 hover:bg-red-700 text-xs h-7"
+        onClick={() => {
+          handleDestroyTeam(team.id);
+          setConfirmingDelete(null);
+        }}
+      >
+        Yes, Remove
+      </Button>
+    </div>
+  </div>
+) : (
+  <Button
+    size="sm"
+    variant="outline"
+    className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+    onClick={() => setConfirmingDelete(team.id)}
+  >
+    Remove Team
+  </Button>
+)}
+
                   </div>
                 </div>
               </CardContent>

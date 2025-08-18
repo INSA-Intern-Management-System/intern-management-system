@@ -24,6 +24,8 @@ public interface ProjectServiceInterface {
     MilestoneResponse updateMilestoneStatus(String jwtToken,Long user_id,Long milestoneId, MilestoneStatus newStatus);
     void deleteMilestone(String jwtToken,Long user_id,Long milestoneId);
     List<MilestoneResponse> getMilestonesByProjectId(Long userID,Long projectId);
+    List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId);
+
 
     // Teams
     TeamDetailsResponse createTeam(String jwtToken,TeamRequest request);
@@ -46,4 +48,6 @@ public interface ProjectServiceInterface {
 
     Page<TeamDetailsResponse> getDetailedTeamsForHr(Pageable pageable);
     Page<TeamDetailsResponse> getDetailedTeamsForPm(Long managerId, Pageable pageable);
+
+
 }

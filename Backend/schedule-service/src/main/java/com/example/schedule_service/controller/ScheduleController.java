@@ -60,8 +60,24 @@ public class ScheduleController {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
             Long userId = (Long) httpRequest.getAttribute("userId");
-            Page<ScheduleResponse> schedules = scheduleService.getSchedulesByUserId(userId, pageable);
-            return ResponseEntity.ok(schedules);
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            HashMap<String ,Object> result = scheduleService.getSchedulesByUserId(jwtToken,userId, pageable);
+            return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
         }
