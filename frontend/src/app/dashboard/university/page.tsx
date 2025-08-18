@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, CheckCircle, University, Star, GraduationCap, TrendingUp } from "lucide-react"
- import { DashboardLayout } from "@/components/layout/dashboard-layout"
+ import { DashboardLayout } from "@/app/layout/dashboard-layout"
 
 export default function UniversityDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -186,7 +186,7 @@ function goMessage2() {
                       <p className="text-sm font-medium text-gray-900">{activity.description}</p>
                       <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {activity.message}
+                        {activity.description}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {activity.time}
@@ -263,6 +263,7 @@ function goMessage2() {
                 <h3 className="font-semibold text-gray-900">Assign Supervisor</h3>
                 <p className="text-sm text-gray-600">Assign supervisors to new students</p>
               </button></div>
+              <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                 <Users className="h-8 w-8 text-blue-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">
                   Assign Supervisor
@@ -276,6 +277,7 @@ function goMessage2() {
                 <h3 className="font-semibold text-gray-900">Review Evaluations</h3>
                 <p className="text-sm text-gray-600">Review pending evaluations</p>
              </button> </div>
+             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                 <CheckCircle className="h-8 w-8 text-green-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">
                   Review Evaluations
@@ -289,6 +291,7 @@ function goMessage2() {
                 <h3 className="font-semibold text-gray-900">Performance Report</h3>
                 <p className="text-sm text-gray-600">Generate performance reports</p>
              </button> </div>
+             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                 <Star className="h-8 w-8 text-orange-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">
                   Performance Report
@@ -297,6 +300,7 @@ function goMessage2() {
                   Generate performance reports
                 </p>
               </div>
+              
             </div>
           </CardContent>
         </Card>
