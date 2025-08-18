@@ -24,12 +24,26 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            String rawHeader = accessor.getFirstNativeHeader("access-token");
-            if (rawHeader == null || !rawHeader.startsWith("Bearer ")) {
-                throw new IllegalArgumentException("Missing or invalid access-token header");
+             // First try from header
+            String token = accessor.getFirstNativeHeader("access-token");
+
+            // If not found in header, try from cookies
+            if ((token == null || token.isBlank()) && accessor.getSessionAttributes() != null) {
+                String cookieHeader = (String) accessor.getHeader("cookie"); // all cookies in one string
+                if (cookieHeader != null) {
+                    for (String cookie : cookieHeader.split(";")) {
+                        String[] parts = cookie.trim().split("=");
+                        if (parts.length == 2 && "access_token".equals(parts[0])) {
+                            token = parts[1];
+                            break;
+                        }
+                    }
+                }
             }
 
-            String token = rawHeader.substring(7); // raw token (without "Bearer ")
+            if (token == null) {
+                throw new IllegalArgumentException("Missing or invalid JWT token");
+            }
 
             try {
                 if (!security.isTokenValid(token)) {

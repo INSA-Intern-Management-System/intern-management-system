@@ -23,13 +23,7 @@ public class JwtServerInterceptor implements ServerInterceptor {
         Metadata.Key<String> authKey = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
         String rawHeader = headers.get(authKey);
         System.out.println("[GrpcAuth] Raw header: " + rawHeader);
-
-        if (rawHeader != null && rawHeader.startsWith("Bearer ")) {
-            token = rawHeader.substring(7);
-        }
-        if (rawHeader != null && rawHeader.startsWith("Bearer ")) {
-            token = rawHeader.substring(7);
-        }
+        token=rawHeader;    
 
         if (token == null) {
             call.close(Status.UNAUTHENTICATED.withDescription("Missing or invalid authorization header"), new Metadata());

@@ -375,6 +375,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Page<User> filterSupervisorByInstitution(String institution, Pageable pageable) {
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+        return userRepo.findByRoleAndInstitution(supervisorRole, institution, pageable);
+    }
+
+    @Override
     public Page<User> filterInternByStatus(String query, Pageable pageable) {
         Role internRole = roleRepo.findByName("STUDENT");
 

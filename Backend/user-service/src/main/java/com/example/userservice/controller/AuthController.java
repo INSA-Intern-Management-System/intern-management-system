@@ -6,6 +6,7 @@ import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -34,23 +35,26 @@ public class AuthController {
             @RequestBody RegisterRequest request,
             HttpServletRequest httpServletRequest) {
         try {
-            // Try to get role from token (set as request attribute by your security filter)
-            String roleFromToken = (String) httpServletRequest.getAttribute("role");
 
-            // Get role and internalSource from headers as fallback (for internal service calls)
-            String roleFromHeader = httpServletRequest.getHeader("role");
-            String internalSource = httpServletRequest.getHeader("internal-source");
+            // 1️⃣ Get token from cookies
+            String token = null;
+            if (httpServletRequest.getCookies() != null) {
+                for (Cookie cookie : httpServletRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        if (token != null) {
+                            token = token.trim(); // remove leading/trailing spaces
+                        }
+                        break;
+                    }
+                }
+            }
 
-            // Determine effective role to use for authorization
-            String effectiveRole = roleFromToken != null ? roleFromToken : roleFromHeader;
+            String role = jwtUtil.extractUserRole(token);
 
-            boolean allowed =
-                    "ADMIN".equalsIgnoreCase(effectiveRole) ||
-                            ("application-service".equalsIgnoreCase(internalSource) && "HR".equalsIgnoreCase(effectiveRole));
-
-            if (!allowed) {
+            if (!"ADMIN".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only ADMIN or HR from application-service can register users."));
+                        .body(Map.of("error", "Only ADMIN or HR can register users."));
             }
 
             User user = userService.registerUser(request);
@@ -91,11 +95,13 @@ public class AuthController {
             Long userIdFromToken = jwtUtil.extractUserId(token);
             String roleFromToken = jwtUtil.extractUserRole(token);
             String emailFromToken = jwtUtil.extractEmail(token);
+            String institutionFromToken = jwtUtil.extractUserInstitution(token);
 
             // ✅ Print values
             System.out.println("userId: " + userIdFromToken);
             System.out.println("role: " + roleFromToken);
             System.out.println("email: " + emailFromToken);
+            System.out.println("institution: " + institutionFromToken);
 
             AuthResponse authResponse = new AuthResponse(
                     "User logged in successfully",
@@ -111,6 +117,25 @@ public class AuthController {
 
             return ResponseEntity.status(400).body(error);
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        // Create an expired cookie to overwrite the existing access_token
+        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("strict")
+                .path("/")
+                .maxAge(0) // expire immediately
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+
+        Map<String, String> result = new HashMap<>();
+        result.put("message", "User logged out successfully");
+
+        return ResponseEntity.ok(result);
     }
 
 

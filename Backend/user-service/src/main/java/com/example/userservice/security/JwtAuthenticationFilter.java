@@ -86,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return path.equals("/api/auth/login") ||
                 path.equals("/api/auth/request-password-change-otp") ||
                 path.equals("/api/users") ||
-                path.equals("/api/users/\\d+") ||
+                path.equals("/api/users/{id}") ||
                 path.equals("/api/users/filter-by-role") ||
                 path.equals("/api/users/interns/search") ||
                 path.equals("/api/users/supervisors/search")||

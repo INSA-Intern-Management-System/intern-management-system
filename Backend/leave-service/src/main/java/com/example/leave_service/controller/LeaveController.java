@@ -4,6 +4,8 @@ import com.example.leave_service.dto.LeaveRequest;
 import com.example.leave_service.dto.LeaveResponse;
 import com.example.leave_service.model.LeaveStatus;
 import com.example.leave_service.service.LeaveService;
+
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -35,11 +37,20 @@ public class LeaveController {
                 return errorResponse("Unauthorized: Only INTERN can create leave requests");
             }
 
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             LeaveResponse createdLeave = leaveService.createLeave(jwtToken,userId, leaveRequest);
             return ResponseEntity.ok(createdLeave);
@@ -175,11 +186,20 @@ public class LeaveController {
                 return errorResponse("Unauthorized: Only STUDENT or ADMIN can delete leaves");
             }
             
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             leaveService.deleteLeaveOfSelf(jwtToken,leaveId,user_id);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Leave deleted successfully");
@@ -200,11 +220,20 @@ public class LeaveController {
                 return errorResponse("Unauthorized: Only PROJECT_MANAGER can update leave status");
             }
 
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            };
 
             LeaveResponse updated = leaveService.updateLeaveStatus(jwtToken,leaveId,userId, newStatus);
             return ResponseEntity.ok(updated);

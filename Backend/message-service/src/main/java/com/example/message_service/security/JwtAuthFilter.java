@@ -2,6 +2,7 @@ package com.example.message_service.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -21,66 +22,62 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private Security security; // your JWT util class
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-                                    throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
+   @Override
+protected void doFilterInternal(HttpServletRequest request,
+                                HttpServletResponse response,
+                                FilterChain filterChain)
+                                throws ServletException, IOException {
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            System.out.println("JWT Token: " + token);
-            try {
-                // validate token
-                if (!security.isTokenValid(token)) {
-                    System.out.println("Invalid or expired token");
-                    throw new RuntimeException("Invalid or expired token");
-                }
-                System.out.println("Valid token, proceeding with request");
+    String token = null;
 
-                // extract user info
-                Long userId = security.extractUserId(token);
-                String role = security.extractUserRole(token);
-                String email = security.extractEmail(token);
-
-                // put into request attributes
-                request.setAttribute("userId", userId);
-                request.setAttribute("role", role);
-                request.setAttribute("email", email);
-                System.out.println("User ID: " + userId + ", Role: " + role + ", Email: " + email);
-
-                // ✅ set Authentication into SecurityContext
-                List<SimpleGrantedAuthority> authorities =
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role)); // e.g., ROLE_Student
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                System.out.println("Authentication set in security context for userId: " + userId);
-
-            } catch (Exception e) {
-                System.out.println("JWT validation failed: " + e.getMessage());
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Unauthorized: " + e.getMessage());
-                return;
+    // ✅ Get JWT from cookie
+    if (request.getCookies() != null) {
+        for (Cookie cookie : request.getCookies()) {
+            if ("access_token".equals(cookie.getName())) {
+                token = cookie.getValue();
+                break;
             }
-        } else {
-            // missing header → reject
-            System.out.println("error:Missing Authorization header");
+        }
+    }
+
+    // Only process if token exists
+    if (token != null) {
+        try {
+            // ✅ Validate token
+            if (!security.isTokenValid(token)) {
+                throw new RuntimeException("Invalid or expired token");
+            }
+
+            // ✅ Extract user info
+            Long userId = security.extractUserId(token);
+            String role = security.extractUserRole(token);
+            String email = security.extractEmail(token);
+
+            request.setAttribute("userId", userId);
+            request.setAttribute("role", role);
+            request.setAttribute("email", email);
+
+            // ✅ Set authentication into SecurityContext
+            List<SimpleGrantedAuthority> authorities =
+                    List.of(new SimpleGrantedAuthority("ROLE_" + role));
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            System.out.println("Authentication set for userId: " + userId);
+
+        } catch (Exception e) {
+            System.out.println("JWT validation failed: " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Missing Authorization header");
+            response.getWriter().write("Unauthorized: " + e.getMessage());
             return;
         }
-
-        System.out.println("JWT filter passed, continuing request");
-        // continue with the filter chain
-        filterChain.doFilter(request, response);
-    }
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path.startsWith("/ws"); 
+    } else {
+        // Token is missing - log but don't block yet
+        System.out.println("No access_token cookie found - proceeding for public endpoints");
     }
 
-
+    // ✅ Always continue the filter chain
+    filterChain.doFilter(request, response);
+}
 }

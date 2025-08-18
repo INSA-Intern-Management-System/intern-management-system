@@ -1,4 +1,4 @@
-package com.example.application_service.security;
+package com.example.notification_service.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -11,7 +11,7 @@ import java.security.Key;
 import java.util.Date;
 
 @Component
-public class JwtUtil {
+public class Security {
 
     @Value("${jwt.secret}")
     private String secret;
@@ -36,12 +36,6 @@ public class JwtUtil {
     public String extractUserRole(String token) {
         Claims claims = extractAllClaims(token);
         return claims.get("role", String.class);
-    }
-
-    // ✅ Extract institution from token
-    public String extractUserInstitution(String token) {
-        Claims claims = extractAllClaims(token);
-        return claims.get("institution", String.class);
     }
 
     // ✅ Extract email from token

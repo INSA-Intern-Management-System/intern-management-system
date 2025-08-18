@@ -4,6 +4,8 @@ import com.example.schedule_service.dto.ScheduleRequest;
 import com.example.schedule_service.dto.ScheduleResponse;
 import com.example.schedule_service.model.ScheduleStatus;
 import com.example.schedule_service.service.ScheduleService;
+
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -31,12 +33,21 @@ public class ScheduleController {
         try {
             if (!isStudent(httpRequest)) return unauthorized();
             Long userId = (Long) httpRequest.getAttribute("userId");
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-            }
-            String jwtToken = authHeader.substring(7);
 
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             ScheduleResponse created = scheduleService.createSchedule(jwtToken,userId, request);
             return ResponseEntity.ok(created);
         } catch (RuntimeException e) {
@@ -154,11 +165,20 @@ public class ScheduleController {
                 return ResponseEntity.status(401).body("Unauthorized: User ID not found");
             }
 
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             scheduleService.deleteAllSchedules(jwtToken, userId);
             Map<String, String> res = new HashMap<>();
             res.put("message", "All schedules deleted successfully");
@@ -177,11 +197,20 @@ public class ScheduleController {
             if (userId == null) {
                 return ResponseEntity.status(401).body("Unauthorized: User ID not found");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             scheduleService.deleteScheduleById(jwtToken,userId,scheduleId);
             Map<String, String> res = new HashMap<>();
@@ -203,11 +232,21 @@ public class ScheduleController {
             if (userId == null) {
                 return ResponseEntity.status(401).body("Unauthorized: User ID not found");
             }
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
-            String jwtToken = authHeader.substring(7);
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             ScheduleResponse updated = scheduleService.updateScheduleStatus(jwtToken, userId,scheduleId, newStatus);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {

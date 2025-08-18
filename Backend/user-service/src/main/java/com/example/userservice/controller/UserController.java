@@ -7,7 +7,10 @@ import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import com.example.userservice.model.UserStatusCount;
 import com.example.userservice.repository.RoleRepository;
+import com.example.userservice.repository.UserRepository;
+import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
@@ -27,10 +30,14 @@ public class UserController {
 
     private final UserService userService;
     private final RoleRepository roleRepo;
+    private final UserRepository userRepo;
+    private final JwtUtil jwtUtil;
 
-    public UserController(UserService userService, RoleRepository roleRepo) {
+    public UserController(UserService userService, RoleRepository roleRepo, UserRepository userRepo,JwtUtil jwtUtil) {
         this.userService = userService;
         this.roleRepo = roleRepo;
+        this.userRepo = userRepo;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping
@@ -260,8 +267,6 @@ public class UserController {
         return ResponseEntity.ok(roleCounts);
     }
 
-
-
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
             @RequestParam String query,
@@ -398,10 +403,30 @@ public class UserController {
 
     @GetMapping("/filter-supervisor-by-status")
     public ResponseEntity<?> filterSupervisorByStatus(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+
+        // 🔑 Get JWT from cookie
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // 🔑 Extract role & id from token
+        String role = jwtUtil.extractUserRole(token);
+
+        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only universities can access this resource"));
+        }
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
@@ -420,10 +445,30 @@ public class UserController {
 
     @GetMapping("/filter-supervisor-by-field-of-study")
     public ResponseEntity<?> filterSupervisorByFieldOfStudy(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+
+        // 🔑 Get JWT from cookie
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // 🔑 Extract role & id from token
+        String role = jwtUtil.extractUserRole(token);
+
+        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only universities can access this resource"));
+        }
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.filterSupervisorByFieldOfStudy(query, pageable);
@@ -439,6 +484,49 @@ public class UserController {
                 "totalElements", pageResult.getTotalElements()
         ));
     }
+
+    @GetMapping("/filter-supervisor-by-institution")
+    public ResponseEntity<?> getSupervisorsByInstitution(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        // 🔑 Get JWT from cookie
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // 🔑 Extract role & id from token
+        String role = jwtUtil.extractUserRole(token);
+        String institution = jwtUtil.extractUserInstitution(token);
+
+        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only universities can access this resource"));
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<User> pageResult = userService.filterSupervisorByInstitution(institution, pageable);
+
+        List<UserResponseDto> content = pageResult.getContent().stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "currentPage", pageResult.getNumber(),
+                "totalPages", pageResult.getTotalPages(),
+                "totalElements", pageResult.getTotalElements()
+        ));
+    }
+
 
     @GetMapping("/filter-all-users-by-status")
     public ResponseEntity<?> filterAllUserByStatus(
