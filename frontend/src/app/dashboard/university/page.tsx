@@ -186,7 +186,7 @@ export default function UniversityDashboard() {
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
-                        {activity.message}
+                        {activity.description}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {activity.time}
@@ -285,6 +285,7 @@ export default function UniversityDashboard() {
                   Generate performance reports
                 </p>
               </div>
+              
             </div>
           </CardContent>
         </Card>
