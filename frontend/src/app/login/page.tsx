@@ -1,108 +1,75 @@
-
 "use client";
-import { getMe, login } from "@/services/authService";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { login, getUser } from "@/app/services/authService";
+import { LoginData, AuthResponse, User } from "@/types/entities";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
 } from "@/components/ui/card";
+import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Link } from "lucide-react";
-
+import { Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "lucide-react";
 export default function LoginPage() {
+  const [formData, setFormData] = useState<LoginData>({
+    email: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true); // NEW
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuth = async () => {
+  // Check for existing user session
+  const { data: user, isLoading } = useQuery<User | null>({
+    queryKey: ["user"],
+    queryFn: async () => {
       try {
-        const cookies = document.cookie.split("; ");
-        const userId = cookies
-          .find((cookie) => cookie.startsWith("userId="))
-          ?.split("=")[1];
-
-        if (!userId) {
-          setCheckingAuth(false); // Not logged in, show form
-          return;
-        }
-
-        const user = await getMe(userId);
-        if (user) {
-          // Redirect immediately without showing login
-          switch (user.roles.name?.toLowerCase()) {
-            case "student":
-              router.replace("/dashboard/student");
-              break;
-            case "company":
-              router.replace("/dashboard/company");
-              break;
-            case "university":
-              router.replace("/dashboard/university");
-              break;
-            case "admin":
-              router.replace("/dashboard/admin");
-              break;
-            default:
-              router.replace("/dashboard");
-          }
-        } else {
-          setCheckingAuth(false); // No valid user, show form
-        }
-      } catch (error) {
-        console.error("Not authenticated", error);
-        setCheckingAuth(false);
+        const response = await fetch("/api/auth/session");
+        if (!response.ok) throw new Error("Not authenticated");
+        return await response.json();
+      } catch {
+        return null;
       }
-    };
+    },
+    retry: false,
+  });
 
-    checkAuth();
-  }, [router]);
+  // Redirect if user is authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.push(`/dashboard/${user.roles.name.toLowerCase()}`);
+    }
+  }, [user, isLoading, router]);
+
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: (data: AuthResponse) => {
+      router.push(`/dashboard/${data.user.roles.name.toLowerCase()}`);
+    },
+    onError: (err: any) => {
+      setError(
+        err.response?.data?.error ||
+          "Check your email and password and try again."
+      );
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const loginResponse = await login(formData);
-
-      switch (loginResponse.user.roles.name?.toLowerCase()) {
-        case "student":
-          router.replace("/dashboard/student");
-          break;
-        case "company":
-          router.replace("/dashboard/company");
-          break;
-        case "university":
-          router.replace("/dashboard/university");
-          break;
-        case "admin":
-          router.replace("/dashboard/admin");
-          break;
-        default:
-          router.replace("/dashboard");
-      }
-    } catch (err) {
-      console.error("Login failed", err);
-      alert("Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
+    setError("");
+    loginMutation.mutate(formData);
   };
 
-  // Don't render form while checking auth
-  if (checkingAuth) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid" />
-        <span className="ml-4 text-blue-700 font-semibold">
-          Checking login status...
-        </span>
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
       </div>
     );
   }
@@ -118,6 +85,11 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="text-red-600 bg-red-100 border border-red-300 rounded px-3 py-2 mb-2 text-center">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -160,13 +132,16 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
+              disabled={loginMutation.isPending}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loginMutation.isPending ? "Signing in..." : "Sign In"}
             </Button>
           </form>
           <div className="mt-4 text-center">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+            <Link
+              href="/"
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
               ← Back to Home
             </Link>
           </div>
@@ -175,6 +150,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-
-
