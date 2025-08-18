@@ -1,5 +1,7 @@
-"use client";
+// "use client";
 
+import React, { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -17,9 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardLayout } from "@/app/layout/dashboard-layout";
-import { Calendar, Plus, Clock, CheckCircle, X, Search } from "lucide-react";
-import React from "react";
+import DashboardLayout from "@/app/layout/dashboard-layout";
+import {
+  Calendar,
+  Plus,
+  Clock,
+  CheckCircle,
+  X,
+  Search,
+  Trash2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,73 +45,188 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/api/axios";
+import { getUserIdFromCookie } from "@/app/services/authService";
 
 interface LeaveRequest {
   id: number;
-  user_id: number;
-  receiver_id: number;
-  start_date: string;
-  end_date: string;
+  userId: number;
+  receiverId: number;
+  startDate: string;
+  endDate: string;
   description?: string;
   type?: string;
   status?: string;
-  created_at: string;
-  approved_by?: string | null;
-  rejection_reason?: string | null;
+  createdAt: string;
+  approvedBy?: string | null;
+  rejectionReason?: string | null;
   days?: number;
 }
 
+interface LeaveResponse {
+  content: LeaveRequest[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+}
+
+interface StatusCounts {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+const fetchLeaveRequests = async (
+  page: number,
+  size: number,
+  userId: string
+): Promise<LeaveResponse> => {
+  const response = await api.get(`/leaves?page=${page - 1}&size=${size}`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const fetchStatusCounts = async (userId: string): Promise<StatusCounts> => {
+  const response = await api.get(`/leaves/status-counts`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const searchLeaveRequests = async (
+  page: number,
+  size: number,
+  userId: string,
+  leaveType: string,
+  reason: string
+): Promise<LeaveResponse> => {
+  const params = new URLSearchParams();
+  if (leaveType !== "all") params.append("leaveType", leaveType);
+  if (reason) params.append("reason", reason);
+  params.append("page", (page - 1).toString());
+  params.append("size", size.toString());
+  const response = await api.get(`/leaves/search?${params.toString()}`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const filterLeaveRequests = async (
+  page: number,
+  size: number,
+  userId: string,
+  leaveType: string,
+  leaveStatus: string
+): Promise<LeaveResponse> => {
+  const params = new URLSearchParams();
+  if (leaveType !== "all") params.append("leaveType", leaveType);
+  if (leaveStatus !== "all")
+    params.append("leaveStatus", leaveStatus.toUpperCase());
+  params.append("page", (page - 1).toString());
+  params.append("size", size.toString());
+  const response = await api.get(`/leaves/filter?${params.toString()}`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const createLeaveRequest = async (leave: {
+  type: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  receiverId: number;
+  days: number;
+}): Promise<LeaveRequest> => {
+  const response = await api.post(`/leaves`, leave, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const deleteLeaveRequest = async (
+  leaveId: number
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/leaves/${leaveId}`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
 export default function StudentLeavePage() {
-  const initialLeaveRequests: LeaveRequest[] = [
-    {
-      id: 1,
-      user_id: 123,
-      receiver_id: 456,
-      start_date: "2024-02-10",
-      end_date: "2024-02-12",
-      days: 3,
-      description: "Medical appointment and recovery",
-      type: "Sick Leave",
-      status: "approved",
-      created_at: "2024-02-08",
-      approved_by: "Sarah Wilson",
+  const userId = getUserIdFromCookie();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({
+    type: "",
+    startDate: "",
+    endDate: "",
+    description: "",
+    receiverId: "456", // Mock receiverId (e.g., supervisor)
+  });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
+
+  const { data: leaveData, refetch: refetchLeaves } = useQuery<LeaveResponse>({
+    queryKey: ["leaves", page, search, statusFilter, typeFilter, userId],
+    queryFn: () =>
+      search !== "" || statusFilter !== "all" || typeFilter !== "all"
+        ? searchLeaveRequests(page, pageSize, userId!, typeFilter, search)
+        : filterLeaveRequests(
+            page,
+            pageSize,
+            userId!,
+            typeFilter,
+            statusFilter
+          ),
+    enabled: !!userId,
+  });
+
+  const { data: statusCounts } = useQuery<StatusCounts>({
+    queryKey: ["leaveStatusCounts", userId],
+    queryFn: () => fetchStatusCounts(userId!),
+    enabled: !!userId,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createLeaveRequest,
+    onSuccess: () => {
+      refetchLeaves();
+      setForm({
+        type: "",
+        startDate: "",
+        endDate: "",
+        description: "",
+        receiverId: "456",
+      });
+      setDialogOpen(false);
+      setPage(1);
     },
-    {
-      id: 2,
-      user_id: 123,
-      receiver_id: 456,
-      start_date: "2024-02-20",
-      end_date: "2024-02-20",
-      days: 1,
-      description: "Family emergency",
-      type: "Personal Leave",
-      status: "pending",
-      created_at: "2024-02-15",
-      approved_by: null,
+    onError: (error: any) => {
+      console.error("Failed to create leave request:", error);
     },
-    {
-      id: 3,
-      user_id: 123,
-      receiver_id: 456,
-      start_date: "2024-01-15",
-      end_date: "2024-01-17",
-      days: 3,
-      description: "Pre-planned vacation",
-      type: "Vacation",
-      status: "rejected",
-      created_at: "2024-01-10",
-      approved_by: "Sarah Wilson",
-      rejection_reason: "Vacation quota exceeded for the month",
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteLeaveRequest,
+    onSuccess: () => {
+      refetchLeaves();
     },
-  ];
+    onError: (error: any) => {
+      console.error("Failed to delete leave request:", error);
+    },
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "approved":
+      case "APPROVED":
         return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-      case "rejected":
+      case "REJECTED":
         return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      case "pending":
+      case "PENDING":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
@@ -111,98 +235,51 @@ export default function StudentLeavePage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "approved":
+      case "APPROVED":
         return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case "rejected":
+      case "REJECTED":
         return <X className="h-5 w-5 text-red-600" />;
-      case "pending":
+      case "PENDING":
         return <Clock className="h-5 w-5 text-yellow-600" />;
       default:
         return <Calendar className="h-5 w-5 text-gray-600" />;
     }
   };
 
-  // Dialog and form state
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [form, setForm] = React.useState({
-    type: "",
-    start_date: "",
-    end_date: "",
-    description: "",
-  });
-  const [requests, setRequests] =
-    React.useState<LeaveRequest[]>(initialLeaveRequests);
-
-  // Search/filter state
-  const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("all");
-  const [typeFilter, setTypeFilter] = React.useState("all");
-
-  // Pagination
-  const [page, setPage] = React.useState(1);
-  const pageSize = 3;
-
-  const filteredRequests = requests.filter((request) => {
-    // Search filter
-    const matchesSearch =
-      search === "" ||
-      request.type?.toLowerCase().includes(search.toLowerCase()) ||
-      request.description?.toLowerCase().includes(search.toLowerCase());
-
-    // Status filter
-    const matchesStatus =
-      statusFilter === "all" || request.status === statusFilter;
-
-    // Type filter
-    const matchesType = typeFilter === "all" || request.type === typeFilter;
-
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  const totalPages = Math.ceil(filteredRequests.length / pageSize);
-  const paginatedLeaveRequests = filteredRequests.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-
   const handleFormChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e:
+      | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+      | { name: string; value: string }
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = "target" in e ? e.target : e;
+    setForm({ ...form, [name]: value });
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Calculate days
-    const startDate = new Date(form.start_date);
-    const endDate = new Date(form.end_date);
+    const startDate = new Date(form.startDate);
+    const endDate = new Date(form.endDate);
     const days =
       Math.floor(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       ) + 1;
-
-    const newRequest: LeaveRequest = {
-      id: requests.length + 1,
-      user_id: 123, // Mock user ID
-      receiver_id: 456, // Mock receiver ID
-      start_date: form.start_date,
-      end_date: form.end_date,
-      description: form.description,
-      type: form.type,
-      status: "pending",
-      created_at: new Date().toISOString().slice(0, 10),
-      approved_by: null,
-      days: days,
-    };
-
-    setRequests([newRequest, ...requests]);
-    setForm({ type: "", start_date: "", end_date: "", description: "" });
-    setDialogOpen(false);
-    setPage(1);
+    if (days < 1) {
+      console.error("End date must be after start date");
+      return;
+    }
+    createMutation.mutate({
+      ...form,
+      receiverId: Number(form.receiverId),
+      days,
+    });
   };
+
+  const handleDelete = (leaveId: number) => {
+    deleteMutation.mutate(leaveId);
+  };
+
+  const requests = leaveData?.content || [];
+  const totalPages = leaveData?.totalPages || 1;
 
   return (
     <DashboardLayout requiredRole="student">
@@ -232,7 +309,9 @@ export default function StudentLeavePage() {
                 <Select
                   name="type"
                   value={form.type}
-                  onValueChange={(value) => setForm({ ...form, type: value })}
+                  onValueChange={(value) =>
+                    handleFormChange({ name: "type", value })
+                  }
                   required
                 >
                   <SelectTrigger className="w-full">
@@ -248,18 +327,18 @@ export default function StudentLeavePage() {
                   </SelectContent>
                 </Select>
                 <Input
-                  name="start_date"
+                  name="startDate"
                   type="date"
                   placeholder="Start Date"
-                  value={form.start_date}
+                  value={form.startDate}
                   onChange={handleFormChange}
                   required
                 />
                 <Input
-                  name="end_date"
+                  name="endDate"
                   type="date"
                   placeholder="End Date"
-                  value={form.end_date}
+                  value={form.endDate}
                   onChange={handleFormChange}
                   required
                 />
@@ -275,8 +354,9 @@ export default function StudentLeavePage() {
                   <Button
                     type="submit"
                     className="bg-black text-white hover:bg-gray-900 px-6"
+                    disabled={createMutation.isPending}
                   >
-                    Submit
+                    {createMutation.isPending ? "Submitting..." : "Submit"}
                   </Button>
                   <Button
                     type="button"
@@ -301,7 +381,9 @@ export default function StudentLeavePage() {
                   <p className="text-sm font-medium text-gray-600">
                     Total Requests
                   </p>
-                  <p className="text-2xl font-bold">{requests.length}</p>
+                  <p className="text-2xl font-bold">
+                    {leaveData?.totalElements || 0}
+                  </p>
                 </div>
                 <Calendar className="h-8 w-8 text-blue-600" />
               </div>
@@ -313,7 +395,7 @@ export default function StudentLeavePage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending</p>
                   <p className="text-2xl font-bold text-yellow-600">
-                    {requests.filter((r) => r.status === "pending").length}
+                    {statusCounts?.pending || 0}
                   </p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
@@ -326,7 +408,7 @@ export default function StudentLeavePage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Approved</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {requests.filter((r) => r.status === "approved").length}
+                    {statusCounts?.approved || 0}
                   </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
@@ -339,7 +421,7 @@ export default function StudentLeavePage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Rejected</p>
                   <p className="text-2xl font-bold text-red-600">
-                    {requests.filter((r) => r.status === "rejected").length}
+                    {statusCounts?.rejected || 0}
                   </p>
                 </div>
                 <X className="h-8 w-8 text-red-600" />
@@ -359,22 +441,37 @@ export default function StudentLeavePage() {
                     placeholder="Search by leave type or reason..."
                     className="w-full pl-10 rounded-md bg-white border border-gray-200 h-10"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
                   />
                 </div>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="w-full md:w-[200px] border-0 bg-gray-100 text-gray-600 rounded-md">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   <SelectItem value="all">All Requests</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) => {
+                  setTypeFilter(value);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="w-full md:w-[200px] border-0 bg-gray-100 text-gray-600 rounded-md">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
@@ -392,8 +489,8 @@ export default function StudentLeavePage() {
 
         {/* Leave Requests List */}
         <div className="space-y-4">
-          {paginatedLeaveRequests.length > 0 ? (
-            paginatedLeaveRequests.map((request) => (
+          {requests.length > 0 ? (
+            requests.map((request) => (
               <Card
                 key={request.id}
                 className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
@@ -414,8 +511,8 @@ export default function StudentLeavePage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm text-gray-600">
                           <div>
                             <p>
-                              <strong>Duration:</strong> {request.start_date} to{" "}
-                              {request.end_date}
+                              <strong>Duration:</strong> {request.startDate} to{" "}
+                              {request.endDate}
                             </p>
                             <p>
                               <strong>Days:</strong> {request.days} day(s)
@@ -423,12 +520,12 @@ export default function StudentLeavePage() {
                           </div>
                           <div>
                             <p>
-                              <strong>Applied on:</strong> {request.created_at}
+                              <strong>Applied on:</strong> {request.createdAt}
                             </p>
-                            {request.approved_by && (
+                            {request.approvedBy && (
                               <p>
                                 <strong>Reviewed by:</strong>{" "}
-                                {request.approved_by}
+                                {request.approvedBy}
                               </p>
                             )}
                           </div>
@@ -438,17 +535,28 @@ export default function StudentLeavePage() {
                             <strong>Reason:</strong> {request.description}
                           </p>
                         </div>
-                        {request.status === "rejected" &&
-                          request.rejection_reason && (
+                        {request.status === "REJECTED" &&
+                          request.rejectionReason && (
                             <div className="p-3 bg-red-50 rounded-lg">
                               <p className="text-sm text-red-800">
                                 <strong>Rejection Reason:</strong>{" "}
-                                {request.rejection_reason}
+                                {request.rejectionReason}
                               </p>
                             </div>
                           )}
                       </div>
                     </div>
+                    {request.status === "PENDING" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDelete(request.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
