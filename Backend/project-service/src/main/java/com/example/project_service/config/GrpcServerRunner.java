@@ -1,4 +1,5 @@
 package com.example.project_service.config;
+import com.example.project_service.repository.MilestoneReposInterface;
 import com.example.project_service.repository.ProjectReposInterface;
 import com.example.project_service.security.JwtServerInterceptor;
 import io.grpc.Server;
@@ -16,15 +17,18 @@ import java.util.concurrent.TimeUnit;
 public class GrpcServerRunner {
 
     private final ProjectReposInterface repository;
+    private final MilestoneReposInterface mileRepos;
     private final JwtServerInterceptor jwtInterceptor;
     private final GrpcProperties grpcProperties;
 
     private Server server;
 
     public GrpcServerRunner(ProjectReposInterface repository,
+                            MilestoneReposInterface mileRepos,
                             JwtServerInterceptor jwtInterceptor,
                             GrpcProperties grpcProperties) {
         this.repository = repository;
+        this.mileRepos=mileRepos;
         this.jwtInterceptor = jwtInterceptor;
         this.grpcProperties = grpcProperties;
     }
@@ -36,7 +40,7 @@ public class GrpcServerRunner {
                 .maxInboundMessageSize(grpcProperties.getMaxMessageSize())
                 .permitKeepAliveTime(5, TimeUnit.SECONDS)
                 .addService(ServerInterceptors.intercept(
-                        new ProjectManagerGrpcService(repository),
+                        new ProjectManagerGrpcService(repository,mileRepos),
                         jwtInterceptor
                 ))
                 .build()
