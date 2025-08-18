@@ -53,6 +53,66 @@ export interface AuthResponse {
 export interface LogoutResponse {
   message: string;
 }
+export interface Schedule {
+  scheduleId: number;
+  userId: number;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: "PENDING" | "COMPLETED" | "OVERDUE";
+  createdAt: string;
+}
+
+export interface Task {
+  id: number;
+  title: string;
+  description: string;
+  due: string;
+  status: "todo" | "done";
+  priority: "high" | "medium" | "low";
+}
+
+export interface PaginatedSchedules {
+  content: Schedule[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  totalPages: number;
+  totalElements: number;
+  last: boolean;
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface LeaveRequest {
+  id: number;
+  userId: number;
+  receiverId: number;
+  startDate: string;
+  endDate: string;
+  description?: string;
+  type?: string;
+  status?: string;
+  createdAt: string;
+  approvedBy?: string | null;
+  rejectionReason?: string | null;
+  days?: number;
+}
+
+export interface LeaveResponse {
+  content: LeaveRequest[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+}
+
+export interface StatusCounts {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
 
 export interface Project {
   id: number;
@@ -92,19 +152,6 @@ export interface TeamMember {
   user_id: number;
   role: string;
   joined_at: string;
-}
-
-export interface Task {
-  id: number;
-  project_id: number;
-  title: string;
-  description?: string;
-  status?: string;
-  priority?: string;
-  assigned_to?: number;
-  due_date?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 // No direct TaskAssignment table in schema, skipping

@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { logout } from "@/app/services/authService";
 import {
   LayoutDashboard,
   FileText,
@@ -17,7 +19,6 @@ import {
   Shield,
   Settings,
   LogOut,
-  Menu,
   ChevronLeft,
   ChevronRight,
   Send,
@@ -31,7 +32,6 @@ interface SidebarProps {
   userRole: string;
   userName: string;
   userEmail?: string;
-  // onLogout: () => void;
 }
 
 const sidebarItems = {
@@ -158,15 +158,22 @@ const roleColors = {
   admin: "text-red-600 bg-red-50",
 };
 
-export function Sidebar({
-  userRole,
-  userName,
-  userEmail,
-}: // onLogout,
-SidebarProps) {
+export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      router.push("/login");
+    },
+    onError: (error) => {
+      console.error("Logout failed:", error);
+      router.push("/login");
+    },
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -188,6 +195,10 @@ SidebarProps) {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   return (
@@ -280,10 +291,15 @@ SidebarProps) {
               "w-full justify-start text-gray-700 hover:bg-gray-100",
               isCollapsed && "justify-center"
             )}
-            // onClick={onLogout}
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
           >
             <LogOut className="h-5 w-5" />
-            {!isCollapsed && <span className="ml-2 text-sm">Logout</span>}
+            {!isCollapsed && (
+              <span className="ml-2 text-sm">
+                {logoutMutation.isPending ? "Logging out..." : "Logout"}
+              </span>
+            )}
           </Button>
         </div>
       </div>
