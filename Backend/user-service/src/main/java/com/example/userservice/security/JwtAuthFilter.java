@@ -24,61 +24,73 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain filterChain)
-                                throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-    String token = null;
+        String token = null;
 
-    // ✅ Get JWT from cookie
-    if (request.getCookies() != null) {
-        for (Cookie cookie : request.getCookies()) {
-            if ("access_token".equals(cookie.getName())) {
-                token = cookie.getValue();
-                break;
+        // ✅ Get JWT from cookie
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
             }
         }
-    }
 
-    // Only process if token exists
-    if (token != null) {
-        try {
-            // ✅ Validate token
-            if (!security.isTokenValid(token)) {
-                throw new RuntimeException("Invalid or expired token");
+        if (token != null) {
+            try {
+                // ✅ Validate token
+                if (!security.isTokenValid(token)) {
+                    throw new RuntimeException("Invalid or expired token");
+                }
+
+                // ✅ Extract user info
+                Long userId = security.extractUserId(token);
+                String role = security.extractUserRole(token);
+                String email = security.extractEmail(token);
+
+                request.setAttribute("userId", userId);
+                request.setAttribute("role", role);
+                request.setAttribute("email", email);
+
+                // ✅ Set authentication into SecurityContext
+                List<SimpleGrantedAuthority> authorities =
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                System.out.println("Authentication set for userId: " + userId);
+
+            } catch (Exception e) {
+                System.out.println("JWT validation failed: " + e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Unauthorized: " + e.getMessage());
+                return;
             }
-
-            // ✅ Extract user info
-            Long userId = security.extractUserId(token);
-            String role = security.extractUserRole(token);
-            String email = security.extractEmail(token);
-
-            request.setAttribute("userId", userId);
-            request.setAttribute("role", role);
-            request.setAttribute("email", email);
-
-            // ✅ Set authentication into SecurityContext
-            List<SimpleGrantedAuthority> authorities =
-                    List.of(new SimpleGrantedAuthority("ROLE_" + role));
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            System.out.println("Authentication set for userId: " + userId);
-
-        } catch (Exception e) {
-            System.out.println("JWT validation failed: " + e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Unauthorized: " + e.getMessage());
-            return;
+        } else {
+            System.out.println("No access_token cookie found - proceeding for public endpoints");
         }
-    } else {
-        // Token is missing - log but don't block yet
-        System.out.println("No access_token cookie found - proceeding for public endpoints");
+
+        // ✅ Continue the filter chain
+        filterChain.doFilter(request, response);
     }
 
-    // ✅ Always continue the filter chain
-    filterChain.doFilter(request, response);
-}
-}
+    /**
+     * ✅ Skip filtering for public endpoints (login, register, etc.)
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
 
+        return path.startsWith("/api/auth/login")
+                || path.startsWith("/api/auth/register")
+                || path.startsWith("/api/universities/login")
+                || path.startsWith("/api/universities/register")
+                || path.startsWith("/api/auth/request-password-change-otp")
+                || path.startsWith("/api/auth/confirm-password-change-otp");
+    }
+}
