@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/pagination";
 
 // Mock data
+
 const students = [
   {
     id: 1,
@@ -113,29 +114,8 @@ const students = [
     position: "Marketing Intern",
     supervisor: "Dr. Davis",
     startDate: "2024-02-01",
-    status: "pending",
-    progress: 0,
-  },
-  {
-    id: 5,
-    name: "Tom smith",
-    email: "tom.r@student.insa.fr",
-    phone_number: "+251912345678",
-    institution: "AASTU",
-    field_of_study: "Networking",
-    gender: "Male",
-    address: "Addis Ababa",
-    role: "student",
-    profile_pic_url: "https://randomuser.me/api/portraits/men/5.jpg",
-    linkedin_url: "",
-    github_url: "",
-    cv_url: "",
-    company: "",
-    position: "",
-    supervisor: "",
-    startDate: "",
-    status: "rejected",
-    progress: 0,
+    status: "active",
+    progress: 45,
   },
 ];
 
@@ -178,7 +158,6 @@ export default function StudentsPage() {
     setSupervisorInput("");
     setSelectedStudent(null);
     setSelectedStudentInput("");
-    setShowStudentDropdown(false);
   };
 
   function goMessage() {
@@ -194,7 +173,6 @@ export default function StudentsPage() {
         student.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.position.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
   const totalPages = Math.ceil(filteredStudents.length / pageSize);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * pageSize,
@@ -209,8 +187,6 @@ export default function StudentsPage() {
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
       case "pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -226,7 +202,7 @@ export default function StudentsPage() {
   return (
     <DashboardLayout requiredRole="university">
       <div className="space-y-6">
-        {/* Header & Assign Supervisor */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Students</h1>
@@ -415,7 +391,7 @@ export default function StudentsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {paginatedStudents.map((student) => (
+              {(paginatedStudents as typeof students).map((student) => (
                 <div
                   key={student.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -482,7 +458,6 @@ export default function StudentsPage() {
             </div>
           </CardContent>
         </Card>
-
         {/* Pagination */}
         <Pagination className="mt-6">
           <PaginationContent>
@@ -520,6 +495,104 @@ export default function StudentsPage() {
             </PaginationItem>
           </PaginationContent>
         </Pagination>
+
+        {viewStudent && (
+          <Dialog
+            open={!!viewStudent}
+            onOpenChange={() => setViewStudent(null)}
+          >
+            <DialogContent
+              className="backdrop-blur
+     bg-white text-black rounded-lg shadow-lg"
+            >
+              <DialogHeader>
+                <DialogTitle>{viewStudent.name}'s Profile</DialogTitle>
+              </DialogHeader>
+
+              <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                {/* Profile Picture */}
+                <img
+                  src={viewStudent.profile_pic_url}
+                  alt={viewStudent.name}
+                  className="w-32 h-32 rounded-full object-cover border-2 border-white"
+                />
+
+                {/* Info Section */}
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <strong>Email:</strong> {viewStudent.email}
+                  </p>
+                  <p>
+                    <strong>Phone:</strong> {viewStudent.phone_number}
+                  </p>
+                  <p>
+                    <strong>Institution:</strong> {viewStudent.institution}
+                  </p>
+                  <p>
+                    <strong>Field:</strong> {viewStudent.field_of_study}
+                  </p>
+                  <p>
+                    <strong>Gender:</strong> {viewStudent.gender}
+                  </p>
+                  <p>
+                    <strong>Address:</strong> {viewStudent.address}
+                  </p>
+                  <p>
+                    <strong>Company:</strong> {viewStudent.company}
+                  </p>
+                  <p>
+                    <strong>Position:</strong> {viewStudent.position}
+                  </p>
+                  <p>
+                    <strong>Supervisor:</strong> {viewStudent.supervisor}
+                  </p>
+                  <p>
+                    <strong>Start Date:</strong> {viewStudent.startDate}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {viewStudent.status}
+                  </p>
+                  <p>
+                    <strong>Progress:</strong> {viewStudent.progress}%
+                  </p>
+                  {/* External Links */}
+                  <div className="flex gap-4 mt-3 items-center text-sm">
+                    {viewStudent.linkedin_url && (
+                      <a
+                        href={viewStudent.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:text-blue-400"
+                      >
+                        LinkedIn
+                      </a>
+                    )}
+                    {viewStudent.github_url && (
+                      <a
+                        href={viewStudent.github_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:text-gray-400"
+                      >
+                        GitHub
+                      </a>
+                    )}
+                    {viewStudent.cv_url && (
+                      <a
+                        href={viewStudent.cv_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:text-green-400"
+                      >
+                        View CV
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </DashboardLayout>
   );
