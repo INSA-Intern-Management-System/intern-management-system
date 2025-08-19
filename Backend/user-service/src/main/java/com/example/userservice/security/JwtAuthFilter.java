@@ -47,36 +47,36 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     throw new RuntimeException("Invalid or expired token");
                 }
 
-                // ✅ Extract user info
-                Long userId = security.extractUserId(token);
-                String role = security.extractUserRole(token);
-                String email = security.extractEmail(token);
+            // ✅ Extract user info
+            Long userId = security.extractUserId(token);
+            String role = security.extractUserRole(token);
+            String email = security.extractEmail(token);
+            String institution = security.extractUserInstitution(token);
 
-                request.setAttribute("userId", userId);
-                request.setAttribute("role", role);
-                request.setAttribute("email", email);
+            request.setAttribute("userId", userId);
+            request.setAttribute("role", role);
+            request.setAttribute("email", email);
+            request.setAttribute("institution",institution);
 
-                // ✅ Set authentication into SecurityContext
-                List<SimpleGrantedAuthority> authorities =
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role));
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            // ✅ Set authentication into SecurityContext
+            List<SimpleGrantedAuthority> authorities =
+                    List.of(new SimpleGrantedAuthority("ROLE_" + role));
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                System.out.println("Authentication set for userId: " + userId);
+            System.out.println("Authentication set for userId: " + userId);
 
-            } catch (Exception e) {
-                System.out.println("JWT validation failed: " + e.getMessage());
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Unauthorized: " + e.getMessage());
-                return;
-            }
-        } else {
-            System.out.println("No access_token cookie found - proceeding for public endpoints");
+        } catch (Exception e) {
+            System.out.println("JWT validation failed: " + e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Unauthorized: " + e.getMessage());
+            return;
         }
 
         // ✅ Continue the filter chain
         filterChain.doFilter(request, response);
+    }
     }
 
     /**

@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import {
   GraduationCap,
   Search,
@@ -19,14 +19,14 @@ import {
   MessageSquare,
   Mail,
   Phone,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -34,38 +34,38 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/pagination";
+import { useRouter } from "next/navigation";
 
 // Define your Student type
 interface Student {
-  id: number
-  name: string
-  email: string
-  phone_number: string
-  institution: string
-  field_of_study: string
-  gender: string
-  address: string
-  role: string
-  company: string
-  position: string
-  supervisor: string
+  id: number;
+  name: string;
+  email: string;
+  phone_number: string;
+  institution: string;
+  field_of_study: string;
+  gender: string;
+  address: string;
+  role: string;
+  company: string;
+  position: string;
+  supervisor: string;
 }
 
 // Define your Supervisor type
 interface Supervisor {
-  id: number
-  name: string
-  email: string
-  phone: string
-  department: string
-  specialization: string
-  studentsAssigned: number
-  maxCapacity: number
-  experience: string
-  status: "active" | "inactive"
-  students?: Student[] // optional, assigned students
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  department: string;
+  specialization: string;
+  studentsAssigned: number;
+  maxCapacity: number;
+  experience: string;
+  status: "active" | "inactive";
+  students?: Student[]; // optional, assigned students
 }
 
 // Mock data
@@ -118,7 +118,7 @@ const initialSupervisors: Supervisor[] = [
     experience: "12 years",
     status: "active",
   },
-]
+];
 
 const students: Student[] = [
   {
@@ -191,15 +191,17 @@ const students: Student[] = [
     position: "Marketing Intern",
     supervisor: "Dr. Davis",
   },
-]
+];
 
 export default function SupervisorsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showAdd, setShowAdd] = useState(false)
-  const [newSup, setNewSup] = useState<Omit<Supervisor, "id" | "studentsAssigned" | "maxCapacity" | "students"> & {
-    studentsAssigned: string
-    maxCapacity: string
-  }>({
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newSup, setNewSup] = useState<
+    Omit<Supervisor, "id" | "studentsAssigned" | "maxCapacity" | "students"> & {
+      studentsAssigned: string;
+      maxCapacity: string;
+    }
+  >({
     name: "",
     email: "",
     phone: "",
@@ -209,51 +211,59 @@ export default function SupervisorsPage() {
     status: "active",
     studentsAssigned: "",
     maxCapacity: "",
-  })
-  const [supervisorsState, setSupervisorsState] = useState<Supervisor[]>(initialSupervisors)
-  const [departmentFilter, setDepartmentFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [page, setPage] = useState(1)
-  const pageSize = 3
-  const [editSup, setEditSup] = useState<Supervisor | null>(null)
-  const [messageSup, setMessageSup] = useState<Supervisor | null>(null)
+  });
+  const [supervisorsState, setSupervisorsState] =
+    useState<Supervisor[]>(initialSupervisors);
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
+  const [editSup, setEditSup] = useState<Supervisor | null>(null);
+  const [messageSup, setMessageSup] = useState<Supervisor | null>(null);
 
   // Typed selected students state
-  const [selectedStudents, setSelectedStudents] = useState<Student[]>([])
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  const router = useRouter()
+  const router = useRouter();
 
   // Departments and statuses for filters
-  const departments = Array.from(new Set(supervisorsState.map((s) => s.department))).sort()
-  const statuses = ["active", "inactive"]
+  const departments = Array.from(
+    new Set(supervisorsState.map((s) => s.department))
+  ).sort();
+  const statuses = ["active", "inactive"];
 
   // Filter supervisors by department, status and search term
   const filteredSupervisors = supervisorsState.filter(
     (supervisor) =>
-      (departmentFilter === "all" || supervisor.department === departmentFilter) &&
+      (departmentFilter === "all" ||
+        supervisor.department === departmentFilter) &&
       (statusFilter === "all" || supervisor.status === statusFilter) &&
       (supervisor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supervisor.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supervisor.specialization.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+        supervisor.department
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        supervisor.specialization
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()))
+  );
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredSupervisors.length / pageSize)
+  const totalPages = Math.ceil(filteredSupervisors.length / pageSize);
   const paginatedSupervisors = filteredSupervisors.slice(
     (page - 1) * pageSize,
     page * pageSize
-  )
+  );
 
   // Validation for new supervisor form
   function validateSupervisorForm() {
-    const errors: { studentsAssigned?: string; maxCapacity?: string } = {}
+    const errors: { studentsAssigned?: string; maxCapacity?: string } = {};
 
-    const maxCapNum = Number(newSup.maxCapacity)
-    const studentsAssignedNum = Number(newSup.studentsAssigned)
+    const maxCapNum = Number(newSup.maxCapacity);
+    const studentsAssignedNum = Number(newSup.studentsAssigned);
 
     if (!newSup.maxCapacity || isNaN(maxCapNum) || maxCapNum <= 0) {
-      errors.maxCapacity = "Max Capacity must be a positive number"
+      errors.maxCapacity = "Max Capacity must be a positive number";
     }
 
     if (
@@ -261,7 +271,7 @@ export default function SupervisorsPage() {
       isNaN(studentsAssignedNum) ||
       studentsAssignedNum < 0
     ) {
-      errors.studentsAssigned = "Students Assigned cannot be negative"
+      errors.studentsAssigned = "Students Assigned cannot be negative";
     }
 
     if (
@@ -269,27 +279,30 @@ export default function SupervisorsPage() {
       !errors.studentsAssigned &&
       studentsAssignedNum > maxCapNum
     ) {
-      errors.studentsAssigned = "Assigned students cannot exceed Max Capacity"
+      errors.studentsAssigned = "Assigned students cannot exceed Max Capacity";
     }
 
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   }
 
   // Form errors state for validation
-  const [formErrors, setFormErrors] = useState<{ studentsAssigned?: string; maxCapacity?: string }>({})
+  const [formErrors, setFormErrors] = useState<{
+    studentsAssigned?: string;
+    maxCapacity?: string;
+  }>({});
 
   // Add supervisor submit handler
   const handleAddSupervisor = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateSupervisorForm()) {
-      return
+      return;
     }
 
     const newId = supervisorsState.length
       ? Math.max(...supervisorsState.map((s) => s.id)) + 1
-      : 1
+      : 1;
 
     setSupervisorsState([
       {
@@ -305,7 +318,7 @@ export default function SupervisorsPage() {
         maxCapacity: Number(newSup.maxCapacity),
       },
       ...supervisorsState,
-    ])
+    ]);
 
     setNewSup({
       name: "",
@@ -317,38 +330,38 @@ export default function SupervisorsPage() {
       status: "active",
       studentsAssigned: "",
       maxCapacity: "",
-    })
+    });
 
-    setFormErrors({})
-    setShowAdd(false)
-    setPage(1)
-  }
+    setFormErrors({});
+    setShowAdd(false);
+    setPage(1);
+  };
 
   // Capacity badge helper
   const getCapacityBadge = (assigned: number, max: number) => {
-    const percentage = (assigned / max) * 100
+    const percentage = (assigned / max) * 100;
     if (percentage >= 90)
-      return <Badge className="bg-red-100 text-red-800">Full</Badge>
+      return <Badge className="bg-red-100 text-red-800">Full</Badge>;
     if (percentage >= 70)
-      return <Badge className="bg-yellow-100 text-yellow-800">High</Badge>
-    return <Badge className="bg-green-100 text-green-800">Available</Badge>
-  }
+      return <Badge className="bg-yellow-100 text-yellow-800">High</Badge>;
+    return <Badge className="bg-green-100 text-green-800">Available</Badge>;
+  };
 
   // Capacity color helper for progress bar
   const getCapacityColor = (assigned: number, max: number) => {
-    const percentage = (assigned / max) * 100
-    if (percentage >= 90) return "bg-red-500"
-    if (percentage >= 70) return "bg-yellow-500"
-    return "bg-green-500"
-  }
+    const percentage = (assigned / max) * 100;
+    if (percentage >= 90) return "bg-red-500";
+    if (percentage >= 70) return "bg-yellow-500";
+    return "bg-green-500";
+  };
 
   // Edit supervisor save handler
   const handleEditSave = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!editSup) return
+    e.preventDefault();
+    if (!editSup) return;
 
-    const maxCapNum = Number(editSup.maxCapacity)
-    const studentsAssignedNum = Number(editSup.studentsAssigned)
+    const maxCapNum = Number(editSup.maxCapacity);
+    const studentsAssignedNum = Number(editSup.studentsAssigned);
     if (
       isNaN(maxCapNum) ||
       maxCapNum <= 0 ||
@@ -358,8 +371,8 @@ export default function SupervisorsPage() {
     ) {
       alert(
         "Please ensure Max Capacity is positive and Students Assigned is not negative or greater than Max Capacity."
-      )
-      return
+      );
+      return;
     }
 
     setSupervisorsState((prev) =>
@@ -372,13 +385,13 @@ export default function SupervisorsPage() {
             }
           : s
       )
-    )
-    setEditSup(null)
-  }
+    );
+    setEditSup(null);
+  };
 
   // Navigate to messages page
   function goMessage() {
-    router.push("/dashboard/university/messages")
+    router.push("/dashboard/university/messages");
   }
 
   // Handle View Students button click - set selected students by supervisor name
@@ -386,10 +399,10 @@ export default function SupervisorsPage() {
     // Filter students assigned to the selected supervisor
     const assignedStudents = students.filter(
       (student) => student.supervisor === supervisorName
-    )
-    setSelectedStudents(assignedStudents)
-    setIsViewModalOpen(true)
-  }
+    );
+    setSelectedStudents(assignedStudents);
+    setIsViewModalOpen(true);
+  };
 
   return (
     <DashboardLayout requiredRole="university">
@@ -421,38 +434,50 @@ export default function SupervisorsPage() {
                 <Input
                   placeholder="Name"
                   value={newSup.name}
-                  onChange={(e) => setNewSup({ ...newSup, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, name: e.target.value })
+                  }
                   required
                 />
                 <Input
                   type="email"
                   placeholder="Email"
                   value={newSup.email}
-                  onChange={(e) => setNewSup({ ...newSup, email: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, email: e.target.value })
+                  }
                   required
                 />
                 <Input
                   placeholder="Phone"
                   value={newSup.phone}
-                  onChange={(e) => setNewSup({ ...newSup, phone: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, phone: e.target.value })
+                  }
                   required
                 />
                 <Input
                   placeholder="Department"
                   value={newSup.department}
-                  onChange={(e) => setNewSup({ ...newSup, department: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, department: e.target.value })
+                  }
                   required
                 />
                 <Input
                   placeholder="Specialization"
                   value={newSup.specialization}
-                  onChange={(e) => setNewSup({ ...newSup, specialization: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, specialization: e.target.value })
+                  }
                   required
                 />
                 <Input
                   placeholder="Experience"
                   value={newSup.experience}
-                  onChange={(e) => setNewSup({ ...newSup, experience: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, experience: e.target.value })
+                  }
                   required
                 />
                 <Input
@@ -460,22 +485,30 @@ export default function SupervisorsPage() {
                   placeholder="Max Capacity"
                   min={1}
                   value={newSup.maxCapacity}
-                  onChange={(e) => setNewSup({ ...newSup, maxCapacity: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, maxCapacity: e.target.value })
+                  }
                   required
                 />
                 {formErrors.maxCapacity && (
-                  <p className="text-red-500 text-sm">{formErrors.maxCapacity}</p>
+                  <p className="text-red-500 text-sm">
+                    {formErrors.maxCapacity}
+                  </p>
                 )}
                 <Input
                   type="number"
                   placeholder="Students Assigned"
                   min={0}
                   value={newSup.studentsAssigned}
-                  onChange={(e) => setNewSup({ ...newSup, studentsAssigned: e.target.value })}
+                  onChange={(e) =>
+                    setNewSup({ ...newSup, studentsAssigned: e.target.value })
+                  }
                   required
                 />
                 {formErrors.studentsAssigned && (
-                  <p className="text-red-500 text-sm">{formErrors.studentsAssigned}</p>
+                  <p className="text-red-500 text-sm">
+                    {formErrors.studentsAssigned}
+                  </p>
                 )}
                 <div className="flex space-x-2">
                   <Button type="submit" className="flex-1">
@@ -505,8 +538,8 @@ export default function SupervisorsPage() {
                   placeholder="Search supervisors by name, department, or specialization..."
                   value={searchTerm}
                   onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setPage(1)
+                    setSearchTerm(e.target.value);
+                    setPage(1);
                   }}
                   className="pl-10"
                 />
@@ -515,8 +548,8 @@ export default function SupervisorsPage() {
                 className="border rounded px-2 py-1 text-sm leading-tight"
                 value={departmentFilter}
                 onChange={(e) => {
-                  setDepartmentFilter(e.target.value)
-                  setPage(1)
+                  setDepartmentFilter(e.target.value);
+                  setPage(1);
                 }}
               >
                 <option value="all">All Departments</option>
@@ -526,7 +559,6 @@ export default function SupervisorsPage() {
                   </option>
                 ))}
               </select>
-             
             </div>
           </CardContent>
         </Card>
@@ -534,7 +566,10 @@ export default function SupervisorsPage() {
         {/* Supervisors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {paginatedSupervisors.map((supervisor) => (
-            <Card key={supervisor.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={supervisor.id}
+              className="hover:shadow-md transition-shadow"
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -542,7 +577,9 @@ export default function SupervisorsPage() {
                       <GraduationCap className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{supervisor.name}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {supervisor.name}
+                      </CardTitle>
                       <CardDescription>{supervisor.department}</CardDescription>
                     </div>
                   </div>
@@ -558,10 +595,12 @@ export default function SupervisorsPage() {
                   {supervisor.specialization}
                 </p>
                 <p>
-                  <span className="font-semibold">Email:</span> {supervisor.email}
+                  <span className="font-semibold">Email:</span>{" "}
+                  {supervisor.email}
                 </p>
                 <p>
-                  <span className="font-semibold">Phone:</span> {supervisor.phone}
+                  <span className="font-semibold">Phone:</span>{" "}
+                  {supervisor.phone}
                 </p>
                 <p>
                   <span className="font-semibold">Experience:</span>{" "}
@@ -576,7 +615,8 @@ export default function SupervisorsPage() {
                     )}`}
                     style={{
                       width: `${
-                        (supervisor.studentsAssigned / supervisor.maxCapacity) * 100
+                        (supervisor.studentsAssigned / supervisor.maxCapacity) *
+                        100
                       }%`,
                     }}
                   />
@@ -594,8 +634,8 @@ export default function SupervisorsPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setMessageSup(supervisor)
-                      goMessage()
+                      setMessageSup(supervisor);
+                      goMessage();
                     }}
                   >
                     <MessageSquare className="mr-2 h-4 w-4" />
@@ -614,8 +654,6 @@ export default function SupervisorsPage() {
           ))}
         </div>
 
-        
- 
         {/* View Students Modal */}
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
           <DialogContent className="max-w-3xl bg-white">
@@ -624,7 +662,9 @@ export default function SupervisorsPage() {
             </DialogHeader>
             <div>
               {selectedStudents.length === 0 ? (
-                <p className="p-4 text-center text-gray-600">No students assigned.</p>
+                <p className="p-4 text-center text-gray-600">
+                  No students assigned.
+                </p>
               ) : (
                 <table className="min-w-full border  border-gray-300">
                   <thead className="bg-gray-100">
@@ -713,7 +753,10 @@ export default function SupervisorsPage() {
                   min={1}
                   value={editSup.maxCapacity}
                   onChange={(e) =>
-                    setEditSup({ ...editSup, maxCapacity: Number(e.target.value) })
+                    setEditSup({
+                      ...editSup,
+                      maxCapacity: Number(e.target.value),
+                    })
                   }
                   required
                 />
@@ -723,7 +766,10 @@ export default function SupervisorsPage() {
                   min={0}
                   value={editSup.studentsAssigned}
                   onChange={(e) =>
-                    setEditSup({ ...editSup, studentsAssigned: Number(e.target.value) })
+                    setEditSup({
+                      ...editSup,
+                      studentsAssigned: Number(e.target.value),
+                    })
                   }
                   required
                 />
@@ -746,5 +792,5 @@ export default function SupervisorsPage() {
         </Dialog>
       </div>
     </DashboardLayout>
-  )
+  );
 }

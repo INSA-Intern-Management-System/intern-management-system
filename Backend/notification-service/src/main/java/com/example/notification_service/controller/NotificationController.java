@@ -6,7 +6,10 @@ import com.example.notification_service.dto.NotificationRequest;
 import com.example.notification_service.model.Notification;
 import com.example.notification_service.model.RecipientRole;
 import com.example.notification_service.repository.NotificationRepository;
+import com.example.notification_service.security.JwtUtil;
 import com.example.notification_service.service.NotificationService;
+import io.jsonwebtoken.Jwt;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,13 +27,34 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    private final JwtUtil jwtUtil;
+
+    public NotificationController(JwtUtil jwtUtil){
+        this.jwtUtil = jwtUtil;
+    }
+
+
     @GetMapping
     public ResponseEntity<?> getMyNotifications(HttpServletRequest request) {
-        String roleStr = (String) request.getAttribute("role");
+        // 1️⃣ Get token from cookies
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                    token = cookie.getValue();
+                    if (token != null) {
+                        token = token.trim(); // remove leading/trailing spaces
+                    }
+                    break;
+                }
+            }
+        }
 
-        if (roleStr == null) {
+        String roleStr = jwtUtil.extractUserRole(token);
+
+        if (!"ADMIN".equalsIgnoreCase(roleStr) && !"HR".equalsIgnoreCase(roleStr)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("User role not found in request.");
+                    .body(Map.of("error", "Only ADMIN or HR can register users."));
         }
 
         try {
