@@ -23,6 +23,8 @@ public interface LeaveJpaRepository extends JpaRepository<Leave, Long> {
     Page<Leave> findByReceiver_Id(Long userId, Pageable pageable);
     long countByReceiver_Id(Long receiverId);
     long countByReceiver_IdAndLeaveStatus(Long receiverId, LeaveStatus leaveStatus); // ✅ fix here
+    long countByUser_IdAndLeaveStatus(Long user_id, LeaveStatus leaveStatus);
+    long countByUser_Id(Long user_id);
     
     void deleteByUser_Id(Long userId);
     

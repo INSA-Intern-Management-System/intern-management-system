@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package com.example.userservice.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.userservice.gRPC";
+option java_outer_classname = "UserProto";
+
+service UserService {
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+  rpc getUser(UserRequest) returns (UserResponse);
+  rpc getUsersByIds(UserIdsRequest) returns (UsersResponse);
+  rpc searchByName(SearchByNameRequest) returns (SearchByNameResponse);
+}
+
+message CreateUserRequest {
+  string firstName = 1;
+  string lastName = 2;
+  string email = 3;
+  string phoneNumber = 4;
+  string fieldOfStudy = 5;
+  string institution = 6;
+  string gender = 7;
+  string duration = 8;
+  string linkedInUrl = 9;
+  string githubUrl = 10;
+  string cvUrl = 11;
+  string role = 12;
+}
+
+message CreateUserResponse {
+  int64 user_id = 1;
+}
+
+message UserRequest {
+  int64 user_id = 1;
+}
+
+message UserIdsRequest {
+  repeated int64 user_ids = 1;
+}
+
+message SearchByNameRequest {
+  string keyword = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message RoleMessage {
+  int64 id = 1;
+  string name = 2;
+  string display_name = 3;
+  string description = 4;
+}
+
+message UserResponse {
+  int64 user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string field_of_study = 4;
+  string university = 5;
+  Status status = 6;
+  RoleMessage role = 7;
+}
+
+message UsersResponse {
+  repeated UserResponse users = 1;
+}
+
+message SearchByNameResponse {
+  repeated UserResponse users = 1;
+  int32 current_page = 2;
+  int32 total_pages = 3;
+  int32 total_elements = 4;
+}
+
+enum Status {
+  UNKNOWN = 0;
+  ONLINE = 1;
+  OFFLINE = 2;
+}

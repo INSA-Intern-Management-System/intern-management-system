@@ -10,7 +10,7 @@ import {
 import type { Report, Review } from "@/types/entities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
 import { Send, CheckCircle, Clock, Calendar, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {

@@ -3,6 +3,9 @@ package com.example.userservice.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.userservice.model.Project;
+import com.example.userservice.model.Team;
+import com.example.userservice.model.User;
 import org.springframework.stereotype.Service;
 
 import com.example.userservice.dto.InternManagerResponseDTO;
@@ -54,6 +57,18 @@ public class InternManagerService {
     }
     public List<InternManager> getInfos(List<Long> ids) {
         return internManagerReposInterface.getInfos(ids);
+    }
+    public InternManagerResponseDTO createInternManager(InternManager internManager) {
+        InternManager saved = internManagerReposInterface.save(internManager);
+
+        InternManagerResponseDTO dto = new InternManagerResponseDTO();
+        dto.setId(saved.getId());
+        dto.setUserId(saved.getUser() != null ? saved.getUser().getId() : null);
+        dto.setManagerId(saved.getManager() != null ? saved.getManager().getId() : null);
+        dto.setProjectId(saved.getProject() != null ? saved.getProject().getId() : null);
+        dto.setMentorId(saved.getMentor() != null ? saved.getMentor().getId() : null);
+        dto.setTeamId(saved.getTeam() != null ? saved.getTeam().getId() : null);
+        return dto;
     }
 
 }

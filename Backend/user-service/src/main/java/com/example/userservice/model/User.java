@@ -52,6 +52,13 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "supervisor")
     private List<User> supervisedInterns;
 
+    @ManyToOne
+    @JoinColumn(name = "project_manager_id")
+    private User projectManager;
+
+    @OneToMany(mappedBy = "projectManager")
+    private List<User> projectManagerInterns;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "last_login")
@@ -87,7 +94,13 @@ public class User implements UserDetails {
     }
 
 
-    public User () {}
+    public User(Long id) {
+        this.id = id;
+        this.status = Status.OFFLINE;
+    }
+
+    public User() {
+    }
 
     public User(
     Long id, 
@@ -117,7 +130,9 @@ public class User implements UserDetails {
     Date updatedAt,
     Boolean isFirstLogin,
     User supervisor,
-    List<User> supervisedInterns
+    List<User> supervisedInterns,
+    User projectManager,
+    List<User> projectManagerInterns
 
       ) {
         this.id = id;
@@ -148,6 +163,8 @@ public class User implements UserDetails {
         this.isFirstLogin = isFirstLogin;
         this.supervisor = supervisor;
         this.supervisedInterns = supervisedInterns;
+        this.projectManager = projectManager;
+        this.projectManagerInterns = projectManagerInterns;
     }
 
      @Override
@@ -155,7 +172,6 @@ public class User implements UserDetails {
          // You can use role-based authority here
          return Collections.emptyList(); // Or use: List.of(new SimpleGrantedAuthority(role))
      }
-
 
      @Override
      public String getUsername() {
@@ -223,6 +239,23 @@ public class User implements UserDetails {
     public void setSupervisedInterns(List<User> supervisedInterns) {
         this.supervisedInterns = supervisedInterns;
     }
+
+    public User getProjectManager() {
+        return projectManager;
+    }
+
+    public void setProjectManager(User projectManager) {
+        this.projectManager = projectManager;
+    }
+
+    public List<User> getProjectManagerInterns() {
+        return projectManagerInterns;
+    }
+
+    public void setProjectManagerInterns(List<User> projectManagerInterns) {
+        this.projectManagerInterns = projectManagerInterns;
+    }
+
 
     public String getLastName() {
         return lastName;

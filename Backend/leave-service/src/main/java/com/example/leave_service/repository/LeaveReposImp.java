@@ -104,6 +104,16 @@ public class LeaveReposImp implements LeaveReposInterface {
     }
 
     @Override
+    public HashMap<String, Long> getLeaveStatusCounts(Long userid) {
+        HashMap<String, Long> counts = new HashMap<>();
+        counts.put("total", leaveJpaRepository.countByUser_Id(userid));
+        counts.put("approved", leaveJpaRepository.countByUser_IdAndLeaveStatus(userid, LeaveStatus.APPROVED));
+        counts.put("rejected", leaveJpaRepository.countByUser_IdAndLeaveStatus(userid, LeaveStatus.REJECTED));
+        counts.put("pending", leaveJpaRepository.countByUser_IdAndLeaveStatus(userid, LeaveStatus.PENDING));
+        return counts;
+    }
+
+    @Override
     public HashMap<String, Long> getLeaveStatusCountsPm(Long receiverId) {
         HashMap<String, Long> counts = new HashMap<>();
         counts.put("total", leaveJpaRepository.countByReceiver_Id(receiverId));

@@ -1,15 +1,34 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { User, Search, Plus, MessageSquare, Eye } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import { User, Search, Plus, MessageSquare, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 // Mock data
 const students = [
@@ -124,14 +143,18 @@ export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAssign, setShowAssign] = useState(false);
   const [selectedStudentInput, setSelectedStudentInput] = useState<string>("");
-  const [selectedStudent, setSelectedStudent] = useState<typeof students[0] | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<
+    (typeof students)[0] | null
+  >(null);
   const [supervisorInput, setSupervisorInput] = useState<string>("");
   const [studentsState, setStudentsState] = useState<typeof students>(students);
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [supervisorFilter, setSupervisorFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const [viewStudent, setViewStudent] = useState<typeof students[0] | null>(null);
+  const [viewStudent, setViewStudent] = useState<(typeof students)[0] | null>(
+    null
+  );
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [showSupervisorDropdown, setShowSupervisorDropdown] = useState(false);
 
@@ -139,12 +162,18 @@ export default function StudentsPage() {
   const router = useRouter();
 
   const supervisors = ["Dr. Smith", "Dr. Johnson", "Dr. Brown", "Dr. Davis"];
-  const supervisorsList = Array.from(new Set(studentsState.map(s => s.supervisor)));
+  const supervisorsList = Array.from(
+    new Set(studentsState.map((s) => s.supervisor))
+  );
 
   const handleAssignSupervisor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent || !supervisorInput) return;
-    setStudentsState(studentsState.map(s => s.id === selectedStudent.id ? { ...s, supervisor: supervisorInput } : s));
+    setStudentsState(
+      studentsState.map((s) =>
+        s.id === selectedStudent.id ? { ...s, supervisor: supervisorInput } : s
+      )
+    );
     setShowAssign(false);
     setSupervisorInput("");
     setSelectedStudent(null);
@@ -153,7 +182,7 @@ export default function StudentsPage() {
   };
 
   function goMessage() {
-    router.push('/dashboard/university/messages');
+    router.push("/dashboard/university/messages");
   }
 
   const filteredStudents = studentsState.filter(
@@ -167,7 +196,10 @@ export default function StudentsPage() {
   );
 
   const totalPages = Math.ceil(filteredStudents.length / pageSize);
-  const paginatedStudents = filteredStudents.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedStudents = filteredStudents.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -198,11 +230,20 @@ export default function StudentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Students</h1>
-            <p className="text-gray-600">Manage and track student internships</p>
+            <p className="text-gray-600">
+              Manage and track student internships
+            </p>
           </div>
           <Dialog open={showAssign} onOpenChange={setShowAssign}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setShowAssign(true); setSelectedStudent(null); setShowStudentDropdown(false); }} className="text-white bg-black">
+              <Button
+                onClick={() => {
+                  setShowAssign(true);
+                  setSelectedStudent(null);
+                  setShowStudentDropdown(false);
+                }}
+                className="text-white bg-black"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Assign Supervisor
               </Button>
@@ -217,11 +258,12 @@ export default function StudentsPage() {
                   <Input
                     placeholder="Type student name..."
                     value={selectedStudentInput}
-                    onChange={e => {
+                    onChange={(e) => {
                       setSelectedStudentInput(e.target.value);
                       setShowStudentDropdown(true);
-                      const found = studentsState.find(s =>
-                        s.name.toLowerCase() === e.target.value.toLowerCase()
+                      const found = studentsState.find(
+                        (s) =>
+                          s.name.toLowerCase() === e.target.value.toLowerCase()
                       );
                       setSelectedStudent(found || null);
                     }}
@@ -236,14 +278,16 @@ export default function StudentsPage() {
                   {showStudentDropdown && selectedStudentInput && (
                     <div className="absolute left-0 right-0 bg-white border rounded shadow z-50 mt-1 max-h-32 overflow-y-auto">
                       {studentsState
-                        .filter(s =>
-                          s.name.toLowerCase().includes(selectedStudentInput.toLowerCase())
+                        .filter((s) =>
+                          s.name
+                            .toLowerCase()
+                            .includes(selectedStudentInput.toLowerCase())
                         )
-                        .map(s => (
+                        .map((s) => (
                           <div
                             key={s.id}
                             className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                            onMouseDown={e => {
+                            onMouseDown={(e) => {
                               e.preventDefault();
                               setSelectedStudentInput(s.name);
                               setSelectedStudent(s);
@@ -262,7 +306,7 @@ export default function StudentsPage() {
                   <Input
                     placeholder="Type supervisor name..."
                     value={supervisorInput}
-                    onChange={e => setSupervisorInput(e.target.value)}
+                    onChange={(e) => setSupervisorInput(e.target.value)}
                     onFocus={() => setShowSupervisorDropdown(true)}
                     onBlur={() => {
                       setTimeout(() => setShowSupervisorDropdown(false), 150);
@@ -271,14 +315,16 @@ export default function StudentsPage() {
                   {supervisorInput && showSupervisorDropdown && (
                     <div className="absolute left-0 right-0 bg-white border rounded shadow z-50 mt-1 max-h-40 overflow-y-auto">
                       {supervisors
-                        .filter(sup =>
-                          sup.toLowerCase().includes(supervisorInput.toLowerCase())
+                        .filter((sup) =>
+                          sup
+                            .toLowerCase()
+                            .includes(supervisorInput.toLowerCase())
                         )
-                        .map(sup => (
+                        .map((sup) => (
                           <div
                             key={sup}
                             className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                            onMouseDown={e => {
+                            onMouseDown={(e) => {
                               e.preventDefault();
                               setSupervisorInput(sup);
                               setShowSupervisorDropdown(false);
@@ -293,10 +339,17 @@ export default function StudentsPage() {
 
                 {/* Buttons */}
                 <div className="flex space-x-2 justify-end">
-                  <Button type="submit" disabled={!selectedStudent || !supervisorInput}>
+                  <Button
+                    type="submit"
+                    disabled={!selectedStudent || !supervisorInput}
+                  >
                     Assign
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowAssign(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAssign(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -313,21 +366,40 @@ export default function StudentsPage() {
               <Input
                 placeholder="Search students by name, company, or position..."
                 value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="pl-10"
               />
             </div>
-            <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="pending">Pending</option>
               <option value="rejected">Rejected</option>
             </select>
-            <select className="border rounded px-2 py-1 text-sm" value={supervisorFilter} onChange={e => { setSupervisorFilter(e.target.value); setPage(1); }}>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={supervisorFilter}
+              onChange={(e) => {
+                setSupervisorFilter(e.target.value);
+                setPage(1);
+              }}
+            >
               <option value="all">All Supervisors</option>
-              {supervisorsList.map(s => (
-                <option key={s} value={s}>{s}</option>
+              {supervisorsList.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
           </CardContent>
@@ -337,7 +409,9 @@ export default function StudentsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Student List ({filteredStudents.length})</CardTitle>
-            <CardDescription>Overview of all students in internship programs</CardDescription>
+            <CardDescription>
+              Overview of all students in internship programs
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -352,37 +426,49 @@ export default function StudentsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          {student.name}
+                        </h3>
                         {getStatusBadge(student.status)}
                       </div>
                       <p className="text-sm text-gray-600">{student.email}</p>
                       <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
                         <span>
-                          {student.company && student.position && `${student.company} • ${student.position}`}
+                          {student.company &&
+                            student.position &&
+                            `${student.company} • ${student.position}`}
                         </span>
                         <span>Supervisor: {student.supervisor || "N/A"}</span>
-                        {student.status !== "rejected" && student.status !== "pending" && (
-                          <span>Started: {student.startDate}</span>
-                        )}
+                        {student.status !== "rejected" &&
+                          student.status !== "pending" && (
+                            <span>Started: {student.startDate}</span>
+                          )}
                       </div>
-                      {student.status !== "rejected" && student.status !== "pending" && (
-                        <div className="mt-2">
-                          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                            <span>Progress</span>
-                            <span>{student.progress}%</span>
+                      {student.status !== "rejected" &&
+                        student.status !== "pending" && (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                              <span>Progress</span>
+                              <span>{student.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${getProgressColor(
+                                  student.progress
+                                )}`}
+                                style={{ width: `${student.progress}%` }}
+                              ></div>
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${getProgressColor(student.progress)}`}
-                              style={{ width: `${student.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => setViewStudent(student)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewStudent(student)}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </Button>
@@ -401,25 +487,40 @@ export default function StudentsPage() {
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href="#" onClick={e => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }} />
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
                   href="#"
                   isActive={page === i + 1}
-                  onClick={e => { e.preventDefault(); setPage(i + 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i + 1);
+                  }}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationNext href="#" onClick={e => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }} />
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
     </DashboardLayout>
-  )
+  );
 }

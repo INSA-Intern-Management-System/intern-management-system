@@ -7,9 +7,30 @@ option java_package = "com.example.userservice.gRPC";
 option java_outer_classname = "UserProto";
 
 service UserService {
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
   rpc getUser(UserRequest) returns (UserResponse);
   rpc getUsersByIds(UserIdsRequest) returns (UsersResponse);
   rpc searchByName(SearchByNameRequest) returns (SearchByNameResponse);
+}
+
+message CreateUserRequest {
+  string firstName = 1;
+  string lastName = 2;
+  string email = 3;
+  string phoneNumber = 4;
+  string fieldOfStudy = 5;
+  string institution = 6;
+  string gender = 7;
+  string duration = 8;
+  string linkedInUrl = 9;
+  string githubUrl = 10;
+  string cvUrl = 11;
+  string role = 12;
+}
+
+
+message CreateUserResponse {
+  int64 user_id = 1;
 }
 
 message UserRequest {

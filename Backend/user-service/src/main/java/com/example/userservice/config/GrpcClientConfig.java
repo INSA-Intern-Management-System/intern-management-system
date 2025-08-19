@@ -3,6 +3,7 @@ package com.example.userservice.config;
 
 import com.example.userservice.client.ActivityGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
+import com.example.userservice.client.ReportGrpcClient;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,12 @@ public class GrpcClientConfig {
     @Value("${grpc.server.activity-port}")
     private int activity_port;
 
+    @Value("${grpc.server.report-address}")
+    private String report_host;
+
+    @Value("${grpc.server.report-port}")
+    private int report_port;
+
     @Bean
     public ActivityGrpcClient activityGrpcClient() {
         return new ActivityGrpcClient(activity_host, activity_port);
@@ -30,5 +37,11 @@ public class GrpcClientConfig {
     public ProjectManagerGrpcClient projectManagerGrpcClient() {
         return new ProjectManagerGrpcClient(project_host, project_port);
     }
+
+    @Bean
+    public ReportGrpcClient reportGrpcClient() {
+        return new ReportGrpcClient(report_host, report_port);
+    }
+
 }
 
