@@ -508,6 +508,13 @@ public class UserController {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
 
+        String role = (String) request.getAttribute("role");
+
+        if(!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only HR and PM can get company dashboard."));
+        }
+
         // 2️⃣ Get userId from request attribute
         Long userId = (Long) request.getAttribute("userId");
 

@@ -9,6 +9,8 @@ import com.example.notification_service.repository.NotificationRepository;
 import com.example.notification_service.repository.RecipientRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,8 +30,8 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<Notification> getNotificationsByRole(RecipientRole role) {
-        return notificationRepository.findByRolesContainingOrderByCreatedAtDesc(role);
+    public Page<Notification> getNotificationsByRole(RecipientRole role, Pageable pageable) {
+        return notificationRepository.findByRolesContainingOrderByCreatedAtDesc(role, pageable);
     }
 
     @Override

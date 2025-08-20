@@ -15,6 +15,9 @@ import io.jsonwebtoken.Jwt;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +43,9 @@ public class NotificationController {
 
 
     @GetMapping
-    public ResponseEntity<?> getMyNotifications(HttpServletRequest request) {
+    public ResponseEntity<?> getMyNotifications(HttpServletRequest request,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "10") int size) {
         // 1️⃣ Get token from cookies
         String token = null;
         if (request.getCookies() != null) {
@@ -72,7 +77,9 @@ public class NotificationController {
 
             RecipientRole role = RecipientRole.valueOf(enumRole);
 
-            List<Notification> notifications = notificationService.getNotificationsByRole(role);
+            Pageable pageable = PageRequest.of(page, size);
+
+            Page<Notification> notifications = notificationService.getNotificationsByRole(role, pageable);
             return ResponseEntity.ok(notifications);
 
         } catch (IllegalArgumentException e) {
