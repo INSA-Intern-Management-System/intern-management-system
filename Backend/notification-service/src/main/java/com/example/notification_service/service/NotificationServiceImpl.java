@@ -4,6 +4,7 @@ import com.example.notification_service.controller.NotificationController;
 import com.example.notification_service.dto.NotificationRequest;
 import com.example.notification_service.model.Notification;
 import com.example.notification_service.model.NotificationRecipients;
+import com.example.notification_service.model.NotificationType;
 import com.example.notification_service.model.RecipientRole;
 import com.example.notification_service.repository.NotificationRepository;
 import com.example.notification_service.repository.RecipientRepository;
@@ -32,6 +33,11 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public Page<Notification> getNotificationsByRole(RecipientRole role, Pageable pageable) {
         return notificationRepository.findByRolesContainingOrderByCreatedAtDesc(role, pageable);
+    }
+
+    @Override
+    public Page<Notification> getAdminNotification(Pageable pageable) {
+        return notificationRepository.findByTypeNot(NotificationType.SUCCESS, pageable);
     }
 
     @Override

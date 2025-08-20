@@ -4,5 +4,7 @@ public enum NotificationType {
     ALERT,
     INFO,
     WARNING,
-    SUCCESS
+    SUCCESS,
+    CHANGE
 }
+

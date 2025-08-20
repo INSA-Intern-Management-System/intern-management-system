@@ -8,12 +8,12 @@ import com.example.application_service.dto.UserResponseDTO;
 import com.example.application_service.model.Applicant;
 import com.example.application_service.model.Application;
 import com.example.application_service.model.ApplicationStatus;
-import com.example.application_service.model.NotificationType;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.security.JwtUtil;
 import com.example.application_service.services.ApplicationService;
 //import com.example.application_service.services.UserServiceClient;
+import com.example.grpc.NotificationType;
 import com.example.grpc.RecipientRole;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.Cookie;
@@ -232,7 +232,7 @@ public class ApplicationController {
                  "New Internship Application Submitted",
                  message,                          // ✅ use message as description
                  Instant.now(),
-                 com.example.grpc.NotificationType.INFO
+                 NotificationType.SUCCESS
          );
 
         return ResponseEntity.status(201).body(response);
@@ -416,7 +416,7 @@ public class ApplicationController {
                         "Application Status Update",
                         message,                          // ✅ use message as description
                         Instant.now(),
-                        com.example.grpc.NotificationType.INFO // ✅ use gRPC enum
+                        NotificationType.CHANGE // ✅ use gRPC enum
                 );
             } catch (Exception e) {
                 System.err.println("⚠️ Failed to send gRPC notification: " + e.getMessage());

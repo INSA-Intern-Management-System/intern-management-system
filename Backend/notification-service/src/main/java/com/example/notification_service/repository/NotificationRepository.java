@@ -1,6 +1,7 @@
 package com.example.notification_service.repository;
 
 import com.example.notification_service.model.Notification;
+import com.example.notification_service.model.NotificationType;
 import com.example.notification_service.model.RecipientRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,6 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     Page<Notification> findByRolesContainingOrderByCreatedAtDesc(RecipientRole role, Pageable pageable);
-
+    Page<Notification> findByTypeNot(NotificationType notificationType, Pageable pageable);
     List<Notification> findByRolesContaining(RecipientRole role);
 }

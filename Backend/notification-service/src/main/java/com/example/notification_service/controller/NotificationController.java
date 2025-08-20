@@ -87,6 +87,40 @@ public class NotificationController {
         }
 
     }
+    @GetMapping("/admin")
+    public ResponseEntity<?> getAllNotification(HttpServletRequest request,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "10") int size) {
+        try {
+            // 1️⃣ Get token from cookies
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            String role = (String) request.getAttribute("role");
+            if (!"ADMIN".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only Admin can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Notification> notifications = notificationService.getAdminNotification(pageable);
+            return ResponseEntity.ok(notifications);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while getting all notificaion");
+        }
+    }
 
     @PostMapping("/create")
     public ResponseEntity<?> createNotification(@RequestBody NotificationRequest dto, HttpServletRequest request) {
@@ -131,7 +165,6 @@ public class NotificationController {
         }
     }
 
-
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteNotification(@PathVariable Long id, HttpServletRequest request){
         String jwtToken = null;
@@ -167,7 +200,6 @@ public class NotificationController {
             return ResponseEntity.status(400).body(error);
         }
     }
-
 
     @PutMapping("/mark-as-read/{id}")
     public ResponseEntity<?> markAsRead(@PathVariable Long id, HttpServletRequest request) {
