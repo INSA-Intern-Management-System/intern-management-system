@@ -43,14 +43,14 @@ export default function LoginPage() {
   // Redirect if user is authenticated
   useEffect(() => {
     if (user && !isLoading) {
-      router.push(`/dashboard/${user.roles.name.toLowerCase()}`);
+      router.push(/dashboard/${user.roles.name.toLowerCase()});
     }
   }, [user, isLoading, router]);
 
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data: AuthResponse) => {
-      router.push(`/dashboard/${data.user.roles.name.toLowerCase()}`);
+      router.push(/dashboard/${data.user.roles.name.toLowerCase()});
     },
     onError: (err: any) => {
       setError(
@@ -103,7 +103,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -137,14 +136,7 @@ export default function LoginPage() {
               {loginMutation.isPending ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <Link
-              href="/"
-              className="text-blue-600 hover:text-blue-800 text-sm"
-            >
-              ← Back to Home
-            </Link>
-          </div>
+         
         </CardContent>
       </Card>
     </div>
