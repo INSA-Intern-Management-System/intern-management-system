@@ -52,11 +52,6 @@ public class NotificationController {
 
         String roleStr = jwtUtil.extractUserRole(token);
 
-        if (!"ADMIN".equalsIgnoreCase(roleStr) && !"HR".equalsIgnoreCase(roleStr)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Only ADMIN or HR can register users."));
-        }
-
         try {
             // Convert from "UNIVERSITY" → "University"
             String pascalCaseRole = roleStr.substring(0, 1).toUpperCase() +
