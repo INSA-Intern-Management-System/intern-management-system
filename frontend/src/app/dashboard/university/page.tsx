@@ -5,20 +5,23 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, CheckCircle, University, Star, GraduationCap, TrendingUp } from "lucide-react"
- import { DashboardLayout } from "@/app/layout/dashboard-layout"
+import  DashboardLayout  from "@/app/layout/dashboard-layout"
 
 export default function UniversityDashboard() {
   const [user, setUser] = useState<any>(null);
     const router = useRouter();
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      setUser(JSON.parse(userData))
-    }
-  }, [])
+    setUser({
+      "organization":"ASTU"
+    })
+  // useEffect(() => {
+  //   const userData = localStorage.getItem("user")
+  //   if (userData) {
+  //     setUser(JSON.parse(userData))
+  //   }
+  // }, [])
 
-  if (!user) return null
+  // if (!user) return null
 
   // Mock data for dashboard overview
   const stats = [
