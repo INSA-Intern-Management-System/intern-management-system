@@ -94,13 +94,16 @@ public class User implements UserDetails {
     }
 
 
+
+    public User() {
+    }
+
     public User(Long id) {
         this.id = id;
         this.status = Status.OFFLINE;
     }
 
-    public User() {
-    }
+
 
     public User(
     Long id, 

@@ -2,10 +2,12 @@ package com.example.userservice.controller;
 
 
 import com.example.activity_service.gRPC.GetRecentActivitiesResponse;
+import com.example.applicationservice.grpc.ApplicationCountResponse;
 import com.example.project_service.gRPC.AllMilestones;
 import com.example.project_service.gRPC.AllProjectResponses;
 import com.example.project_service.gRPC.ProjectResponse;
 import com.example.userservice.client.ActivityGrpcClient;
+import com.example.userservice.client.ApplicationGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
 import com.example.userservice.dto.*;
 import com.example.userservice.gRPC.InternManagerResponse;
@@ -36,11 +38,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.http.HttpRequest;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,16 +48,23 @@ public class UserController {
     private final UserService userService;
     private final RoleRepository roleRepo;
     private final ActivityGrpcClient activityGrpcClient;
+    private final ApplicationGrpcClient applicationGrpcClient;
     private final ProjectManagerGrpcClient projectManagerGrpcClient;
     private final InternManagerService internManagerService;
     private final JwtUtil jwtUtil;
 
 
-    public UserController(UserService userService, JwtUtil jwtUtil, RoleRepository roleRepo,ActivityGrpcClient activityGrpcClient, ProjectManagerGrpcClient projectManagerGrpcClient,InternManagerService internManagerService) {
+    public UserController(UserService userService,
+                          JwtUtil jwtUtil, RoleRepository roleRepo,
+                          ActivityGrpcClient activityGrpcClient,
+                          ApplicationGrpcClient applicationGrpcClient,
+                          ProjectManagerGrpcClient projectManagerGrpcClient,
+                          InternManagerService internManagerService) {
         this.userService = userService;
         this.roleRepo = roleRepo;
         this.jwtUtil = jwtUtil;
         this.activityGrpcClient = activityGrpcClient;
+        this.applicationGrpcClient = applicationGrpcClient;
         this.projectManagerGrpcClient = projectManagerGrpcClient;
         this.internManagerService = internManagerService;
 
@@ -71,6 +76,17 @@ public class UserController {
                                          HttpServletRequest request) {
         //get role----only admin can do this
         try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            String role = (String) request.getAttribute("role");
+            if (!"ADMIN".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Collections.singletonMap("message", "Unauthorized: Only Admin can get all users"));
+            }
+
             Pageable pageable = PageRequest.of(page, size);
             Page<User> usersPage = userService.getAllUsers(pageable);
             Long totalUser = userService.countAllUsers();
@@ -100,10 +116,14 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUserById(@PathVariable Long id, HttpServletRequest request){
         try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             String role = (String) request.getAttribute("role");
 
-            if (role == null || !"ADMIN".equalsIgnoreCase(role)) {
+            if (!"ADMIN".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only Admin users can delete user.");
             }
 
@@ -122,7 +142,10 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<?> getUser(HttpServletRequest request){
         try{
-
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             Long userId = (Long) request.getAttribute("userId");
             User user = userService.getUserById(userId);
             return ResponseEntity.ok(new UserResponseDto(user));
@@ -136,15 +159,11 @@ public class UserController {
     @PutMapping("/update-password/{id}")
     public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, @PathVariable Long id, HttpServletRequest request) {
 
-        String role = (String) request.getAttribute("role");
-
-        List<String> allowedRoles = List.of("HR", "PROJECT_MANAGER", "STUDENT", "ADMIN", "SUPERVISOR", "UNIVERSITY");
-
-        if (role == null || !allowedRoles.contains(role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
-        }
-
         try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             userService.updateUserPassword(id, dto);
             return ResponseEntity.ok("Password updated successfully");
         } catch (RuntimeException e) {
@@ -156,6 +175,10 @@ public class UserController {
     public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody User user, HttpServletRequest request) {
         try {
             //get user id and role from request
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             Long userId=(Long)request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
 
@@ -163,26 +186,10 @@ public class UserController {
                 return ResponseEntity.status(403).body("Access denied");
             }
 
-            // Extract JWT token
-            String jwtToken = null;
-            if (request.getCookies() != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    if ("access_token".equals(cookie.getName())) {
-                        jwtToken = cookie.getValue();
-                        break;
-                    }
-                }
-            }
-
-            if (jwtToken == null) {
-                return ResponseEntity.status(401).body("Missing access_token cookie");
-            }
-
-
             User updatedUser = userService.updateUser(id, user);
 
             //log activity
-            logActivity(jwtToken, userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update", jwtToken);
+            logActivity(token, userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update", token);
             return ResponseEntity.ok(new UserResponseDto(updatedUser));
         } catch (Exception e) {
             // You can customize error response here
@@ -199,22 +206,12 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
 
-        //get role---only pm or hr can see the interns
-        String token = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
+        String token = extractAccessToken(request);
         if (token == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
 
-        String role = jwtUtil.extractUserRole(token);
+        String role = (String) request.getAttribute("role");
 
         if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -291,16 +288,7 @@ public class UserController {
             HttpServletRequest request
     ) {
 
-        String token = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
+        String token = extractAccessToken(request);
         if (token == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
@@ -328,17 +316,7 @@ public class UserController {
             @RequestBody AssignProjectManagerRequestDTO dto,
             HttpServletRequest request
     ) {
-
-        String token = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
+        String token = extractAccessToken(request);
         if (token == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
@@ -363,28 +341,37 @@ public class UserController {
 
 
     //fix: this one
+    // fixed this one
     @GetMapping("/supervisors")
     public ResponseEntity<?> getSupervisors(
+            HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
+
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String institution = (String) request.getAttribute("institution");
+        String role = (String) request.getAttribute("role");
+
+        if (!"UNIVERSITY".equalsIgnoreCase(role)  ){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only University can get this resource!"));
+        }
+
         try{
-
             Pageable pageable = PageRequest.of(page, size);
-
-            Role supervisorRole = roleRepo.findByName("SUPERVISOR");
-
-
-            Page<User> supervisors = userService.getSupervisors(supervisorRole, pageable);
-
+            Page<User> supervisors = userService.filterSupervisorByInstitution(institution, pageable);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Fetched supervisors successfully");
-            response.put("interns", supervisors);
+            response.put("supervisors", supervisors);
             return ResponseEntity.status(201).body(response);
 
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
-
             return ResponseEntity.status(400).body(error);
         }
     }
@@ -396,10 +383,16 @@ public class UserController {
             HttpServletRequest request,
             @RequestBody AdminResetPasswordRequest resetRequest) {
         try {
-            String role = (String) request.getAttribute("role"); // Extracted by JwtAuthenticationFilter
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-            if (role == null || !"ADMIN".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only Admin users can reset passwords.");
+            String role = (String) request.getAttribute("role");
+
+            if (!"ADMIN".equalsIgnoreCase(role)  ){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR can assign_project manager for student."));
             }
 
             if (resetRequest.getNewPassword() == null || resetRequest.getNewPassword().length() < 6) {
@@ -423,18 +416,10 @@ public class UserController {
 
 
     @GetMapping("/student/dashboard")
-    public ResponseEntity<?> getStudentDashbaord(HttpServletRequest request, Pageable pageable) {
+    public ResponseEntity<?> getStudentDashboard(HttpServletRequest request, Pageable pageable) {
 
-        String jwtToken = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    jwtToken = cookie.getValue();
-                    break;
-                }
-            }
-        }
-        if (jwtToken == null) {
+        String token = extractAccessToken(request);
+        if (token == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
 
@@ -454,7 +439,7 @@ public class UserController {
 
         // 4️⃣ Fetch recent activities from gRPC
         GetRecentActivitiesResponse grpcResponse =
-                activityGrpcClient.getRecentActivities(jwtToken, userId, pageable.getPageNumber(), pageable.getPageSize());
+                activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
 
         // 5️⃣ Map protobuf response to DTOs
         List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
@@ -472,7 +457,7 @@ public class UserController {
         List<MilestoneResponse> milestoneDTOs = new ArrayList<>();
         if (internDTO != null && internDTO.getProjectId() != null) {
             AllMilestones activeMilestones = projectManagerGrpcClient
-                    .getActiveMilestones(jwtToken, internDTO.getProjectId());
+                    .getActiveMilestones(token, internDTO.getProjectId());
 
             if (activeMilestones != null) {
                 milestoneDTOs = activeMilestones.getMilestonesList().stream()
@@ -515,8 +500,97 @@ public class UserController {
     }
 
 
+    @GetMapping("/company/dashboard")
+    public ResponseEntity<?> getCompanyDashboard(HttpServletRequest request, Pageable pageable) {
+
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        // 2️⃣ Get userId from request attribute
+        Long userId = (Long) request.getAttribute("userId");
+
+        ApplicationCountResponse grpcAppResponse = applicationGrpcClient.getApplicationCount();
+        long applicationCount = grpcAppResponse.getCount();
+
+        long activeStudentCount = userService.countActiveInterns();
+
+        // 4️⃣ Fetch recent activities from gRPC
+        GetRecentActivitiesResponse grpcResponse =
+                activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        // 5️⃣ Map protobuf response to DTOs
+        List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
+                .map(a -> new ActivityDTO(
+                        a.getId(),
+                        a.getUserId(),
+                        a.getTitle(),
+                        a.getDescription(),
+                        LocalDateTime.parse(a.getCreatedAt())
+                ))
+                .toList();
+
+        // 6️⃣ Fetch intern's project & active milestones
+//        InternManagerResponseDTO internDTO = internManagerService.getInfoIdByUserId(userId);
+//        List<MilestoneResponse> milestoneDTOs = new ArrayList<>();
+//        if (internDTO != null && internDTO.getProjectId() != null) {
+//            AllMilestones activeMilestones = projectManagerGrpcClient
+//                    .getActiveMilestones(jwtToken, internDTO.getProjectId());
+//
+//            if (activeMilestones != null) {
+//                milestoneDTOs = activeMilestones.getMilestonesList().stream()
+//                        .map(m -> new MilestoneResponse(
+//                                m.getMilestoneId(),
+//                                m.getMilestoneTitle(),
+//                                m.getMilestoneDescription(),
+//                                m.getMilestoneStatus(),
+//                                m.hasMilestoneDueDate()
+//                                        ? LocalDateTime.ofInstant(
+//                                        Instant.ofEpochSecond(
+//                                                m.getMilestoneDueDate().getSeconds(),
+//                                                m.getMilestoneDueDate().getNanos()
+//                                        ),
+//                                        ZoneId.systemDefault()
+//                                )
+//                                        : null,
+//                                m.hasMilestoneCreatedAt()
+//                                        ? LocalDateTime.ofInstant(
+//                                        Instant.ofEpochSecond(
+//                                                m.getMilestoneCreatedAt().getSeconds(),
+//                                                m.getMilestoneCreatedAt().getNanos()
+//                                        ),
+//                                        ZoneId.systemDefault()
+//                                )
+//                                        : null
+//                        ))
+//                        .toList();
+//            }
+//        }
+
+        // 7️⃣ Combine into single response
+        Map<String, Object> combinedResponse = new HashMap<>();
+        combinedResponse.put("applicationCount", applicationCount);
+        combinedResponse.put("activeInterns", activeStudentCount);
+        combinedResponse.put("recentActivities", activityList);
+//        combinedResponse.put("tasks", milestoneDTOs);
+
+        return ResponseEntity.ok(combinedResponse);
+    }
+
     @GetMapping("/role-count")
-    public ResponseEntity<Map<String, Long>> getUserRoleCounts() {
+    public ResponseEntity<?> getUserRoleCounts(HttpServletRequest request) {
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role)  ){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only HR can assign_project manager for student."));
+        }
         Map<String, Long> roleCounts = userService.getUserRoleCounts();
         return ResponseEntity.ok(roleCounts);
     }
@@ -524,10 +598,22 @@ public class UserController {
 
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only HR and PM can  access this resource."));
+        }
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.searchInterns(query, pageable);
@@ -546,33 +632,62 @@ public class UserController {
 
     @GetMapping("/supervisors/search")
     public ResponseEntity<?> searchSupervisors(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
+            String role = (String) request.getAttribute("role");
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.searchSupervisors(query, pageable);
+            if (!"UNIVERSITY".equalsIgnoreCase(role)  ){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only University can access this resource."));
+            }
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+            String institution = (String) request.getAttribute("role");
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.searchSupervisors(query, institution, pageable);
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "An unexpected error occurred",
+                            "details", e.getMessage()
+                    ));
+        }
     }
+
 
     @GetMapping("/search")
     public ResponseEntity<?> searchUsers(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
         Pageable pageable = PageRequest.of(page, size);
         Page<User> pageResult = userService.searchUsers(query, pageable);
 
@@ -591,113 +706,194 @@ public class UserController {
 
     @GetMapping("/filter-interns-by-university")
     public ResponseEntity<?> filterInternByUniversity(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterByInstitution(query, pageable);
+            String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+            if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR and PM can access this resource"));
+            }
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterByInstitution(query, pageable);
+
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while intern by university");
+        }
     }
 
 
     @GetMapping("/filter-by-role")
     public ResponseEntity<?> filterByRole(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+       try{
+           String token = extractAccessToken(request);
+           if (token == null) {
+               return ResponseEntity.status(401).body("Missing access_token cookie");
+           }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterUserByRole(query, pageable);
+           String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+           if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
+               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                       .body(Map.of("error", "Only HR and PM can access this resource"));
+           }
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+           Pageable pageable = PageRequest.of(page, size);
+           Page<User> pageResult = userService.filterUserByRole(query, pageable);
+
+           List<UserResponseDto> content = pageResult.getContent().stream()
+                   .map(this::mapToDTO)
+                   .toList();
+
+           return ResponseEntity.ok(Map.of(
+                   "content", content,
+                   "currentPage", pageResult.getNumber(),
+                   "totalPages", pageResult.getTotalPages(),
+                   "totalElements", pageResult.getTotalElements()
+           ));} catch (Exception e) {
+           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                   .body("An error occured while filtering user by role");
+       }
     }
 
     @GetMapping("/filter-interns-by-status")
     public ResponseEntity<?> filterInternByStatus(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterInternByStatus(query, pageable);
+            String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+            if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR and PM can access this resource"));
+            }
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterInternByStatus(query, pageable);
+
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while filtering interns by status");
+        }
     }
 
     @GetMapping("/filter-supervisor-by-status")
     public ResponseEntity<?> filterSupervisorByStatus(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+       try{
+           String token = extractAccessToken(request);
+           if (token == null) {
+               return ResponseEntity.status(401).body("Missing access_token cookie");
+           }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
+           String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+           if (!"UNIVERSITY".equalsIgnoreCase(role)){
+               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                       .body(Map.of("error", "Only HR and PM can access this resource"));
+           }
+           Pageable pageable = PageRequest.of(page, size);
+           Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+           List<UserResponseDto> content = pageResult.getContent().stream()
+                   .map(this::mapToDTO)
+                   .toList();
+
+           return ResponseEntity.ok(Map.of(
+                   "content", content,
+                   "currentPage", pageResult.getNumber(),
+                   "totalPages", pageResult.getTotalPages(),
+                   "totalElements", pageResult.getTotalElements()
+           ));} catch (Exception e) {
+           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                   .body("An error occured while filtering supervisor by status");
+       }
     }
 
     @GetMapping("/filter-supervisor-by-field-of-study")
     public ResponseEntity<?> filterSupervisorByFieldOfStudy(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterSupervisorByFieldOfStudy(query, pageable);
+            String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR and PM can access this resource"));
+            }
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterSupervisorByFieldOfStudy(query, pageable);
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("AN error occured while filtering supervisor by field of study");
+        }
     }
 
     @GetMapping("/filter-supervisor-by-institution")
@@ -706,74 +902,94 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        // 🔑 Get JWT from cookie
-        String token = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
-                    token = cookie.getValue();
-                    break;
-                }
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
             }
+
+            String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
+
+            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR and PM can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+
+            Page<User> pageResult = userService.filterSupervisorByInstitution(institution, pageable);
+
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while getting supervisor by institution");
         }
-
-        // 🔑 Extract role & id from token
-        String role = jwtUtil.extractUserRole(token);
-        String institution = jwtUtil.extractUserInstitution(token);
-
-        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Only universities can access this resource"));
-        }
-
-        Pageable pageable = PageRequest.of(page, size);
-
-        Page<User> pageResult = userService.filterSupervisorByInstitution(institution, pageable);
-
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
-
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
     }
 
 
     @GetMapping("/filter-all-users-by-status")
     public ResponseEntity<?> filterAllUserByStatus(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+       try{
+           String token = extractAccessToken(request);
+           if (token == null) {
+               return ResponseEntity.status(401).body("Missing access_token cookie");
+           }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterAllUsersByStatus(query, pageable);
+           String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+           if (!"ADMIN".equalsIgnoreCase(role)){
+               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                       .body(Map.of("error", "Only Admin can access this resource"));
+           }
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+           Pageable pageable = PageRequest.of(page, size);
+           Page<User> pageResult = userService.filterAllUsersByStatus(query, pageable);
+
+           List<UserResponseDto> content = pageResult.getContent().stream()
+                   .map(this::mapToDTO)
+                   .toList();
+
+           return ResponseEntity.ok(Map.of(
+                   "content", content,
+                   "currentPage", pageResult.getNumber(),
+                   "totalPages", pageResult.getTotalPages(),
+                   "totalElements", pageResult.getTotalElements()
+           ));
+       } catch (Exception e) {
+           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                   .body("An error occured while filtering all users by status");
+       }
     }
-
 
 
     @PostMapping("/role/create")
     public ResponseEntity<?> createRole(HttpServletRequest request, @RequestBody RolesDTO dto){
         try {
-            String userRole = (String) request.getAttribute("role");
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-            if (userRole == null || !"Admin".equalsIgnoreCase(userRole)) {
-                return errorResponse("Unauthorized: Only Admin users can create roles.");
+            String role = (String) request.getAttribute("role");
+
+            if (!"ADMIN".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only Admin can access this resource"));
             }
 
             Role newRole = userService.createRole(dto);
@@ -783,10 +999,9 @@ public class UserController {
             response.put("role", newRole);
 
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(400).body(error);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while creating role");
         }
 
 
@@ -795,24 +1010,40 @@ public class UserController {
 
     @GetMapping("/filter-intern-by-supervisor")
     public ResponseEntity<?> filterInternsBySupervisor(
+            HttpServletRequest request,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.filterInternBySupervisor(query, pageable);
+            String role = (String) request.getAttribute("role");
 
-        List<UserResponseDto> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
+            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only UNIVERSITY can access this resource"));
+            }
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterInternBySupervisor(query, pageable);
 
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while filtering intern by their assigned supervisors");
+        }
     }
 
 
@@ -821,8 +1052,16 @@ public class UserController {
         error.put("error", message);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
-
-
+    private String extractAccessToken(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
     private UserResponseDto mapToDTO(User user) {
         return new UserResponseDto(user);
     }

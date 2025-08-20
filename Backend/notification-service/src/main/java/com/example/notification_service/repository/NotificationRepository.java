@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByRolesContainingOrderByCreatedAtDesc(RecipientRole role);
+
+    List<Notification> findByRolesContaining(RecipientRole role);
 }

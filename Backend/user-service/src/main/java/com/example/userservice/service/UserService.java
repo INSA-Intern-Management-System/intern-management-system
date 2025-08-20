@@ -68,7 +68,9 @@ public interface UserService {
 
     Role createRole(RolesDTO dto);
 
-    Page<User> searchSupervisors(String query, Pageable pageable);
+    long countActiveInterns();
+
+    Page<User> searchSupervisors(String query, String institution, Pageable pageable);
     Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable);
 
 

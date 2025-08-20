@@ -8,6 +8,7 @@ import com.example.application_service.dto.UserResponseDTO;
 import com.example.application_service.model.Applicant;
 import com.example.application_service.model.Application;
 import com.example.application_service.model.ApplicationStatus;
+import com.example.application_service.model.NotificationType;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.security.JwtUtil;
@@ -160,6 +161,19 @@ public class ApplicationController {
             @RequestPart(value = "cvFile", required = false) MultipartFile cvFile
     ) throws IOException {
 
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
         String role = (String) request.getAttribute("role");
         if (!"UNIVERSITY".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -204,11 +218,21 @@ public class ApplicationController {
         response.put("application", responseDTO);
 
 //         Send notification to UNIVERSITY and COMPANY (example)
+        String message = String.format(
+                "A new internship application has been submitted by student %s %s (%s) from %s in the field of %s.",
+                createdApplication.getApplicant().getFirstName(),
+                createdApplication.getApplicant().getLastName(),
+                createdApplication.getApplicant().getEmail(),
+                (createdApplication.getApplicant().getInstitution() != null ? createdApplication.getApplicant().getInstitution() : "N/A"),
+                (createdApplication.getApplicant().getFieldOfStudy() != null ? createdApplication.getApplicant().getFieldOfStudy() : "N/A")
+        );
+
          notificationGrpcClient.sendNotification(
-                 Set.of(RecipientRole.HR),
-                 "New Internship Application",
-                 "A new internship application has been submitted.",
-                 Instant.now()
+                 Set.of(RecipientRole.HR), // ✅ send to university
+                 "New Internship Application Submitted",
+                 message,                          // ✅ use message as description
+                 Instant.now(),
+                 com.example.grpc.NotificationType.INFO
          );
 
         return ResponseEntity.status(201).body(response);
@@ -234,11 +258,13 @@ public class ApplicationController {
                     }
                 }
             }
-
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
             // 🔑 Extract role & id from token
             String role = jwtUtil.extractUserRole(token);
 
-            if (!"HR".equalsIgnoreCase(role)) {
+            if (!"HR".equalsIgnoreCase(role) ) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Only HR can access this resource"));
             }
@@ -268,9 +294,12 @@ public class ApplicationController {
                 }
             }
         }
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
 
         // 🔑 Extract role & id from token
-        String role = jwtUtil.extractUserRole(token);
+        String role = (String) request.getAttribute("role");
 
         if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -308,9 +337,12 @@ public class ApplicationController {
                     }
                 }
             }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             // 🔑 Extract role & id from token
-            String role = jwtUtil.extractUserRole(token);
+            String role = (String) request.getAttribute("role");
 
             if (!"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -340,22 +372,24 @@ public class ApplicationController {
             HttpServletRequest request) {
 
         try {
-
             String token = null;
             if (request.getCookies() != null) {
                 for (Cookie cookie : request.getCookies()) {
-                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                    if ("access_token".equals(cookie.getName())) {
                         token = cookie.getValue();
                         break;
                     }
                 }
             }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-            String role = jwtUtil.extractUserRole(token);
+            String role = (String) request.getAttribute("role");
 
-            if (!"HR".equalsIgnoreCase(role)  ){
+            if (!"HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only ADMIN or HR can register users."));
+                        .body(Map.of("error", "Only HR can update application status."));
             }
 
             ApplicationDTO updated = applicationService.updateApplicationStatus(
@@ -368,24 +402,26 @@ public class ApplicationController {
 
             Applicant applicant = application.getApplicant();
 
-            // ✅ Send Notification
-            String message = String.format("Application for your student %s %s (%s) has been %s.",
+            // ✅ Send Notification via gRPC
+            String message = String.format("Application for student %s %s (%s) has been %s.",
                     applicant.getFirstName(),
                     applicant.getLastName(),
                     applicant.getEmail(),
-                    status.toUpperCase());
+                    status.toUpperCase()
+            );
 
-//            try {
-//                notificationGrpcClient.sendNotification(
-//                        Set.of(RecipientRole.University),
-//                        "Application Status Update",
-//                        message,
-//                        Instant.now()
-//                );
-//            } catch (Exception e) {
-//                System.err.println("Failed to send gRPC notification: " + e.getMessage());
-//                 optionally log this or send to monitoring
-//            }
+            try {
+                notificationGrpcClient.sendNotification(
+                        Set.of(RecipientRole.University), // ✅ send to university
+                        "Application Status Update",
+                        message,                          // ✅ use message as description
+                        Instant.now(),
+                        com.example.grpc.NotificationType.INFO // ✅ use gRPC enum
+                );
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to send gRPC notification: " + e.getMessage());
+            }
+
             return ResponseEntity.ok(updated);
 
         } catch (RuntimeException e) {
@@ -394,7 +430,6 @@ public class ApplicationController {
             return ResponseEntity.status(400).body(error);
         }
     }
-
 
     @GetMapping("/applications/search")
     public ResponseEntity<?> searchApplicants(
@@ -414,9 +449,12 @@ public class ApplicationController {
                     }
                 }
             }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             // 🔑 Extract role & id from token
-            String role = jwtUtil.extractUserRole(token);
+            String role = (String) request.getAttribute("role");
 
             if (!"HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -460,9 +498,12 @@ public class ApplicationController {
                     }
                 }
             }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             // 🔑 Extract role & id from token
-            String role = jwtUtil.extractUserRole(token);
+            String role = (String) request.getAttribute("role");
 
             if (!"HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -498,9 +539,12 @@ public class ApplicationController {
                     }
                 }
             }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             // 🔑 Extract role & id from token
-            String role = jwtUtil.extractUserRole(token);
+            String role = (String) request.getAttribute("role");
 
             if (!"HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -539,8 +583,12 @@ public class ApplicationController {
                 }
             }
 
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
             // 🔑 Extract role & id from token
-            String role = jwtUtil.extractUserRole(token);
+            String role = (String) request.getAttribute("role");
 
             if (!"HR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -581,9 +629,8 @@ public class ApplicationController {
             }
 
             // 🔑 Extract role & id from token
-            String role = jwtUtil.extractUserRole(token);
-            String institution = jwtUtil.extractUserInstitution(token);
-
+            String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
 
             if (!"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)

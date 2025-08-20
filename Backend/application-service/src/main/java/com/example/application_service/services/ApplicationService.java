@@ -37,5 +37,4 @@ public interface ApplicationService {
     Page<Application> filterByUniversity(String university, Pageable pageable);
 
 
-
 }

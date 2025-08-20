@@ -450,6 +450,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public long countActiveInterns() {
+        Role studentRole = roleRepo.findByName("STUDENT");
+        UserStatus activeStatus = UserStatus.valueOf("ACTIVE");
+        return userRepo.countByRoleIdAndUserStatus(studentRole.getId(), activeStatus);
+    }
+
+    @Override
     public Map<String, Long> getUserRoleCounts() {
         List<User> users = userRepo.findAll();
         Map<String, Long> roleCounts = new HashMap<>();
@@ -575,13 +582,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<User> searchSupervisors(String query, Pageable pageable) {
+    public Page<User> searchSupervisors(String query, String institution, Pageable pageable) {
         Role supervisorRole = roleRepo.findByName("SUPERVISOR");
-
-        return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
-                supervisorRole, query, supervisorRole, query, pageable
+        return userRepo.findByRoleAndInstitutionAndFirstNameContainingIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyContainingIgnoreCase(
+                supervisorRole, institution, query,
+                supervisorRole, institution, query,
+                pageable
         );
     }
+
+
 
     // --- Helper Methods (no changes needed) ---
     private String generateRandomPassword(int length) {

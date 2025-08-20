@@ -16,6 +16,13 @@ enum RecipientRole {
   Supervisor = 4;
 }
 
+enum NotificationType{
+     ALERT = 0;
+     INFO = 1;
+     WARNING = 2;
+     SUCCESS = 3;
+}
+
 service NotificationService {
   rpc CreateNotification (NotificationRequest) returns (NotificationResponse);
 }
@@ -24,7 +31,8 @@ message NotificationRequest {
   repeated RecipientRole roles = 1;      // multiple roles supported
   string title = 2;
   string description = 3;
-  google.protobuf.Timestamp created_at = 4;
+  NotificationType notificationType= 4;
+  google.protobuf.Timestamp created_at = 5;
 }
 
 message NotificationResponse {

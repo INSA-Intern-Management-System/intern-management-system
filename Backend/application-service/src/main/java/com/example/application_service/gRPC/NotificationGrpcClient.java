@@ -4,6 +4,7 @@ import com.example.grpc.NotificationRequest;
 import com.example.grpc.NotificationResponse;
 import com.example.grpc.NotificationServiceGrpc;
 import com.example.grpc.RecipientRole;
+import com.example.grpc.NotificationType;
 import com.google.protobuf.Timestamp;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -18,15 +19,16 @@ public class NotificationGrpcClient {
 
     private final NotificationServiceGrpc.NotificationServiceBlockingStub notificationStub;
 
-    public NotificationGrpcClient() {
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9090)
+    public NotificationGrpcClient(String host, int port) {
+        ManagedChannel channel = ManagedChannelBuilder.forAddress(host,port)
                 .usePlaintext()
                 .build();
 
         notificationStub = NotificationServiceGrpc.newBlockingStub(channel);
     }
 
-    public void sendNotification(Set<RecipientRole> roles, String title, String description, Instant createdAt) {
+    public void sendNotification(Set<RecipientRole> roles, String title, String description,
+                                 Instant createdAt, NotificationType notificationType) {
         Timestamp ts = Timestamp.newBuilder()
                 .setSeconds(createdAt.getEpochSecond())
                 .setNanos(createdAt.getNano())
@@ -39,6 +41,7 @@ public class NotificationGrpcClient {
                 .setTitle(title)
                 .setDescription(description)
                 .setCreatedAt(ts)
+                .setNotificationType(notificationType)
                 .build();
 
         NotificationResponse response = notificationStub.createNotification(request);
