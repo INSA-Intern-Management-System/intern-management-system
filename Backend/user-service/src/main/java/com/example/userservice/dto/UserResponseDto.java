@@ -36,6 +36,7 @@ public class UserResponseDto {
     private String institution;
     private LocalDateTime lastLogin;
     private SupervisorDTO supervisor;
+    private ProjectManagerDTO projectManager;
 
     @NotBlank(message = "Role is required")
     private Role role;
@@ -70,6 +71,10 @@ public class UserResponseDto {
             this.supervisor = new SupervisorDTO(user.getSupervisor());
         }
 
+        if (user.getProjectManager() != null) {
+            this.projectManager = new ProjectManagerDTO(user.getProjectManager());
+        }
+
     }
 
     // Getters and Setters (generate with Alt+Insert or Lombok)
@@ -88,6 +93,15 @@ public class UserResponseDto {
         this.supervisor = supervisor;
     }
 
+    public ProjectManagerDTO getProjectManager() {
+        return projectManager;
+    }
+
+    public void setProjectManager(ProjectManagerDTO supervisor) {
+        this.projectManager = projectManager;
+    }
+
+
     public String getLinkedInUrl() {
         return linkedInUrl;
     }
@@ -99,7 +113,6 @@ public class UserResponseDto {
     public void setLastLogin(LocalDateTime lastLogin) {
         this.lastLogin = lastLogin;
     }
-    
 
     public Long getId() {
         return id;

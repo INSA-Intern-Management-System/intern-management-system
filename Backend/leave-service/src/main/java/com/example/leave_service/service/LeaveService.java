@@ -143,6 +143,11 @@ public class LeaveService {
     public Map<String, Long> getLeaveStatusCounts() {
         return leaveRepository.getLeaveStatusCounts();
     }
+    // get leave status counts for student 
+    public Map<String, Long> getLeaveStatusCountsForStudent(Long userId) {
+        return leaveRepository.getLeaveStatusCounts(userId);
+    }
+
 
     //get status count for pm
     public Map<String, Long> getLeaveStatusCounts(Long receiverId) {

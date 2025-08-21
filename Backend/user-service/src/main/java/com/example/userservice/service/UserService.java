@@ -40,6 +40,8 @@ public interface UserService {
     User loadUserByEmail(String email);
 
     void assignSupervisor(AssignSupervisorRequestDTO dto);
+    void assignProjectManager(AssignProjectManagerRequestDTO dto);
+
 
     Page<User> getInterns(Role role, Pageable pageable);
     Page<User> getSupervisors(Role role, Pageable pageable);
@@ -51,6 +53,8 @@ public interface UserService {
     Page<User> filterUserByRole(String query, Pageable pageable);
 
     Page<User> filterByInstitution(String institution, Pageable pageable);
+    Page<User> filterSupervisorByInstitution(String institution, Pageable pageable);
+
 
     Page<User> filterInternByStatus(String query, Pageable pageable);
     Page<User> filterSupervisorByStatus(String query, Pageable pageable);

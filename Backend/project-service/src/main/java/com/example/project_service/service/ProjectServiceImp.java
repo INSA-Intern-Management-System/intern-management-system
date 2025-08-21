@@ -193,6 +193,17 @@ public class ProjectServiceImp implements ProjectServiceInterface {
                 .map(projectMapper::mapToDto)
                 .collect(Collectors.toList());
     }
+    @Transactional(readOnly = true)
+    @Override
+    public List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId) {
+        //get milestones using project 
+        List<Milestone> milestone=milestoneRepo.getMilestonesByProjectIdExceptCompleted(projectId);
+        if (milestone == null || milestone.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return milestone;
+
+    }
 
     // ---------------- Teams ----------------
     @Transactional

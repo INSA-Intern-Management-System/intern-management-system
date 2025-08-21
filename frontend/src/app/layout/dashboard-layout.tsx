@@ -18,7 +18,7 @@ async function getUser(): Promise<User> {
   }
 
   try {
-    const response = await api.get<User>(`/users/${userId}`, {
+    const response = await api.get<User>(`/users/me`, {
       headers: {
         Cookie: `access_token=${accessToken}`,
       },
