@@ -138,7 +138,6 @@ export default function LoginPage() {
               {loginMutation.isPending ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-         
         </CardContent>
       </Card>
     </div>
