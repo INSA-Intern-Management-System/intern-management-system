@@ -520,6 +520,79 @@ export default function StudentsPage() {
             </PaginationItem>
           </PaginationContent>
         </Pagination>
+        
+  {viewStudent && (
+  <Dialog open={!!viewStudent} onOpenChange={() => setViewStudent(null)}>
+    <DialogContent className="backdrop-blur
+     bg-white text-black rounded-lg shadow-lg">
+      <DialogHeader>
+        <DialogTitle>{viewStudent.name}'s Profile</DialogTitle>
+      </DialogHeader>
+
+      <div className="flex flex-col sm:flex-row gap-4 mt-4">
+        {/* Profile Picture */}
+        <img
+          src={viewStudent.profile_pic_url}
+          alt={viewStudent.name}
+          className="w-32 h-32 rounded-full object-cover border-2 border-white"
+        />
+
+        {/* Info Section */}
+        <div className="space-y-2 text-sm">
+          <p><strong>Email:</strong> {viewStudent.email}</p>
+          <p><strong>Phone:</strong> {viewStudent.phone_number}</p>
+          <p><strong>Institution:</strong> {viewStudent.institution}</p>
+          <p><strong>Field:</strong> {viewStudent.field_of_study}</p>
+          <p><strong>Gender:</strong> {viewStudent.gender}</p>
+          <p><strong>Address:</strong> {viewStudent.address}</p>
+          <p><strong>Company:</strong> {viewStudent.company}</p>
+          <p><strong>Position:</strong> {viewStudent.position}</p>
+          <p><strong>Supervisor:</strong> {viewStudent.supervisor}</p>
+          <p><strong>Start Date:</strong> {viewStudent.startDate}</p>
+          <p><strong>Status:</strong> {viewStudent.status}</p>
+          <p><strong>Progress:</strong> {viewStudent.progress}%</p>
+{/* External Links */}
+<div className="flex gap-4 mt-3 items-center text-sm">
+  {viewStudent.linkedin_url && (
+    <a
+      href={viewStudent.linkedin_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1 hover:text-blue-400"
+    >
+     
+      LinkedIn
+    </a>
+  )}
+  {viewStudent.github_url && (
+    <a
+      href={viewStudent.github_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1 hover:text-gray-400"
+    >
+   
+      GitHub
+    </a>
+  )}
+  {viewStudent.cv_url && (
+    <a
+      href={viewStudent.cv_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1 hover:text-green-400"
+    >
+  
+      View CV
+    </a>
+  )}
+</div>
+
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
       </div>
     </DashboardLayout>
   );

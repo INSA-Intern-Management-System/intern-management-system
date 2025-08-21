@@ -205,14 +205,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-2">
-              {/* Logo Image */}
+            
               <Image
                 src="/logo.png"
                 alt="INSA Logo"
                 width={50}
                 height={50}
               />
-              {/* Brand Name */}
+             
               <span className="text-l font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 INSA 
               </span>
