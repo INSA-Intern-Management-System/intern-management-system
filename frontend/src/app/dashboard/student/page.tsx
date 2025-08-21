@@ -13,7 +13,7 @@ async function getUser(): Promise<User> {
   if (!accessToken || !userId) {
     redirect("/login");
   }
-
+  
   try {
     const response = await api.get<User>(`/users/me`, {
       headers: {

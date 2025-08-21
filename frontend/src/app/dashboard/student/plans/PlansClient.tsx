@@ -278,7 +278,7 @@ export default function PlansClient({
             Tasks specific to your role as a student
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 ">
           {paginatedTasks.length > 0 ? (
             paginatedTasks.map((task) => (
               <div
@@ -347,12 +347,12 @@ export default function PlansClient({
           {/* Task Creation Dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="mt-4">
+              <Button className="mt-4 bg-black text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 New Task
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className=" bg-white text-black">
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
               </DialogHeader>
@@ -376,12 +376,14 @@ export default function PlansClient({
                 <Input
                   type="date"
                   value={newTask.dueDate}
+                   min={new Date().toISOString().split("T")[0]}
                   onChange={(e) =>
                     setNewTask({ ...newTask, dueDate: e.target.value })
                   }
                   required
                 />
-                <Button type="submit" disabled={isSubmitting}>
+                
+                <Button type="submit" disabled={isSubmitting}   className="border-2 px-4 py-2 rounded-lg ">
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
