@@ -328,7 +328,7 @@ export default function MessagesClient({
     // Update URL with roomId
     const params = new URLSearchParams(searchParams.toString());
     params.set("roomId", room.room.id.toString());
-    router.push(`/dashboard/student/messages?${params.toString()}`);
+    router.push(`/dashboard/company/messages?${params.toString()}`);
 
     // Mark messages as read
     if (room.unreadCount > 0) {
@@ -411,7 +411,7 @@ export default function MessagesClient({
         // Update URL with new roomId
         const params = new URLSearchParams(searchParams.toString());
         params.set("roomId", response.data.room.id.toString());
-        router.push(`/dashboard/student/messages?${params.toString()}`);
+        router.push(`/dashboard/company/messages?${params.toString()}`);
 
         setSearchResults([]);
         setSearchValue("");
@@ -452,7 +452,7 @@ export default function MessagesClient({
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", newPage.toString());
-    router.push(`/dashboard/student/messages?${params.toString()}`);
+    router.push(`/dashboard/company/messages?${params.toString()}`);
   };
 
   const renderPaginationItems = () => {
