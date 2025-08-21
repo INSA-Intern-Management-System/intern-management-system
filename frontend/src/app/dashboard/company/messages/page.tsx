@@ -141,7 +141,7 @@ export default async function MessagesPage({
   };
 
   return (
-    <DashboardLayout requiredRole="student">
+    <DashboardLayout requiredRole="company">
       <MessagesClient
         initialRooms={roomsData.content}
         initialMessages={roomMessages?.content || []}
