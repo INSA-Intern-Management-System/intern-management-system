@@ -1,35 +1,27 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  CheckCircle,
-  University,
-  Star,
-  GraduationCap,
-  TrendingUp,
-} from "lucide-react";
-import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation" 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Users, CheckCircle, University, Star, GraduationCap, TrendingUp } from "lucide-react"
+import  DashboardLayout  from "@/app/layout/dashboard-layout"
 
 export default function UniversityDashboard() {
   const [user, setUser] = useState<any>(null);
+    const router = useRouter();
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
+    setUser({
+      "organization":"ASTU"
+    })
+  // useEffect(() => {
+  //   const userData = localStorage.getItem("user")
+  //   if (userData) {
+  //     setUser(JSON.parse(userData))
+  //   }
+  // }, [])
 
-  if (!user) return null;
+  // if (!user) return null
 
   // Mock data for dashboard overview
   const stats = [
@@ -70,31 +62,31 @@ export default function UniversityDashboard() {
   const recentActivities = [
     {
       id: 1,
-      type: "evaluation",
-      message: "New evaluation submitted for John Doe at Tech Corp",
+      title: "evaluation",
+      description: "New evaluation submitted for John Doe at Tech Corp",
       time: "2 hours ago",
-      status: "pending",
+      // status: "pending",
     },
     {
       id: 2,
-      type: "assignment",
-      message: "Dr. Smith assigned as supervisor for 3 new students",
+      title: "assignment",
+      description: "Dr. Smith assigned as supervisor for 3 new students",
       time: "4 hours ago",
-      status: "completed",
+      // status: "completed",
     },
     {
       id: 3,
-      type: "report",
-      message: "Weekly report submitted by Jane Smith",
+      title: "report",
+      description: "Weekly report submitted by Jane Smith",
       time: "1 day ago",
-      status: "completed",
+      // status: "completed",
     },
     {
       id: 4,
-      type: "application",
-      message: "New internship application requires supervisor assignment",
+     title: "application",
+     description: "New internship application requires supervisor assignment",
       time: "2 days ago",
-      status: "pending",
+      // status: "pending",
     },
   ];
 
@@ -121,16 +113,25 @@ export default function UniversityDashboard() {
       priority: "high",
     },
   ];
+function goMessage() {
 
+  router.push('/dashboard/university/students');
+}
+function goMessage1() {
+
+  router.push('/dashboard/university/evaluations');
+}
+function goMessage2() {
+
+  router.push('/dashboard/university/performance');
+}
   return (
-    <DashboardLayout userRole="university" userName={user.organization}>
+    <DashboardLayout requiredRole="university" >
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              University Dashboard
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">University Dashboard</h1>
             <p className="text-gray-600">Welcome back, {user.organization}</p>
           </div>
           <div className="flex items-center space-x-2">
@@ -138,7 +139,7 @@ export default function UniversityDashboard() {
           </div>
         </div>
 
-        {/* Stats Grid */}
+   
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -185,25 +186,27 @@ export default function UniversityDashboard() {
                     className="flex items-start space-x-3 p-3 rounded-lg border"
                   >
                     <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{activity.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {activity.message}
+                        {activity.description}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {activity.time}
                       </p>
                     </div>
+                    {/* <Badge
+                      variant={activity.status === "pending" ? "secondary" : "default"}
                     <Badge
                       variant={
                         activity.status === "pending" ? "secondary" : "default"
                       }
                       className={
-                        activity.status === "pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
+                        activity.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
                       }
                     >
                       {activity.status}
-                    </Badge>
+                    </Badge> */}
                   </div>
                 ))}
               </div>
@@ -259,6 +262,11 @@ export default function UniversityDashboard() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                <button onClick={goMessage} ><Users className="h-8 w-8 text-blue-600 mb-2" />
+                <h3 className="font-semibold text-gray-900">Assign Supervisor</h3>
+                <p className="text-sm text-gray-600">Assign supervisors to new students</p>
+              </button></div>
+              <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                 <Users className="h-8 w-8 text-blue-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">
                   Assign Supervisor
@@ -268,6 +276,11 @@ export default function UniversityDashboard() {
                 </p>
               </div>
               <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                  <button onClick={goMessage1} ><CheckCircle className="h-8 w-8 text-green-600 mb-2" />
+                <h3 className="font-semibold text-gray-900">Review Evaluations</h3>
+                <p className="text-sm text-gray-600">Review pending evaluations</p>
+             </button> </div>
+             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                 <CheckCircle className="h-8 w-8 text-green-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">
                   Review Evaluations
@@ -277,6 +290,11 @@ export default function UniversityDashboard() {
                 </p>
               </div>
               <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                  <button onClick={goMessage2} ><Star className="h-8 w-8 text-orange-600 mb-2" />
+                <h3 className="font-semibold text-gray-900">Performance Report</h3>
+                <p className="text-sm text-gray-600">Generate performance reports</p>
+             </button> </div>
+             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                 <Star className="h-8 w-8 text-orange-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">
                   Performance Report
@@ -285,6 +303,7 @@ export default function UniversityDashboard() {
                   Generate performance reports
                 </p>
               </div>
+              
             </div>
           </CardContent>
         </Card>
