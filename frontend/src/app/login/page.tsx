@@ -44,14 +44,14 @@ export default function LoginPage() {
   // Redirect if user is authenticated
   useEffect(() => {
     if (user && !isLoading) {
-      router.push(`/dashboard/${user.roles.name.toLowerCase()}`);
+      router.push('/dashboard/${user.roles.name.toLowerCase()}');
     }
   }, [user, isLoading, router]);
 
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data: AuthResponse) => {
-      router.push(`/dashboard/${data.user.roles.name.toLowerCase()}`);
+      router.push('/dashboard/${data.user.roles.name.toLowerCase()}');
     },
     onError: (err: any) => {
       setError(
