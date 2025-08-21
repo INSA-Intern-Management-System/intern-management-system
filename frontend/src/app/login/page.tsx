@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { login } from "@/app/services/authService";
+import { login, getUser } from "@/app/services/authService";
 import { LoginData, AuthResponse, User } from "@/types/entities";
 import {
   Card,
@@ -16,7 +15,7 @@ import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { Link } from "lucide-react";
 export default function LoginPage() {
   const [formData, setFormData] = useState<LoginData>({
     email: "",
@@ -44,14 +43,14 @@ export default function LoginPage() {
   // Redirect if user is authenticated
   useEffect(() => {
     if (user && !isLoading) {
-      router.push('/dashboard/${user.roles.name.toLowerCase()}');
+      router.push(`/dashboard/${user.roles.name.toLowerCase()}`);
     }
   }, [user, isLoading, router]);
 
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data: AuthResponse) => {
-      router.push('/dashboard/${data.user.roles.name.toLowerCase()}');
+      router.push(`/dashboard/${data.user.roles.name.toLowerCase()}`);
     },
     onError: (err: any) => {
       setError(
@@ -76,31 +75,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-start p-4">
-      
-      {/* Top Navigation */}
-    <nav className="w-full flex items-center justify-between py-4 px-4 bg-white shadow-md rounded-b">
-      
-      <div
-        className="flex items-center space-x-2 cursor-pointer"
-        onClick={() => router.push("/")}
-      >
-        <Image
-          src="/logo.png"
-          alt="INSA Logo"
-          width={50}
-          height={50}
-        />
-        <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          INSA
-        </span>
-      </div>
-
- 
-    </nav>
-
-      {/* Login Card */}
-      <Card className="w-full max-w-md mt-8 bg-white shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white shadow-lg">
         <CardHeader className="text-center pb-2">
           <div className="text-3xl font-extrabold text-blue-800 mb-1">
             Welcome Back!
@@ -127,6 +103,7 @@ export default function LoginPage() {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -144,7 +121,7 @@ export default function LoginPage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2"
+                  className="absolute right-0 top-0 h-full px-3 py-2 bg-blue-200 hover:bg-blue-300"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -152,14 +129,22 @@ export default function LoginPage() {
               </div>
             </div>
 
-         <Button
+            <Button
               type="submit"
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          <div className="mt-4 text-center">
+            <Link
+              href="/"
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              ← Back to Home
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
