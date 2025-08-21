@@ -6,6 +6,7 @@ import {
   UsersSearchResponse,
   Message,
   Room,
+  RoomUserUnreadDTO,
 } from "@/types/entities";
 import { cookies } from "next/headers";
 
@@ -209,13 +210,16 @@ export const searchUsersByName = async (
   }
 
   try {
-    const response = await messageApi.get<UsersSearchResponse>("/search", {
-      params: { name, page, size },
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-      withCredentials: true,
-    });
+    const response = await messageApi.get<UsersSearchResponse>(
+      "messages/users/search",
+      {
+        params: { name, page, size },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
 
     return response.data;
   } catch (error) {
@@ -243,14 +247,16 @@ export const searchUsersByName = async (
   }
 };
 
-export const createRoom = async (participantId: number): Promise<Room> => {
+export const createRoom = async (
+  participantId: number
+): Promise<RoomUserUnreadDTO> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
     throw new Error("Access token is missing");
   }
 
   try {
-    const response = await messageApi.post<Room>(
+    const response = await messageApi.post<RoomUserUnreadDTO>(
       "/messages/rooms",
       { participantId },
       {

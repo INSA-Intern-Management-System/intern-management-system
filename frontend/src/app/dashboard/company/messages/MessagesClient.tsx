@@ -356,7 +356,6 @@ export default function MessagesClient({
     setIsSearching(true);
     try {
       const response = await onSearchUsers(query);
-      console.log("Search response:", response, query);
       if (response.success && response.data) {
         setSearchResults(response.data);
       } else {
