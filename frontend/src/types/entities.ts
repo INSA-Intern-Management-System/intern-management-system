@@ -1,8 +1,8 @@
 // src/types/user.ts
 export interface User {
   id: string; // Backend returns Long, but use string for frontend consistency
-  firstName: string | null;
-  lastName: string | null;
+  firstName: string;
+  lastName: string;
   email: string;
   password?: string; // Not returned in responses, so optional
   phoneNumber: string | null;
@@ -28,6 +28,17 @@ export interface User {
   userStatus: "PENDING" | "APPROVED" | "REJECTED"; // Based on UserStatus enum
   status: "ONLINE" | "OFFLINE"; // Based on Status enum
   isFirstLogin: boolean;
+}
+
+export interface UserMessage {
+  id: string;
+  firstName: string;
+  lastName: string;
+  university: string | null;
+  fieldOfStudy: string | null;
+  status: string;
+  role: string;
+  profilePicUrl: string | null;
 }
 
 // src/types/role.ts
@@ -63,24 +74,225 @@ export interface Schedule {
   createdAt: string;
 }
 
-export interface Task {
+export interface Milestone {
   id: number;
   title: string;
   description: string;
-  due: string;
-  status: "todo" | "done";
-  priority: "high" | "medium" | "low";
+  status: "PENDING" | "UPCOMING" | "COMPLETED"; // adjust based on your backend
+  dueDate: string; // ISO date string
+  createdAt: string; // ISO date string
 }
 
-export interface PaginatedSchedules {
-  content: Schedule[];
-  pageable: {
-    pageNumber: number;
-    pageSize: number;
+export interface Task {
+  scheduleId: number;
+  userId: number;
+  title: string;
+  description: string;
+  dueDate: string; // ISO date string
+  status: "PENDING" | "UPCOMING" | "COMPLETED"; // adjust if needed
+  createdAt: string; // ISO date string
+}
+
+export interface Pageable {
+  pageNumber: number;
+  pageSize: number;
+  offset: number;
+  paged: boolean;
+  unpaged: boolean;
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
   };
+}
+
+// ✅ Paginated tasks response
+export interface PaginatedTasks {
+  content: Task[];
+  pageable: Pageable;
   totalPages: number;
   totalElements: number;
   last: boolean;
+  first: boolean;
+  number: number;
+  size: number;
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
+  numberOfElements: number;
+  empty: boolean;
+}
+
+// ✅ Full response wrapper
+export interface DashboardResponse {
+  milestones: Milestone[];
+  tasks: PaginatedTasks;
+}
+
+export interface Review {
+  id: number;
+  reportId: number;
+  feedback: string;
+  rating: number;
+  createdAt: string;
+}
+export interface Report {
+  id: number;
+  managerId: number;
+  projectId: number;
+  internId: number;
+  title: string;
+  periodTo: string;
+  taskCompleted: string;
+  challenges: string;
+  nextWeekGoals: string;
+  createdAt: string;
+  review: Review | null;
+  projectResponse: {
+    projectID: number;
+    projectName: string;
+    projectDescription: string;
+  };
+}
+
+export interface ReportsResponse {
+  content: Report[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface SearchUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fieldOfStudy: string;
+  university: string;
+  status: string;
+  role: string;
+  profilePicUrl: string | null;
+}
+
+export interface UsersSearchResponse {
+  content: SearchUser[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface Room {
+  id: number;
+  user1Id: number;
+  user2Id: number;
+  lastMessageAt: string;
+  createdAt: string;
+}
+
+export interface RoomUserUnreadDTO {
+  room: Room;
+  user: UserMessage;
+  unreadCount: number;
+}
+
+export interface Message {
+  id: number;
+  senderId: number;
+  roomId: number;
+  receiverId: number;
+  content: string;
+  status: "SENT" | "DELIVERED" | "READ" | "UNREAD";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MessagesResponse {
+  content: Message[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface RoomsResponse {
+  content: RoomUserUnreadDTO[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface UsersResponse {
+  content: User[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  sort: { sorted: boolean; empty: boolean; unsorted: boolean };
   first: boolean;
   numberOfElements: number;
   empty: boolean;
@@ -133,10 +345,6 @@ export interface Intern {
   role: string;
 }
 
-export interface Milestone {
-  name: string;
-  completed: boolean;
-}
 export interface Team {
   id: number;
   project_id: number;
@@ -154,30 +362,6 @@ export interface TeamMember {
   joined_at: string;
 }
 
-// No direct TaskAssignment table in schema, skipping
-
-export interface Report {
-  id: number;
-  student_id: number;
-  project_id: number;
-  title: string;
-  period_to: string;
-  review_id?: number; // Links to Review object for fetching review details
-  task_completed?: string;
-  challenges?: string;
-  next_week_goals?: string;
-  created_at: string;
-}
-
-export interface Review {
-  id: number;
-  report_id: number;
-  feedback?: string;
-  rating?: number;
-  reviewer_id: number;
-  created_at: string;
-}
-
 export interface Notification {
   id: number;
   role: string[];
@@ -190,16 +374,6 @@ export interface UserNotificationStatus {
   user_id: number;
   notification_id: number;
   is_read?: boolean;
-}
-
-export interface Message {
-  id: number;
-  sender_id: number;
-  receiver_id: number;
-  content: string;
-  status?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface Conversation {
