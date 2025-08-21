@@ -4,7 +4,6 @@ package com.example.schedule_service.config;
 import com.example.schedule_service.client.ActivityGrpcClient;
 import com.example.schedule_service.client.ProjectManagerGrpcClient;
 import com.example.schedule_service.client.InternManagerGrpcClient;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,7 +37,7 @@ public class GrpcClientConfig {
         return new ProjectManagerGrpcClient(project_host, project_port);
     }
 
-     @Bean
+    @Bean
     public InternManagerGrpcClient InternManagerGrpcClient() {
         return new InternManagerGrpcClient(user_host, user_port);
     }

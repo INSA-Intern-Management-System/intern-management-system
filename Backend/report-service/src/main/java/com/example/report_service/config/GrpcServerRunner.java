@@ -1,19 +1,15 @@
-package com.example.userservice.config;
+package com.example.report_service.config;
 
-import com.example.userservice.gRPC.InternManagerGrpcService;
-import com.example.userservice.gRPC.UserGrpcService;
-import com.example.userservice.repository.InternManagerReposInterface;
-import com.example.userservice.repository.RoleRepository;
-import com.example.userservice.repository.UserMessageInterface;
-import com.example.userservice.repository.UserRepository;
-import com.example.userservice.security.JwtServerInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import com.example.report_service.gRPC.ReportGrpcService;
+import com.example.report_service.security.JwtServerInterceptor;
+import com.example.report_service.service.ReportService;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
@@ -21,29 +17,16 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class GrpcServerRunner {
 
-    private final InternManagerReposInterface repository;
-    private final UserMessageInterface userMessageInterface;
-    private final UserRepository userRepo;
-    private final RoleRepository roleRepo;
-    private final PasswordEncoder passwordEncoder;
+    private final ReportService service;
     private final JwtServerInterceptor jwtInterceptor;
     private final GrpcProperties grpcProperties;
 
     private Server server;
 
-    public GrpcServerRunner(InternManagerReposInterface repository,
-                            UserMessageInterface userMessageInterface,
-                            UserRepository userRepo,
-                            PasswordEncoder passwordEncoder,
-                            RoleRepository roleRepo,
+    public GrpcServerRunner(ReportService service,
                             JwtServerInterceptor jwtInterceptor,
                             GrpcProperties grpcProperties) {
-        this.repository = repository;
-        this.roleRepo = roleRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.userRepo = userRepo;
-
-        this.userMessageInterface = userMessageInterface;
+        this.service = service;
         this.jwtInterceptor = jwtInterceptor;
         this.grpcProperties = grpcProperties;
     }
@@ -57,13 +40,10 @@ public class GrpcServerRunner {
 
         // Register each service separately, with the JWT interceptor applied
         builder.addService(ServerInterceptors.intercept(
-                new InternManagerGrpcService(repository),
+                new ReportGrpcService(service),
                 jwtInterceptor
         ));
-        builder.addService(ServerInterceptors.intercept(
-                new UserGrpcService(userMessageInterface, roleRepo,passwordEncoder, userRepo),
-                jwtInterceptor
-        ));
+    
 
         server = builder.build().start();
 
@@ -92,3 +72,4 @@ public class GrpcServerRunner {
         }
     }
 }
+

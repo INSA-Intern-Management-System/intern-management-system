@@ -28,7 +28,6 @@ message CreateUserRequest {
   string role = 12;
 }
 
-
 message CreateUserResponse {
   int64 user_id = 1;
 }
