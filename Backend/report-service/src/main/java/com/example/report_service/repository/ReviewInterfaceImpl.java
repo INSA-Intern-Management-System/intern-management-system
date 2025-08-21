@@ -1,7 +1,9 @@
 package com.example.report_service.repository;
 
+import com.example.report_service.dto.InternRatingProjection;
 import com.example.report_service.model.Review;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -43,6 +45,11 @@ public class ReviewInterfaceImpl implements ReviewReposInterface {
     @Override
     public Review findByReportId(Long reportId) {
         return reviewJpa.findByReport_Id(reportId);
+    }
+
+    @Override
+    public List<InternRatingProjection> getTopKthInterns(Pageable pageable){
+        return reviewJpa.findTopInternsByAverageRating(pageable);      
     }
 
 }

@@ -47,10 +47,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Role role1, String firstName, Pageable pageable
     );
 
+    //count the number of user based on user status 
+    int countByRoleIdAndUserStatus(Long role_id, UserStatus userStatus);
 
-
-
-
+    //get list of user based on list on user id
+    List<User> findByIdIn(List<Long> ids);
 
 
 }

@@ -25,6 +25,8 @@ public interface ProjectServiceInterface {
     void deleteMilestone(String jwtToken,Long user_id,Long milestoneId);
     List<MilestoneResponse> getMilestonesByProjectId(Long userID,Long projectId);
     List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId);
+    List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status);
+    
 
 
     // Teams

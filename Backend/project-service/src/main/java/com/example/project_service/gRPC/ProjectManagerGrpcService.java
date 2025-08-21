@@ -1,13 +1,16 @@
 package com.example.project_service.gRPC;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.project_service.dto.ProjectMilestoneStatsDTO;
 import com.example.project_service.models.Milestone;
 import com.example.project_service.models.MilestoneStatus;
 import com.example.project_service.models.Project;
 import com.example.project_service.repository.MilestoneReposInterface;
 import com.example.project_service.repository.ProjectReposInterface;
+import com.example.project_service.service.ProjectServiceImp;
 import com.google.protobuf.Timestamp;
 
 import io.grpc.stub.StreamObserver;
@@ -18,10 +21,11 @@ public class ProjectManagerGrpcService extends ProjectManagerServiceGrpc.Project
 
     private final ProjectReposInterface repository;
     private final MilestoneReposInterface mileRepos;
-
-    public ProjectManagerGrpcService(ProjectReposInterface repository,MilestoneReposInterface mileRepos) {
+    private final ProjectServiceImp projectService;
+    public ProjectManagerGrpcService(ProjectReposInterface repository,MilestoneReposInterface mileRepos,ProjectServiceImp projectService) {
         this.repository = repository;
         this.mileRepos=mileRepos;
+        this.projectService=projectService;
         System.out.println("✅ ProjectManagerGrpcService created!");
     }
 
@@ -45,7 +49,6 @@ public class ProjectManagerGrpcService extends ProjectManagerServiceGrpc.Project
     @Override
     public void getProjects(AllProjectRequests request, StreamObserver<AllProjectResponses> responseObserver) {
         AllProjectResponses.Builder responseBuilder = AllProjectResponses.newBuilder();
-        
         for (Project project : repository.findByProjectIds(request.getProjectIdsList())) {
             ProjectResponse response = ProjectResponse.newBuilder()
                     .setProjectId(project.getId())
@@ -107,6 +110,87 @@ public class ProjectManagerGrpcService extends ProjectManagerServiceGrpc.Project
     }
 
 
+    @Override
+    public void getProjectStatsForPM(UserProjectRequest request, StreamObserver<ProjectStatsResponse> responseObserver) {
+        HashMap<String, Long> projectStats = projectService.getProjectStatsPM(request.getUserId());
+        if (projectStats == null) {
+            responseObserver.onError(new RuntimeException("Project stats info not found"));
+            return;
+        }
+
+        ProjectStatsResponse response = ProjectStatsResponse.newBuilder()
+                .setActive(projectStats.get("active"))
+                .setCompleted(projectStats.get("completed"))
+                .setPlanning(projectStats.get("planning"))
+                .setTotal(projectStats.get("total"))
+                .build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+
+
+    }
+    @Override
+    public void getProjectStatsForHR(com.google.protobuf.Empty request, StreamObserver<ProjectStatsResponse> responseObserver) {
+        
+        HashMap<String, Long> projectStats = projectService.getProjectStatsHR();
+        if (projectStats == null) {
+            responseObserver.onError(new RuntimeException("Project stats info not found"));
+            return;
+        }
+
+        ProjectStatsResponse response = ProjectStatsResponse.newBuilder()
+                .setActive(projectStats.get("active"))
+                .setCompleted(projectStats.get("completed"))
+                .setPlanning(projectStats.get("planning"))
+                .setTotal(projectStats.get("total"))
+                .build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+
+
+    }
+
+    @Override
+    public void getMilestoneStats(ProjectIds request, StreamObserver<MilestoneStatsResponse> responseObserver) {
+        try {
+            // Extract project IDs from request
+            List<Long> projectIds = request.getProjectIdsList();
+
+            if (projectIds == null || projectIds.isEmpty()) {
+                responseObserver.onError(new RuntimeException("No project IDs provided"));
+                return;
+            }
+
+            // Call your service to fetch stats
+            List<ProjectMilestoneStatsDTO> statsList = projectService.findMilestoneStatsByProjectsAndStatus(projectIds,MilestoneStatus.COMPLETED);
+
+            if (statsList == null || statsList.isEmpty()) {
+                responseObserver.onError(new RuntimeException("No stats found for given projects"));
+                return;
+            }
+
+            // Build gRPC response
+            MilestoneStatsResponse.Builder responseBuilder = MilestoneStatsResponse.newBuilder();
+
+            for (ProjectMilestoneStatsDTO dto : statsList) {
+                StatsResponse statsResponse = StatsResponse.newBuilder()
+                        .setProjectId(dto.getProjectId())   // Long → int64
+                        .setTotal(dto.getTotalMilestones())           // Long → int64
+                        .setCompleted(dto.getStatusCount())   // Long → int64
+                        .build();
+
+                responseBuilder.addStats(statsResponse);
+            }
+
+            responseObserver.onNext(responseBuilder.build());
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
+}
+
+    
 
 }
 

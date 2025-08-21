@@ -1,6 +1,9 @@
 package com.example.report_service.repository;
 
+import com.example.report_service.dto.InternRatingProjection;
 import com.example.report_service.model.Review;
+
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -24,5 +27,10 @@ public interface ReviewJpaInterface extends JpaRepository<Review, Long> {
     @Query("SELECT AVG(r.rating) FROM Review r")
     Double calculateGlobalAverageRating();
 
+    @Query("SELECT r.report.intern.id as internId, AVG(r.rating) as averageRating " +
+       "FROM Review r " +
+       "GROUP BY r.report.intern.id " +
+       "ORDER BY averageRating DESC")
+    List<InternRatingProjection> findTopInternsByAverageRating(Pageable pageable);
 
 }
