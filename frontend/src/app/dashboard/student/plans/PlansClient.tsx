@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Schedule, Task } from "@/types/entities";
+import { Milestone, Task } from "@/types/entities";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -18,7 +18,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Plus, Check, Trash2, Eye } from "lucide-react";
+import { Plus, Check, Trash2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -29,9 +29,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
 
 interface PlansClientProps {
-  initialPlans: Schedule[];
+  initialMilestones: Milestone[];
   initialTasks: Task[];
   pagination: {
     currentPage: number;
@@ -39,25 +40,41 @@ interface PlansClientProps {
     totalItems: number;
     pageSize: number;
   };
+  userId: number;
+  onCreateTask: (
+    taskData: Omit<Task, "scheduleId" | "createdAt">
+  ) => Promise<Task>;
+  onUpdateStatus: (
+    scheduleId: number,
+    status: "PENDING" | "UPCOMING" | "COMPLETED"
+  ) => Promise<Task>;
+  onDeleteTask: (scheduleId: number) => Promise<void>;
 }
 
 export default function PlansClient({
-  initialPlans,
+  initialMilestones,
   initialTasks,
   pagination,
+  userId,
+  onCreateTask,
+  onUpdateStatus,
+  onDeleteTask,
 }: PlansClientProps) {
   const router = useRouter();
-  const [plans, setPlans] = useState<Schedule[]>(initialPlans);
+  const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<
+    Omit<Task, "scheduleId" | "createdAt" | "userId">
+  >({
     title: "",
     description: "",
-    due: "",
-    status: "todo" as const,
+    dueDate: "",
+    status: "UPCOMING",
   });
   const [page, setPage] = useState(pagination.currentPage);
   const [taskPage, setTaskPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const pageSize = 3;
 
   const handlePageChange = (newPage: number) => {
@@ -65,39 +82,78 @@ export default function PlansClient({
     router.push(`/dashboard/student/plans?page=${newPage}`);
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newTaskItem: Task = {
-      id: tasks.length + 1,
-      ...newTask,
-      priority: "medium", // Default priority
-    };
-    setTasks([newTaskItem, ...tasks]);
-    setNewTask({ title: "", description: "", due: "", status: "todo" });
-    setDialogOpen(false);
-    setTaskPage(1);
+    setIsSubmitting(true);
+
+    try {
+      const createdTask = await onCreateTask({
+        ...newTask,
+        userId,
+        status: "UPCOMING",
+      });
+
+      setTasks([createdTask, ...tasks]);
+      setNewTask({
+        title: "",
+        description: "",
+        dueDate: "",
+        status: "UPCOMING",
+      });
+      setDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const markTaskAsDone = (id: number) => {
-    setTasks(
-      tasks.map((task) => (task.id === id ? { ...task, status: "done" } : task))
-    );
+  const markTaskAsDone = async (scheduleId: number) => {
+    try {
+      await onUpdateStatus(scheduleId, "COMPLETED");
+      setTasks(
+        tasks.map((task) =>
+          task.scheduleId === scheduleId
+            ? { ...task, status: "COMPLETED" }
+            : task
+        )
+      );
+      toast({
+        title: "Success",
+        description: "Task marked as completed",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+      console.error("Failed to update task status:", error);
+    }
   };
 
-  const deleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return <Badge className="bg-red-100 text-red-800">High</Badge>;
-      case "medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-      case "low":
-        return <Badge className="bg-green-100 text-green-800">Low</Badge>;
-      default:
-        return <Badge variant="secondary">{priority}</Badge>;
+  const deleteTask = async (scheduleId: number) => {
+    try {
+      await onDeleteTask(scheduleId);
+      setTasks(tasks.filter((task) => task.scheduleId !== scheduleId));
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
     }
   };
 
@@ -110,7 +166,7 @@ export default function PlansClient({
   };
 
   const paginatedTasks = tasks
-    .sort((a, b) => (a.status === "todo" ? -1 : 1))
+    .sort((a, b) => (a.status === "PENDING" ? -1 : 1))
     .slice((taskPage - 1) * pageSize, taskPage * pageSize);
 
   const totalTaskPages = Math.ceil(tasks.length / pageSize);
@@ -120,45 +176,45 @@ export default function PlansClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Plan & Tasks</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Plans & Tasks</h1>
           <p className="text-gray-600">
-            Organize and track your plans and tasks
+            Organize and track your milestones and tasks
           </p>
         </div>
       </div>
 
-      {/* Plans List */}
+      {/* Milestones List */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Your Plans</h2>
-        {plans.length > 0 ? (
-          plans.map((plan) => (
+        <h2 className="text-xl font-semibold">Your Milestones</h2>
+        {milestones.length > 0 ? (
+          milestones.map((milestone) => (
             <Card
-              key={plan.scheduleId}
+              key={milestone.id}
               className="hover:shadow-md transition-shadow"
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {plan.title}
+                      {milestone.title}
                     </h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      {plan.description}
+                      {milestone.description}
                     </p>
                     <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                      <span>📅 Due: {formatDate(plan.dueDate)}</span>
+                      <span>📅 Due: {formatDate(milestone.dueDate)}</span>
                     </div>
                   </div>
                   <Badge
                     className={
-                      plan.status === "PENDING"
+                      milestone.status === "PENDING"
                         ? "bg-yellow-100 text-yellow-800"
-                        : plan.status === "COMPLETED"
+                        : milestone.status === "COMPLETED"
                         ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
+                        : "bg-blue-100 text-blue-800"
                     }
                   >
-                    {plan.status}
+                    {milestone.status}
                   </Badge>
                 </div>
               </CardContent>
@@ -167,13 +223,13 @@ export default function PlansClient({
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-gray-500">
-              No plans found
+              No milestones found
             </CardContent>
           </Card>
         )}
       </div>
 
-      {/* Plans Pagination */}
+      {/* Milestones Pagination */}
       {pagination.totalPages > 1 && (
         <Pagination className="mt-6">
           <PaginationContent>
@@ -184,7 +240,6 @@ export default function PlansClient({
                   e.preventDefault();
                   if (page > 0) handlePageChange(page - 1);
                 }}
-                // disabled={page === 0}
               />
             </PaginationItem>
             {[...Array(pagination.totalPages)].map((_, i) => (
@@ -209,7 +264,6 @@ export default function PlansClient({
                   if (page < pagination.totalPages - 1)
                     handlePageChange(page + 1);
                 }}
-                // disabled={page >= pagination.totalPages - 1}
               />
             </PaginationItem>
           </PaginationContent>
@@ -228,12 +282,12 @@ export default function PlansClient({
           {paginatedTasks.length > 0 ? (
             paginatedTasks.map((task) => (
               <div
-                key={task.id}
+                key={task.scheduleId}
                 className={`p-4 rounded-lg border ${
-                  task.status !== "done" ? "bg-white" : "bg-gray-50"
+                  task.status !== "COMPLETED" ? "bg-white" : "bg-gray-50"
                 }`}
               >
-                {task.status !== "done" ? (
+                {task.status !== "COMPLETED" ? (
                   <>
                     <div className="flex justify-between items-start">
                       <div>
@@ -243,9 +297,8 @@ export default function PlansClient({
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs text-gray-500">
-                            Due: {task.due}
+                            Due: {formatDate(task.dueDate)}
                           </span>
-                          {getPriorityBadge(task.priority)}
                         </div>
                       </div>
                     </div>
@@ -254,7 +307,7 @@ export default function PlansClient({
                         variant="outline"
                         size="sm"
                         className="text-green-600 hover:bg-green-50"
-                        onClick={() => markTaskAsDone(task.id)}
+                        onClick={() => markTaskAsDone(task.scheduleId)}
                       >
                         <Check className="h-4 w-4 mr-2" />
                         Mark Done
@@ -263,7 +316,7 @@ export default function PlansClient({
                         variant="outline"
                         size="sm"
                         className="text-red-600 hover:bg-red-50"
-                        onClick={() => deleteTask(task.id)}
+                        onClick={() => deleteTask(task.scheduleId)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
@@ -277,7 +330,7 @@ export default function PlansClient({
                       variant="ghost"
                       size="sm"
                       className="text-red-600 hover:bg-red-50"
-                      onClick={() => deleteTask(task.id)}
+                      onClick={() => deleteTask(task.scheduleId)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -322,13 +375,19 @@ export default function PlansClient({
                 />
                 <Input
                   type="date"
-                  value={newTask.due}
+                  value={newTask.dueDate}
                   onChange={(e) =>
-                    setNewTask({ ...newTask, due: e.target.value })
+                    setNewTask({ ...newTask, dueDate: e.target.value })
                   }
                   required
                 />
-                <Button type="submit">Create Task</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Create Task"
+                  )}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -344,7 +403,6 @@ export default function PlansClient({
                       e.preventDefault();
                       setTaskPage((p) => Math.max(1, p - 1));
                     }}
-                    // disabled={taskPage === 1}
                   />
                 </PaginationItem>
                 {[...Array(totalTaskPages)].map((_, i) => (
@@ -368,7 +426,6 @@ export default function PlansClient({
                       e.preventDefault();
                       setTaskPage((p) => Math.min(totalTaskPages, p + 1));
                     }}
-                    // disabled={taskPage >= totalTaskPages}
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -380,9 +437,9 @@ export default function PlansClient({
       {/* Guidelines Section */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Plan & Tasks Guidelines</CardTitle>
+          <CardTitle>Plans & Tasks Guidelines</CardTitle>
           <CardDescription>
-            What to include in your plans and tasks
+            What to include in your milestones and tasks
           </CardDescription>
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-6">

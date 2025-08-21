@@ -15,7 +15,7 @@ async function getUser(): Promise<User> {
   }
 
   try {
-    const response = await api.get<User>(`/users/${userId}`, {
+    const response = await api.get<User>(`/users/me`, {
       headers: {
         Cookie: `access_token=${accessToken}`,
       },
@@ -27,7 +27,7 @@ async function getUser(): Promise<User> {
   }
 }
 
-async function getDashboardData(userId: string) {
+async function getDashboardData() {
   const accessToken = (await cookies()).get("access_token")?.value;
 
   try {
@@ -86,9 +86,8 @@ async function getDashboardData(userId: string) {
 
 export default async function StudentDashboardPage() {
   const user = await getUser();
-  const { stats, recentActivity, upcomingTasks } = await getDashboardData(
-    user.id
-  );
+  const { stats, recentActivity, upcomingTasks } = await getDashboardData();
+  console.log("User Data:", user);
 
   return (
     <DashboardLayout requiredRole="STUDENT">
