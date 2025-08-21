@@ -490,12 +490,20 @@ public class ReportService {
             avgRating != null ? avgRating : 0.0,
             pending,
             given
-        );
-}
-
-
-
-
+      );
+        }
+    
+    public List<ReviewStatsDTO> getTopInterns(Pageable pageable){
+        List<InternRatingProjection> topInterns = reviewRepos.getTopKthInterns(pageable);
+        List<ReviewStatsDTO> result = new ArrayList<>();
+        for (InternRatingProjection intern : topInterns) {
+                ReviewStatsDTO dto = new ReviewStatsDTO();
+                dto.setUserID(intern.getInternId());
+                dto.setAverageRating(intern.getAverageRating());
+                result.add(dto);
+        }
+        return result;
+    }
 
 
     private Page<ReportResponseDTO> mapReportsWithReviews(Page<Report> reports) {

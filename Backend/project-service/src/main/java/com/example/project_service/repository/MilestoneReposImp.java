@@ -1,5 +1,6 @@
 package com.example.project_service.repository;
 
+import com.example.project_service.dto.ProjectMilestoneStatsDTO;
 import com.example.project_service.models.Milestone;
 import com.example.project_service.models.MilestoneStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,5 +58,9 @@ public class MilestoneReposImp implements MilestoneReposInterface {
     @Override
     public List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId) {
         return milestoneJpaRepository.findByProject_IdAndStatusNot(projectId, MilestoneStatus.COMPLETED);
+    }
+    @Override
+    public List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status) {
+        return milestoneJpaRepository.findMilestoneStatsByProjectsAndStatus(projectIds, status);
     }
 }

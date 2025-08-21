@@ -1,5 +1,6 @@
 package com.example.project_service.repository;
 
+import com.example.project_service.dto.ProjectMilestoneStatsDTO;
 import com.example.project_service.models.Milestone;
 import com.example.project_service.models.MilestoneStatus;
 
@@ -25,4 +26,7 @@ public interface MilestoneReposInterface {
 
     // get milestone by execpt compelted status 
     List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId);
+
+    //get the calculation for progress 
+    List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status);
 }

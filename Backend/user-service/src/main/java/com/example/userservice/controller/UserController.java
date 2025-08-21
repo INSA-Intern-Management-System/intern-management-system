@@ -2,12 +2,20 @@ package com.example.userservice.controller;
 
 
 import com.example.activity_service.gRPC.GetRecentActivitiesResponse;
+import com.example.application_service.gRPC.ApplicationCountResponse;
 import com.example.project_service.gRPC.AllMilestones;
 import com.example.project_service.gRPC.AllProjectResponses;
+import com.example.project_service.gRPC.MilestoneStatsResponse;
 import com.example.project_service.gRPC.ProjectResponse;
+import com.example.project_service.gRPC.ProjectStatsResponse;
+import com.example.project_service.gRPC.StatsResponse;
 import com.example.report_service.gRPC.ReportStatsRequest;
 import com.example.report_service.gRPC.ReportStatsResponse;
+import com.example.report_service.gRPC.TopInterns;
+import com.example.report_service.gRPC.TopInternsResponse;
+import com.example.report_service.gRPC.TotalReportResponse;
 import com.example.userservice.client.ActivityGrpcClient;
+import com.example.userservice.client.ApplicationGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
 import com.example.userservice.client.ReportGrpcClient;
 import com.example.userservice.dto.*;
@@ -16,6 +24,7 @@ import com.example.userservice.model.InternManager;
 import com.example.userservice.model.Role;
 import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
+import com.example.userservice.model.UserStatus;
 import com.example.userservice.model.UserStatusCount;
 import com.example.userservice.repository.RoleRepository;
 import com.example.userservice.security.JwtUtil;
@@ -55,15 +64,17 @@ public class UserController {
     private final ActivityGrpcClient activityGrpcClient;
     private final ProjectManagerGrpcClient projectManagerGrpcClient;
     private final ReportGrpcClient reportGrpcClient;
+    private final ApplicationGrpcClient applicationGrpcClient;
     private final InternManagerService internManagerService;
 
 
-    public UserController(UserService userService, RoleRepository roleRepo,ActivityGrpcClient activityGrpcClient, ProjectManagerGrpcClient projectManagerGrpcClient,ReportGrpcClient reportGrpcClient,InternManagerService internManagerService) {
+    public UserController(UserService userService, RoleRepository roleRepo,ActivityGrpcClient activityGrpcClient, ProjectManagerGrpcClient projectManagerGrpcClient,ReportGrpcClient reportGrpcClient,InternManagerService internManagerService,ApplicationGrpcClient applicationGrpcClient) {
         this.userService = userService;
         this.roleRepo = roleRepo;
         this.activityGrpcClient = activityGrpcClient;
         this.projectManagerGrpcClient = projectManagerGrpcClient;
         this.reportGrpcClient=reportGrpcClient;
+        this.applicationGrpcClient=applicationGrpcClient;
         this.internManagerService = internManagerService;
 
     }
@@ -428,20 +439,17 @@ public class UserController {
     @GetMapping("/student/dashboard")
     public ResponseEntity<?> getStudentDashboard(HttpServletRequest request, Pageable pageable) {
         Long userId = (Long) request.getAttribute("userId");
+        String role =(String) request.getAttribute("role");
+        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
+            return ResponseEntity.status(403).body("Access denied");
+        }
+
         String jwtToken = getJwtTokenFromRequest(request);
 
         if (jwtToken == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
         
-
-        List<UserStatusCount> statusCounts = userService.countUsersByStatus();
-        Map<String, Long> status = new HashMap<>();
-        for (UserStatusCount sc : statusCounts) {
-            String key = sc.getUserStatus().name().toLowerCase() + "User";
-            status.put(key, sc.getCount());
-        }
-
         User user = userService.getUserById(userId);
         UserResponseDto fullUserDto = new UserResponseDto(user);
         UserSupervisorProjectManagerDTO userDto = new UserSupervisorProjectManagerDTO(fullUserDto);
@@ -461,6 +469,118 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/company/v1/dashboard")
+    public ResponseEntity<?> getCompanyDashboard(HttpServletRequest request, Pageable pageable) {
+        Long userId = (Long) request.getAttribute("userId");
+        String role= (String) request.getAttribute("role");
+        if("STUDENT".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)){
+            return ResponseEntity.status(403).body("Access denied");
+
+        }
+        String jwtToken = getJwtTokenFromRequest(request);
+
+        if (jwtToken == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+        
+        // Fetch data (fail-safe)
+        Map<String,Object> reportStatus=new HashMap<>();
+        Map<String,Map<String,Object>> taskStatus=new HashMap<>();
+        Map<String,Object> projects=new HashMap<>();
+
+        Map<String,Object> apps = fetchAppsStatusForCompany(jwtToken);
+        if("HR".equalsIgnoreCase(role)){
+            reportStatus = fetchReportStatusForCompany(jwtToken,0L);
+            projects = fetchProjectStatusForCompany(jwtToken,0L);
+            taskStatus=fetchTasksForCompany(reportStatus,apps,projects);
+        }else{
+            reportStatus = fetchReportStatusForCompany(jwtToken, userId);
+            projects = fetchProjectStatusForCompany(jwtToken,0L);
+            taskStatus = fetchTasksForCompany(reportStatus,apps,projects);
+        }
+        List<ActivityDTO> recentActivities = fetchRecentActivities(jwtToken, userId, pageable);
+        
+        // Combine response
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "dashboard informations");
+        response.put("ActiveIntern",countUserByStatus("STUDENT", UserStatus.ACTIVE));
+        response.put("Application", apps.get("totalCount"));
+        response.put("project",projects.get("totalActive"));
+        response.put("report", reportStatus.get("totalPending"));
+        response.put("recentActivities", recentActivities);
+        response.put("tasks", taskStatus);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/company/v2/dashboard")
+    public ResponseEntity<?> getTopInternsDashboard(HttpServletRequest request, Pageable pageable) {
+        Long userId = (Long) request.getAttribute("userId");
+        String role = (String) request.getAttribute("role");
+
+        if ("STUDENT".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Access denied");
+        }
+
+        String jwtToken = getJwtTokenFromRequest(request);
+        if (jwtToken == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        List<Map<String, Object>> response = new ArrayList<>();
+        try {
+            Map<Long, Double> datas = fetchTopStats(jwtToken, pageable.getPageNumber(), pageable.getPageSize());
+
+            // Collect intern IDs
+            List<Long> internIds = new ArrayList<>(datas.keySet());
+            List<UserMessageDTO> users = userService.getUsersByIds(internIds);
+
+            // Map intern → project
+            List<InternManager> internInfos = internManagerService.getInfos(internIds);
+            Map<Long, Long> internToProject = new HashMap<>();
+            for (InternManager im : internInfos) {
+                internToProject.put(im.getUser().getId(), im.getProject().getId());
+            }
+
+            // Fetch milestone stats
+            List<Long> projectIds = new ArrayList<>(internToProject.values());
+            MilestoneStatsResponse milestoneStatsResponse = projectManagerGrpcClient.getMilestoneStats(jwtToken, projectIds);
+
+            // Map projectId -> plain milestone stats map
+            Map<Long, Map<String, Object>> projectIdToStats = new HashMap<>();
+            for (StatsResponse stats : milestoneStatsResponse.getStatsList()) {
+                Map<String, Object> statsMap = new HashMap<>();
+                statsMap.put("projectId", stats.getProjectId());
+                statsMap.put("total", stats.getTotal());
+                statsMap.put("completed", stats.getCompleted());
+                projectIdToStats.put(stats.getProjectId(), statsMap);
+            }
+
+            // Build response per intern
+            for (UserMessageDTO user : users) {
+                Map<String, Object> temp = new HashMap<>();
+                temp.put("rating", datas.get(user.getId()));
+                temp.put("user", user);
+
+                Long projectId = internToProject.get(user.getId());
+                if (projectId != null) {
+                    temp.put("milestoneStats", projectIdToStats.get(projectId));
+                } else {
+                    temp.put("milestoneStats", null);
+                }
+
+                response.add(temp);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+
 
 
 
@@ -656,7 +776,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size
     ) {
         // 🔑 Get JWT from cookie
-        String token = null;
+       String token = null;
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
@@ -784,7 +904,17 @@ public class UserController {
         }
     }
 
-        // Helper to extract JWT token from cookies
+     
+    
+    private int countUserByStatus(String role,UserStatus status){
+        try{
+            return userService.countByRoleAndUserStatus(role,status);
+        }catch(Exception e){
+            return 0;
+        }
+    }
+    
+    // Helper to extract JWT token from cookies
     private String getJwtTokenFromRequest(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
@@ -809,6 +939,142 @@ public class UserController {
         }
         return status;
     }
+
+    // Fetch top stats 
+    private Map<Long, Double> fetchTopStats(String jwtToken, int page, int size) {
+        Map<Long, Double> stats = new HashMap<>();
+        try {
+            TopInternsResponse topStats = reportGrpcClient.getTopInterns(jwtToken, page, size);
+            if (topStats != null && topStats.getInternsCount() > 0) {
+                for (TopInterns intern : topStats.getInternsList()) {
+                    stats.put(intern.getUserId(), intern.getRating());
+                }
+            }
+        } catch (Exception e) {
+            // log error if needed
+            stats = new HashMap<>();
+            e.printStackTrace();
+        }
+        return stats;
+}
+
+
+    private Map<String, Object> fetchReportStatusForCompany(String jwtToken, Long userId) {
+        Map<String, Object> status = new HashMap<>();
+        if(userId==0){
+            try {
+                TotalReportResponse stats = reportGrpcClient.getReportStatsForHR(jwtToken);
+                status.put("totalPending", stats.getTotalPendingReports());
+                status.put("totalgiven", stats.getTotalResolvedReports());
+            } catch (Exception e) {
+                status.put("totalPending", 0);
+                status.put("totalgiven", 0.0);
+            }
+        }else{
+            try {
+                TotalReportResponse stats = reportGrpcClient.getReportStatsForPM(jwtToken, userId);
+                status.put("totalPending", stats.getTotalPendingReports());
+                status.put("totalgiven", stats.getTotalResolvedReports());
+            } catch (Exception e) {
+                status.put("totalReport", 0);
+                status.put("averageRating", 0.0);
+            }
+
+        } 
+        return status;
+    
+    }
+    private Map<String, Object> fetchProjectStatusForCompany(String jwtToken, Long userId) {
+        Map<String, Object> status = new HashMap<>();
+        if(userId==0){
+            try {
+                ProjectStatsResponse stats = projectManagerGrpcClient.getProjectStatsForHR(jwtToken);
+                status.put("totalActive", stats.getActive());
+                status.put("totalPanning", stats.getPlanning());
+                status.put("totalCompleted", stats.getCompleted());
+                status.put("total", stats.getTotal());
+            } catch (Exception e) {
+                status.put("totalActive", 0);
+                status.put("totalPanning", 0);
+                status.put("totalCompleted", 0);
+                status.put("total", 0);
+            }
+        }else{
+            try {
+                ProjectStatsResponse stats = projectManagerGrpcClient.getProjectStatsForPM(jwtToken,userId);
+                status.put("totalActive", stats.getActive());
+                status.put("totalPanning", stats.getPlanning());
+                status.put("totalCompleted", stats.getCompleted());
+                status.put("total", stats.getTotal());
+            } catch (Exception e) {
+                status.put("totalActive", 0);
+                status.put("totalPanning", 0);
+                status.put("totalCompleted", 0);
+                status.put("total", 0);    
+            }
+
+        } 
+        return status;
+    
+    }
+
+    private Map<String, Object> fetchAppsStatusForCompany(String jwtToken) {
+        Map<String, Object> status = new HashMap<>();
+        try {
+            ApplicationCountResponse stats = applicationGrpcClient.getApplicationStats(jwtToken);
+            status.put("totalAccepted", stats.getAccepted());
+            status.put("totalRejected", stats.getRejected());
+            status.put("totalPending", stats.getPending());
+            status.put("totalCount", stats.getCount());
+        
+        } catch (Exception e) {
+            status.put("totalAccepted", 0);
+            status.put("totalRejected", 0);
+            status.put("totalPending", 0);
+            status.put("totalCount", 0);
+        }
+        return status;
+    
+    }
+    private Map<String, Map<String, Object>> fetchTasksForCompany(
+            Map<String, Object> status,
+            Map<String, Object> apps,
+            Map<String, Object> projects) {
+        
+        Map<String, Map<String, Object>> response = new HashMap<>();
+
+        // Reports
+        Long totalPendingReports = ((Number) status.getOrDefault("totalPending", 0L)).longValue();
+        if (totalPendingReports > 0) {
+            Map<String, Object> tasksForReports = new HashMap<>();
+            tasksForReports.put("description", "Evaluate weekly reports");
+            tasksForReports.put("totalPending", totalPendingReports);
+            tasksForReports.put("priority", "coming soon");
+            response.put("tasksForReports", tasksForReports);
+        }
+
+        // Applications
+        Long totalPendingApps = ((Number) apps.getOrDefault("totalPending", 0L)).longValue();
+        if (totalPendingApps > 0) {
+            Map<String, Object> tasksForApps = new HashMap<>();
+            tasksForApps.put("description", "Review pending applications");
+            tasksForApps.put("totalPending", totalPendingApps);
+            tasksForApps.put("priority", "coming soon");
+            response.put("tasksForApps", tasksForApps);
+        }
+
+        // Projects
+        Long totalPlanningProjects = ((Number) projects.getOrDefault("totalPlanning", 0L)).longValue();
+        if (totalPlanningProjects > 0) {
+            Map<String, Object> tasksForProjects = new HashMap<>();
+            tasksForProjects.put("description", "Complete planned projects");
+            tasksForProjects.put("totalPlanning", totalPlanningProjects);
+            tasksForProjects.put("priority", "coming soon");
+            response.put("tasksForProjects", tasksForProjects);
+        }
+
+        return response;
+}
 
     // Fetch recent activities safely
     private List<ActivityDTO> fetchRecentActivities(String jwtToken, Long userId, Pageable pageable) {
