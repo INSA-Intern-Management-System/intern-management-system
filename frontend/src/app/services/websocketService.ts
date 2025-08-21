@@ -1,117 +1,123 @@
-"use client";
-
+// app/services/websocketService.ts
 import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 
-interface WebSocketMessage {
-  senderId: number;
-  receiverId: number;
-  content: string;
-  roomId?: number;
-}
-
-interface WebSocketConfig {
-  onMessage: (message: any) => void;
-  onConnect: () => void;
-  onError: (error: any) => void;
-  onDisconnect: () => void;
+interface WebSocketCallbacks {
+  onConnect?: () => void;
+  onError?: (error: any) => void;
+  onDisconnect?: () => void;
+  onMessage?: (message: any) => void;
 }
 
 class WebSocketService {
   private client: Client | null = null;
+  private subscriptions: Map<number, any> = new Map();
+  private callbacks: WebSocketCallbacks = {};
   private isConnected = false;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
 
-  connect(token: string, config: WebSocketConfig) {
-    try {
-      // Create SockJS connection
-      const socket = new SockJS("http://localhost:8084/ws");
+  connect(token: string, callbacks: WebSocketCallbacks = {}) {
+    this.callbacks = callbacks;
 
-      this.client = new Client({
-        webSocketFactory: () => socket,
-        connectHeaders: {
-          "access-token": token,
-        },
-        debug: (str) => {
-          console.log("STOMP Debug:", str);
-        },
-        reconnectDelay: 5000,
-        heartbeatIncoming: 4000,
-        heartbeatOutgoing: 4000,
+    // Disconnect if already connected
+    if (this.client && this.isConnected) {
+      this.disconnect();
+    }
+
+    this.client = new Client({
+      brokerURL: "ws://localhost:8084/ws",
+      connectHeaders: {
+        "access-token": token,
+      },
+      debug: (str) => {
+        console.log("STOMP Debug:", str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+
+    this.client.onConnect = (frame) => {
+      console.log("WebSocket connected:", frame);
+      this.isConnected = true;
+      this.callbacks.onConnect?.();
+    };
+
+    this.client.onStompError = (frame) => {
+      console.error("STOMP error:", frame);
+      this.isConnected = false;
+      this.callbacks.onError?.(frame);
+    };
+
+    this.client.onWebSocketClose = (event) => {
+      console.log("WebSocket closed:", event);
+      this.isConnected = false;
+      this.callbacks.onDisconnect?.();
+    };
+
+    this.client.onWebSocketError = (error) => {
+      console.error("WebSocket error:", error);
+      this.isConnected = false;
+      this.callbacks.onError?.(error);
+    };
+
+    this.client.activate();
+  }
+
+  disconnect() {
+    if (this.client) {
+      // Unsubscribe from all rooms
+      this.subscriptions.forEach((subscription, roomId) => {
+        subscription.unsubscribe();
       });
+      this.subscriptions.clear();
 
-      this.client.onConnect = (frame) => {
-        console.log("Connected to WebSocket:", frame);
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        config.onConnect();
-      };
-
-      this.client.onStompError = (frame) => {
-        console.error("STOMP Error:", frame);
-        config.onError(frame);
-      };
-
-      this.client.onWebSocketError = (event) => {
-        console.error("WebSocket Error:", event);
-        config.onError(event);
-      };
-
-      this.client.onWebSocketClose = (event) => {
-        console.log("WebSocket Closed:", event);
-        this.isConnected = false;
-        config.onDisconnect();
-
-        // Attempt reconnection
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++;
-          setTimeout(() => {
-            if (this.client) {
-              this.client.activate();
-            }
-          }, 3000);
-        }
-      };
-
-      this.client.activate();
-    } catch (error) {
-      console.error("Failed to connect to WebSocket:", error);
-      config.onError(error);
+      this.client.deactivate();
+      this.client = null;
+      this.isConnected = false;
+      this.callbacks.onDisconnect?.();
     }
   }
 
   subscribeToRoom(roomId: number, callback: (message: any) => void) {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
-      return;
+      return false;
     }
 
-    try {
-      this.client.subscribe(`/topic/rooms/${roomId}`, (message) => {
-        try {
-          const parsedMessage = JSON.parse(message.body);
-          callback(parsedMessage);
-        } catch (error) {
-          console.error("Failed to parse message:", error);
-        }
-      });
-    } catch (error) {
-      console.error("Failed to subscribe to room:", error);
+    // Unsubscribe if already subscribed
+    if (this.subscriptions.has(roomId)) {
+      this.unsubscribeFromRoom(roomId);
     }
+
+    const destination = `/topic/rooms/${roomId}`;
+    const subscription = this.client.subscribe(destination, (message) => {
+      try {
+        const parsedMessage = JSON.parse(message.body);
+        callback(parsedMessage);
+      } catch (error) {
+        console.error("Failed to parse message:", error);
+      }
+    });
+
+    this.subscriptions.set(roomId, subscription);
+    console.log(`Subscribed to room ${roomId}`);
+    return true;
   }
 
   unsubscribeFromRoom(roomId: number) {
-    if (!this.client || !this.isConnected) return;
-
-    try {
-      this.client.unsubscribe(`/topic/rooms/${roomId}`);
-    } catch (error) {
-      console.error("Failed to unsubscribe from room:", error);
+    const subscription = this.subscriptions.get(roomId);
+    if (subscription) {
+      subscription.unsubscribe();
+      this.subscriptions.delete(roomId);
+      console.log(`Unsubscribed from room ${roomId}`);
     }
   }
 
-  sendMessage(message: WebSocketMessage) {
+  sendMessage(message: {
+    senderId: number;
+    receiverId: number;
+    content: string;
+    roomId?: number;
+  }): boolean {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
       return false;
@@ -129,15 +135,7 @@ class WebSocketService {
     }
   }
 
-  disconnect() {
-    if (this.client) {
-      this.client.deactivate();
-      this.client = null;
-      this.isConnected = false;
-    }
-  }
-
-  isConnectedNow() {
+  getIsConnected(): boolean {
     return this.isConnected;
   }
 }
