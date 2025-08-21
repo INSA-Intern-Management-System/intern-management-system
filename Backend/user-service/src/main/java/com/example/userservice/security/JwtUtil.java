@@ -35,6 +35,7 @@ public class JwtUtil {
                 .claim("userId", user.getId())  // use getter
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().getName()) // assuming enum or String
+                .claim("institution", user.getInstitution())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hrs
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -51,6 +52,12 @@ public class JwtUtil {
         public String extractUserRole(String token) {
             Claims claims = extractAllClaims(token);
             return claims.get("role", String.class);
+        }
+
+        // ✅ Extract role from token
+        public String extractUserInstitution(String token) {
+            Claims claims = extractAllClaims(token);
+            return claims.get("institution", String.class);
         }
 
         // ✅ Extract email from token

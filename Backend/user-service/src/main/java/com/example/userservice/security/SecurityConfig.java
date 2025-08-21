@@ -27,13 +27,14 @@ public class SecurityConfig {
                 .cors().and() // 🔥 enable CORS
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/internal/**").permitAll()
+                        .requestMatchers("/internal/**").permitAll()// if you allow internal unauthenticated
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/universities/login",
                                 "/api/universities/register",
                                 "/api/users",
+                                "/api/users/\\d+",
                                 "/api/users/filter-interns-by-university",
                                 "/api/users/filter-all-users-by-status",
                                 "/api/users/filter-supervisor-by-status",
@@ -45,7 +46,8 @@ public class SecurityConfig {
                                 "/api/users/filter-by-role",
                                 "/api/users/filter-by-institution",
                                 "/api/auth/request-password-change-otp",
-                                "/api/auth/confirm-password-change-otp"
+                                "/api/auth/confirm-password-change-otp",
+                                "/actuator/health"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -38,6 +38,12 @@ public class Security {
         return claims.get("role", String.class);
     }
 
+    // ✅ Extract institution from token
+    public String extractUserInstitution(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("institution", String.class);
+    }
+
     // ✅ Extract email from token
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();

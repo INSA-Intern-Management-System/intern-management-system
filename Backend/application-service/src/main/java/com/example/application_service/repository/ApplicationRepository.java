@@ -28,4 +28,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // Filter by university
     Page<Application> findByApplicant_InstitutionContainingIgnoreCase(String institution, Pageable pageable);
+
+
 }

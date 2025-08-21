@@ -3,9 +3,11 @@ package com.example.application_service.services;
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.CreateUserRequest;
+import com.example.application_service.gRPC.UserServiceClient;
 import com.example.application_service.model.*;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
+import com.example.userservice.gRPC.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.userservice.gRPC.CreateUserResponse;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,6 +41,9 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Autowired
+    private JavaMailSender mailSender;
 
 
     @Value("${user.service.url}") // e.g., http://user-service/api/users
@@ -185,44 +194,58 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status, String authHeader) {
+    public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status, String jwtToken) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
         application.setStatus(status);
         applicationRepository.save(application);
 
+
         if (status == ApplicationStatus.Accepted) {
             Applicant applicant = application.getApplicant();
-
             String generatedPassword = generateRandomPassword(10);
-            System.out.println("Generated password for new Accepted user(Intern): " + generatedPassword);
 
-            CreateUserRequest userRequest = new CreateUserRequest();
-            userRequest.setFirstName(applicant.getFirstName());
-            userRequest.setLastName(applicant.getLastName());
-            userRequest.setEmail(applicant.getEmail());
-            userRequest.setPhoneNumber(applicant.getPhoneNumber());
-            userRequest.setFieldOfStudy(applicant.getFieldOfStudy());
-            userRequest.setInstitution(applicant.getInstitution());
-            userRequest.setGender(applicant.getGender());
-            userRequest.setDuration(applicant.getDuration());
-            userRequest.setLinkedInUrl(applicant.getLinkedInUrl());
-            userRequest.setGithubUrl(applicant.getGithubUrl());
-            userRequest.setCvUrl(applicant.getCvUrl());
-            userRequest.setPassword(generatedPassword);
-            userRequest.setUserStatus(UserStatus.ACTIVE);
-            userRequest.setRole(UserRole.STUDENT);
-
-            // ✅ Build headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", authHeader);  // ⬅️ Pass the token
-            headers.set("internal-source", "application-service"); // optional for tracking
-
-            HttpEntity<CreateUserRequest> requestEntity = new HttpEntity<>(userRequest, headers);
+            // Build gRPC request
+            com.example.userservice.gRPC.CreateUserRequest grpcRequest = com.example.userservice.gRPC.CreateUserRequest.newBuilder()
+                    .setFirstName(applicant.getFirstName())
+                    .setLastName(applicant.getLastName())
+                    .setEmail(applicant.getEmail())
+                    .setPhoneNumber(applicant.getPhoneNumber())
+                    .setFieldOfStudy(applicant.getFieldOfStudy())
+                    .setInstitution(applicant.getInstitution())
+                    .setGender(applicant.getGender())
+                    .setDuration(applicant.getDuration())
+                    .setLinkedInUrl(applicant.getLinkedInUrl())
+                    .setGithubUrl(applicant.getGithubUrl())
+                    .setCvUrl(applicant.getCvUrl())
+                    .setRole("STUDENT")
+                    .build();
 
             try {
-                restTemplate.postForEntity(userServiceUrl, requestEntity, Void.class);
+                UserServiceClient client = new UserServiceClient();
+                CreateUserResponse response = client.registerUser(grpcRequest, jwtToken);
+                System.out.println("✅ Created new user with ID: " + response.getUserId());
+
+                // 🟢 The email logic must be here
+                String subject = "Welcome to INSA Internship Management System - Your Account Details";
+                String message = String.format("""
+                Hello %s,
+
+                Your account has been successfully created.
+
+                Here are your login details:
+
+                Email: %s
+                Temporary Password: %s
+
+                Please log in to your account and change your password immediately for security reasons.
+
+                Thank you,
+                INSA Internship Management Team
+                """, applicant.getFirstName(), applicant.getEmail(), generatedPassword);
+
+                sendEmail(applicant.getEmail(), subject, message); // 👈 Call the sendEmail function
             } catch (Exception ex) {
                 throw new RuntimeException("Failed to create user in user service: " + ex.getMessage());
             }
@@ -271,6 +294,23 @@ public class ApplicationServiceImpl implements ApplicationService{
 
         return password.toString();
     }
+
+    private void sendEmail(String to, String subject, String text) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("your_app_email@example.com");
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            mailSender.send(message);
+            System.out.println("Email sent to " + to + " with subject: " + subject);
+        } catch (Exception e) {
+            System.err.println("Error sending email to " + to + ": " + e.getMessage());
+            throw new RuntimeException("Failed to send verification email.", e);
+        }
+
+    }
+
 
 
 

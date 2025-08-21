@@ -1,5 +1,4 @@
 package com.example.schedule_service.security;
-
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -36,6 +35,12 @@ public class Security {
     public String extractUserRole(String token) {
         Claims claims = extractAllClaims(token);
         return claims.get("role", String.class);
+    }
+
+    // ✅ Extract institution from token
+    public String extractUserInstitution(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("institution", String.class);
     }
 
     // ✅ Extract email from token

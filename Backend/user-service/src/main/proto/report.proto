@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package com.example.report_service.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.report_service.gRPC";
+option java_outer_classname = "ReportServiceProto";
+
+service ReportService {
+  rpc getReportStats (ReportStatsRequest) returns (ReportStatsResponse);
+}
+
+
+message ReportStatsRequest {
+  int64 user_id = 1;
+}
+
+message ReportStatsResponse {
+  int64 totalReports = 1;
+  double averageRating = 2;
+}
+

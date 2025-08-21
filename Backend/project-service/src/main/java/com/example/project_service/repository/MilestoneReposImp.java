@@ -53,4 +53,9 @@ public class MilestoneReposImp implements MilestoneReposInterface {
     public Optional<Milestone> getMilestoneById(Long milestoneId) {
         return milestoneJpaRepository.findById(milestoneId);
     }
+
+    @Override
+    public List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId) {
+        return milestoneJpaRepository.findByProject_IdAndStatusNot(projectId, MilestoneStatus.COMPLETED);
+    }
 }
