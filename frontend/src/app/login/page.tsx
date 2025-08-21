@@ -45,14 +45,38 @@ export default function LoginPage() {
   // Redirect if user is authenticated
   useEffect(() => {
     if (user && !isLoading) {
-      router.push( `/dashboard/${user.roles.name.toLowerCase()}`);
+   if (user.roles.name === "Admin") {
+        router.push("/dashboard/admin");
+      }
+        else if (user.roles.name.toLocaleLowerCase() === "hr" || user.roles.name.toLocaleLowerCase() === "project_manager") {
+        router.push("/dashboard/company");
+        }
+        else if (user.roles.name.toLocaleLowerCase() === "supervisor") {
+        router.push("/dashboard/university");
+        }
+        else{
+          router.push( `/dashboard/${user.roles.name.toLowerCase()}`);
+          
+        }
     }
   }, [user, isLoading, router]);
 
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data: AuthResponse) => {
-      router.push(`/dashboard/${data.user.roles.name.toLowerCase()}`);
+      if (data.user.roles.name === "Admin") {
+        router.push("/dashboard/admin");
+      }
+        else if (data.user.roles.name.toLocaleLowerCase() === "hr" || data.user.roles.name.toLocaleLowerCase() === "project_manager") {
+        router.push("/dashboard/company");
+        }
+        else if (data.user.roles.name.toLocaleLowerCase() === "supervisor") {
+        router.push("/dashboard/university");
+        }
+        else{
+          router.push( `/dashboard/${data.user.roles.name.toLowerCase()}`);
+          
+        }
     },
     onError: (err: any) => {
       setError(

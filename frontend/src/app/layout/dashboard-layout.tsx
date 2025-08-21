@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { User } from "@/types/entities";
 import { Sidebar } from "@/components/sidebar";
 import { api } from "@/api/axios";
+import { University } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -35,7 +36,18 @@ export default async function DashboardLayout({
   requiredRole,
 }: DashboardLayoutProps) {
   const user = await getUser();
-  const userRole = user.roles.name.toLowerCase();
+  let userRole = user.roles.name.toLowerCase();
+  if (userRole === "admin") {
+    userRole = "admin";}
+  else if (userRole === "hr" || userRole === "project_manager") {
+    userRole="company"
+  }
+  else if (userRole === "supervisor") {
+    userRole="University"
+  }
+  else if (userRole === "student") {
+    userRole="student"
+  }
 
   if (requiredRole && userRole !== requiredRole.toLowerCase()) {
     redirect(`/dashboard/${userRole}`);
