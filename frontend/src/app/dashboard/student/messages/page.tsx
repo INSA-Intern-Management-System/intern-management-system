@@ -124,7 +124,7 @@ export default async function MessagesPage({
     otherUserId: number
   ): Promise<{
     success: boolean;
-    data?: Room | undefined;
+    data?: RoomUserUnreadDTO | undefined;
     error?: string;
   }> => {
     "use server";
