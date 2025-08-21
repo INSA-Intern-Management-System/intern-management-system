@@ -551,9 +551,7 @@ public class UserController {
             Map<Long, Map<String, Object>> projectIdToStats = new HashMap<>();
             for (StatsResponse stats : milestoneStatsResponse.getStatsList()) {
                 Map<String, Object> statsMap = new HashMap<>();
-                statsMap.put("projectId", stats.getProjectId());
-                statsMap.put("total", stats.getTotal());
-                statsMap.put("completed", stats.getCompleted());
+                statsMap.put("completed", stats.getCompleted()/stats.getTotal()*100);
                 projectIdToStats.put(stats.getProjectId(), statsMap);
             }
 
