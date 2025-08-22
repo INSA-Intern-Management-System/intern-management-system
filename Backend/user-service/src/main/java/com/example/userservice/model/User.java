@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -44,6 +46,13 @@ public class User implements UserDetails {
     private Date lastReadNotificationAt;
     private Date createdAt;
     private Date updatedAt;
+
+    @Column(name = "failed_attempts")
+    private Integer failedAttempts = 0;
+    @Column(name = "account_locked")
+    private Boolean isAccountLocked = false;
+    @Column(name = "account_locked_at")
+    private LocalDateTime accountLockedAt;
 
     @ManyToOne
     @JoinColumn(name = "supervisor_id")
@@ -135,7 +144,10 @@ public class User implements UserDetails {
     User supervisor,
     List<User> supervisedInterns,
     User projectManager,
-    List<User> projectManagerInterns
+    List<User> projectManagerInterns,
+    Integer failedAttempts,
+    Boolean isAccountLocked,
+    LocalDateTime accountLockedAt
 
       ) {
         this.id = id;
@@ -168,6 +180,9 @@ public class User implements UserDetails {
         this.supervisedInterns = supervisedInterns;
         this.projectManager = projectManager;
         this.projectManagerInterns = projectManagerInterns;
+        this.failedAttempts = failedAttempts;
+        this.isAccountLocked = isAccountLocked;
+        this.accountLockedAt = accountLockedAt;
     }
 
      @Override
@@ -435,4 +450,21 @@ public class User implements UserDetails {
     public void setStatus(Status status) {
         this.status = status;
     }
+
+    public Integer getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(Integer failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    public Boolean getAccountLocked() {
+        return isAccountLocked;
+    }
+    public void setAccountLocked(Boolean isAccountLocked){
+        this.isAccountLocked = isAccountLocked;
+    }
+    public LocalDateTime getAccountLockedAt() { return accountLockedAt; }
+    public void setAccountLockedAt(LocalDateTime accountLockedAt) { this.accountLockedAt = accountLockedAt; }
 }

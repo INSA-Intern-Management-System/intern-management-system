@@ -12,6 +12,7 @@ import java.util.Map;
 public interface UserService {
 
     // Auth related methods
+    User findByEmail(String email);
     User registerUser(RegisterRequest request);
     User loginUser(LoginRequest request);
 

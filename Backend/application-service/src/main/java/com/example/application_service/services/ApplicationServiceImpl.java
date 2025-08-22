@@ -3,6 +3,7 @@ package com.example.application_service.services;
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.CreateUserRequest;
+import com.example.application_service.gRPC.NotificationGrpcClient;
 import com.example.application_service.gRPC.UserServiceClient;
 import com.example.application_service.model.*;
 import com.example.application_service.repository.ApplicantRepository;
@@ -44,6 +45,9 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private UserServiceClient userServiceClient;
 
 
     @Value("${user.service.url}") // e.g., http://user-service/api/users
@@ -223,8 +227,8 @@ public class ApplicationServiceImpl implements ApplicationService{
                     .build();
 
             try {
-                UserServiceClient client = new UserServiceClient();
-                CreateUserResponse response = client.registerUser(grpcRequest, jwtToken);
+//                UserServiceClient client = new UserServiceClient();
+                CreateUserResponse response = userServiceClient.registerUser(grpcRequest, jwtToken);
                 System.out.println("✅ Created new user with ID: " + response.getUserId());
 
                 // 🟢 The email logic must be here
@@ -310,8 +314,6 @@ public class ApplicationServiceImpl implements ApplicationService{
         }
 
     }
-
-
 
 
 }

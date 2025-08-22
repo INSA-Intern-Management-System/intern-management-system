@@ -15,9 +15,9 @@ public class UserServiceClient {
     private final UserServiceGrpc.UserServiceBlockingStub stub;
     private final ManagedChannel channel;
 
-    public UserServiceClient() {
+    public UserServiceClient(String host, int port) {
         this.channel = ManagedChannelBuilder
-                .forAddress("localhost", 9091)
+                .forAddress(host, port)
                 .usePlaintext()
                 .build();
         this.stub = UserServiceGrpc.newBlockingStub(channel);

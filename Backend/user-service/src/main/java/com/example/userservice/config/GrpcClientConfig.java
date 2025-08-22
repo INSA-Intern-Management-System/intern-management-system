@@ -2,6 +2,7 @@ package com.example.userservice.config;
 
 
 import com.example.userservice.client.ActivityGrpcClient;
+import com.example.userservice.client.NotificationGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,14 @@ public class GrpcClientConfig {
     @Value("${grpc.server.activity-port}")
     private int activity_port;
 
+    @Value("${grpc.server.notification-address}")
+    private String notification_host;
+
+    @Value("${grpc.server.notification-port}")
+    private int notification_port;
+
+
+
     @Bean
     public ActivityGrpcClient activityGrpcClient() {
         return new ActivityGrpcClient(activity_host, activity_port);
@@ -30,5 +39,10 @@ public class GrpcClientConfig {
     public ProjectManagerGrpcClient projectManagerGrpcClient() {
         return new ProjectManagerGrpcClient(project_host, project_port);
     }
+    @Bean
+    public NotificationGrpcClient notificationGrpcClient() {
+        return new NotificationGrpcClient(notification_host, notification_port);
+    }
+
 }
 

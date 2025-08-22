@@ -1,11 +1,10 @@
 package com.example.userservice.gRPC;
 
 import com.example.userservice.dto.UserMessageDTO;
-import com.example.userservice.model.Role;
+import com.example.userservice.model.*;
 import com.example.userservice.model.Status;
-import com.example.userservice.model.User;
-import com.example.userservice.model.UserStatus;
 import com.example.userservice.repository.RoleRepository;
+import com.example.userservice.repository.SystemSettingRepository;
 import com.example.userservice.repository.UserMessageInterface;
 import com.example.userservice.repository.UserRepository;
 import com.example.userservice.security.JwtServerInterceptor;
@@ -25,15 +24,18 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
 
     private final UserMessageInterface repository;
     private final UserRepository userRepo;
+    private final SystemSettingRepository systemRepo;
     private final RoleRepository roleRepo;
     private final PasswordEncoder passwordEncoder;
 
     public UserGrpcService(UserMessageInterface repository,
                            RoleRepository roleRepo,
                            PasswordEncoder passwordEncoder,
+                           SystemSettingRepository systemRepo,
                            UserRepository userRepo) {
         this.repository = repository;
         this.roleRepo = roleRepo;
+        this.systemRepo = systemRepo;
         this.passwordEncoder = passwordEncoder;
         this.userRepo = userRepo;
         System.out.println("✅ UserGrpcService created!");
@@ -85,6 +87,19 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
         } catch (Exception e) {
             responseObserver.onError(e);
         }
+    }
+
+    @Override
+    public void getMaxIntern(MaxInternRequest request, StreamObserver<MaxInternResponse> responseObserver) {
+        SystemSetting setting = systemRepo.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new RuntimeException("System settings not found"));
+
+        MaxInternResponse response = MaxInternResponse.newBuilder()
+                .setMaxIntern(setting.getMaxInterns())
+                .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
 
@@ -203,6 +218,8 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
                 return com.example.userservice.gRPC.Status.UNKNOWN;
         }
     }
+
+
 
     // 🟢 Add the password generation utility method
     private String generateRandomPassword(int length) {

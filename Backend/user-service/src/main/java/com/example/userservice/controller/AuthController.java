@@ -3,7 +3,9 @@ package com.example.userservice.controller;
 
 import com.example.userservice.dto.*;
 import com.example.userservice.model.Role;
+import com.example.userservice.model.SystemSetting;
 import com.example.userservice.model.User;
+import com.example.userservice.repository.SystemSettingRepository;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserService;
 import jakarta.servlet.http.Cookie;
@@ -23,10 +25,12 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final SystemSettingRepository systemSettingRepository;
     private final  JwtUtil jwtUtil;
 
-    public AuthController(UserService userService, JwtUtil jwtUtil) {
+    public AuthController(UserService userService, SystemSettingRepository systemSettingRepository, JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
+        this.systemSettingRepository = systemSettingRepository;
         this.userService = userService;
     }
 
@@ -74,6 +78,8 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
         try {
+
+
             User user = userService.loginUser(request);
 
             String token = jwtUtil.generateToken(user);

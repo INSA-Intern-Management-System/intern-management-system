@@ -2,10 +2,7 @@ package com.example.userservice.config;
 
 import com.example.userservice.gRPC.InternManagerGrpcService;
 import com.example.userservice.gRPC.UserGrpcService;
-import com.example.userservice.repository.InternManagerReposInterface;
-import com.example.userservice.repository.RoleRepository;
-import com.example.userservice.repository.UserMessageInterface;
-import com.example.userservice.repository.UserRepository;
+import com.example.userservice.repository.*;
 import com.example.userservice.security.JwtServerInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
@@ -24,6 +21,7 @@ public class GrpcServerRunner {
     private final InternManagerReposInterface repository;
     private final UserMessageInterface userMessageInterface;
     private final UserRepository userRepo;
+    private final SystemSettingRepository systemRepo;
     private final RoleRepository roleRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtServerInterceptor jwtInterceptor;
@@ -34,12 +32,14 @@ public class GrpcServerRunner {
     public GrpcServerRunner(InternManagerReposInterface repository,
                             UserMessageInterface userMessageInterface,
                             UserRepository userRepo,
+                            SystemSettingRepository systemRepo,
                             PasswordEncoder passwordEncoder,
                             RoleRepository roleRepo,
                             JwtServerInterceptor jwtInterceptor,
                             GrpcProperties grpcProperties) {
         this.repository = repository;
         this.roleRepo = roleRepo;
+        this.systemRepo = systemRepo;
         this.passwordEncoder = passwordEncoder;
         this.userRepo = userRepo;
 
@@ -61,7 +61,7 @@ public class GrpcServerRunner {
                 jwtInterceptor
         ));
         builder.addService(ServerInterceptors.intercept(
-                new UserGrpcService(userMessageInterface, roleRepo,passwordEncoder, userRepo),
+                new UserGrpcService(userMessageInterface, roleRepo,passwordEncoder,systemRepo, userRepo),
                 jwtInterceptor
         ));
 

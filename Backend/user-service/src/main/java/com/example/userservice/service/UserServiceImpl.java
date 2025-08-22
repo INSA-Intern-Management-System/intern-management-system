@@ -2,15 +2,14 @@ package com.example.userservice.service;
 
 import com.example.userservice.dto.*;
 import com.example.userservice.model.*;
-import com.example.userservice.repository.InternManagerReposInterface;
-import com.example.userservice.repository.RoleRepository;
-import com.example.userservice.repository.UserRepository;
+import com.example.userservice.repository.*;
 
-import com.example.userservice.repository.VerificationCodeRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,6 +25,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepo;
     private final RoleRepository roleRepo;
+    private final SystemSettingRepository systemSettingRepository;
     private final VerificationCodeRepository verificationCodeRepo;
     private final BCryptPasswordEncoder passwordEncoder;
     private final InternManagerService internManagerService;
@@ -36,6 +36,7 @@ public class UserServiceImpl implements UserService {
 
     public UserServiceImpl(UserRepository userRepo,
                            RoleRepository roleRepo,
+                           SystemSettingRepository systemSettingRepository,
                            InternManagerService internManagerService,
                            InternManagerReposInterface internManagerReposInterface,
                            BCryptPasswordEncoder passwordEncoder,
@@ -43,6 +44,7 @@ public class UserServiceImpl implements UserService {
                            ) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
+        this.systemSettingRepository = systemSettingRepository;
         this.internManagerService = internManagerService;
         this.internManagerReposInterface = internManagerReposInterface;
         this.verificationCodeRepo = verificationCodeRepo;
@@ -66,7 +68,9 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.lastName);
         user.setEmail(request.email);
 
-        String temporaryPassword = generateRandomPassword(10);
+        SystemSetting systemSetting = systemSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new RuntimeException("System settings not found"));
+        String temporaryPassword = generateRandomPassword(systemSetting.getMinimumPasswordLength());
 
         String hashedPassword = passwordEncoder.encode(temporaryPassword);
 
@@ -77,7 +81,7 @@ public class UserServiceImpl implements UserService {
         user.setFieldOfStudy(request.fieldOfStudy);
         user.setInstitution(request.institution);
         user.setRole(userRole);
-        user.setUserStatus(request.userStatus);
+//        user.setUserStatus(request.userStatus);
         user.setBio(request.bio);
         user.setNotifyEmail(request.notifyEmail);
         user.setVisibility(request.visibility);
@@ -122,10 +126,62 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User loginUser(LoginRequest request) {
-        User user = userRepo.findByEmail(request.email);
-        if (user == null || !passwordEncoder.matches(request.password, user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+        SystemSetting setting = systemSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new RuntimeException("System settings not found"));
+
+        User user = userRepo.findByEmail(request.getEmail());
+
+        if (user == null) {
+            throw new RuntimeException("User with this email not found!");
         }
+
+        // Maintenance mode check
+        if (setting.getMaintenanceMode() && !user.getRole().getName().contains("ADMIN")) {
+            throw new RuntimeException("Our System is under maintenance. Please try again later.");
+        }
+
+        // Automatic unlock if lock duration passed (e.g., 30 minutes)
+        if (user.getAccountLocked() && user.getAccountLockedAt() != null) {
+            LocalDateTime unlockTime = user.getAccountLockedAt().plusMinutes(31); // 30 min lock duration
+            if (LocalDateTime.now().isAfter(unlockTime)) {
+                user.setAccountLocked(false);
+                user.setFailedAttempts(0);
+                user.setAccountLockedAt(null);
+                userRepo.save(user);
+            } else {
+                throw new RuntimeException("Your account is locked. Try again after: "
+                        + java.time.Duration.between(LocalDateTime.now(), unlockTime).toMinutes() + " minutes.");
+            }
+        }
+
+        // Check password
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            user.setFailedAttempts(user.getFailedAttempts() + 1);
+
+            int maxAttempts = setting.getMaxLoginAttempts() != null ? setting.getMaxLoginAttempts() : 5;
+
+            if (user.getFailedAttempts() >= maxAttempts) {
+                user.setAccountLocked(true);
+                user.setAccountLockedAt(LocalDateTime.now()); // start lock timer
+            }
+
+            userRepo.save(user);
+            int attemptsLeft = Math.max(0, maxAttempts - user.getFailedAttempts());
+            throw new RuntimeException("Invalid password. Attempts left: " + attemptsLeft);
+        }
+
+        // Successful login
+        user.setFailedAttempts(0);
+        user.setAccountLocked(false);
+        user.setAccountLockedAt(null);
+        userRepo.save(user);
+
+        return user;
+    }
+
+    @Override
+    public User findByEmail(String email){
+        User user = userRepo.findByEmail(email);
         return user;
     }
 
