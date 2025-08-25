@@ -2,6 +2,7 @@ package com.example.userservice.config;
 
 
 import com.example.userservice.client.ActivityGrpcClient;
+import com.example.userservice.client.ApplicationGrpcClient;
 import com.example.userservice.client.NotificationGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
 
@@ -16,18 +17,25 @@ public class GrpcClientConfig {
 
     @Value("${grpc.server.project-port}")
     private int project_port;
-
+//
     @Value("${grpc.server.activity-address}")
     private String activity_host;
 
     @Value("${grpc.server.activity-port}")
     private int activity_port;
-
+//
     @Value("${grpc.server.notification-address}")
     private String notification_host;
 
     @Value("${grpc.server.notification-port}")
     private int notification_port;
+
+
+    @Value("${grpc.server.application-address}")
+    private String application_host;
+
+    @Value("${grpc.server.application-port}")
+    private int application_port;
 
 
 
@@ -42,6 +50,10 @@ public class GrpcClientConfig {
     @Bean
     public NotificationGrpcClient notificationGrpcClient() {
         return new NotificationGrpcClient(notification_host, notification_port);
+    }
+    @Bean
+    ApplicationGrpcClient applicationGrpcClient(){
+        return new ApplicationGrpcClient(application_host, application_port);
     }
 
 }

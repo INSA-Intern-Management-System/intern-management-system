@@ -102,7 +102,6 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
         responseObserver.onCompleted();
     }
 
-
     @Override
     public void getUser(UserRequest request, StreamObserver<UserResponse> responseObserver) {
         try{

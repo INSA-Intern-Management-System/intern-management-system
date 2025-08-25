@@ -1,8 +1,6 @@
 package com.example.application_service.gRPC;
 
-import com.example.userservice.gRPC.CreateUserRequest;
-import com.example.userservice.gRPC.CreateUserResponse;
-import com.example.userservice.gRPC.UserServiceGrpc;
+import com.example.userservice.gRPC.*;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -33,6 +31,16 @@ public class UserServiceClient {
         UserServiceGrpc.UserServiceBlockingStub stubWithAuth = MetadataUtils.attachHeaders(stub, metadata);
 
         return stubWithAuth.createUser(request);
+    }
+    public MaxInternResponse getMaxIntern(MaxInternRequest request, String jwtToken){
+        Metadata metadata = new Metadata();
+        Metadata.Key<String> cookieTokenKey = Metadata.Key.of("access-token", Metadata.ASCII_STRING_MARSHALLER);
+        metadata.put(cookieTokenKey, jwtToken.trim());
+
+        // Attach metadata to stub
+        UserServiceGrpc.UserServiceBlockingStub stubWithAuth = MetadataUtils.attachHeaders(stub, metadata);
+
+        return stubWithAuth.getMaxIntern(request);
     }
 
     public void shutdown() {

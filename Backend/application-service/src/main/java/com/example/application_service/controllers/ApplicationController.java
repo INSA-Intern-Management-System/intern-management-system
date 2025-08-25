@@ -5,6 +5,7 @@ import com.example.application_service.gRPC.NotificationGrpcClient;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.ApplicationResponseDTO;
 import com.example.application_service.dto.UserResponseDTO;
+import com.example.application_service.gRPC.UserServiceClient;
 import com.example.application_service.model.Applicant;
 import com.example.application_service.model.Application;
 import com.example.application_service.model.ApplicationStatus;
@@ -12,9 +13,10 @@ import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
 import com.example.application_service.security.JwtUtil;
 import com.example.application_service.services.ApplicationService;
-//import com.example.application_service.services.UserServiceClient;
 import com.example.grpc.NotificationType;
 import com.example.grpc.RecipientRole;
+import com.example.userservice.gRPC.MaxInternRequest;
+import com.example.userservice.gRPC.MaxInternResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,14 +51,21 @@ public class ApplicationController {
     @Autowired
     private NotificationGrpcClient notificationGrpcClient;
 
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+
+
+
     public ApplicationController(ApplicationService applicationService,
                                  ApplicantRepository applicantRepository,
                                  JwtUtil jwtUtil,
+                                 UserServiceClient userServiceClient,
                                  ApplicationRepository applicationRepository,
                                  NotificationGrpcClient notificationGrpcClient
                                  ) {
         this.applicationService = applicationService;
-//        this.userServiceClient = userServiceClient;
+        this.userServiceClient = userServiceClient;
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
         this.notificationGrpcClient = notificationGrpcClient;
@@ -180,12 +189,25 @@ public class ApplicationController {
                     .body(Collections.singletonMap("message", "Unauthorized: Only University can apply"));
         }
 
+
+        // ✅ Check if application limit is reached
+        MaxInternResponse maxInternResponse = userServiceClient.getMaxIntern(MaxInternRequest.newBuilder().build(), token);
+        int maxIntern = maxInternResponse.getMaxIntern();
+
+        long currentApplications = applicantRepository.count();
+
+        if (currentApplications >= maxIntern) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("message", "Application limit reached. No more interns can be added."));
+        }
+
         // ✅ Check if email already exists
         Optional<Applicant> existingApplicant = applicantRepository.findByEmail(email);
         if (existingApplicant.isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Collections.singletonMap("message", "An applicant with this email already applied."));
         }
+
 
         // ✅ Create new Applicant DTO
         ApplicantDTO applicantDTO = ApplicantDTO.builder()
@@ -228,9 +250,9 @@ public class ApplicationController {
         );
 
          notificationGrpcClient.sendNotification(
-                 Set.of(RecipientRole.HR), // ✅ send to university
+                 Set.of(RecipientRole.HR), //
                  "New Internship Application Submitted",
-                 message,                          // ✅ use message as description
+                 message,
                  Instant.now(),
                  NotificationType.SUCCESS
          );
@@ -664,8 +686,6 @@ public class ApplicationController {
         error.put("error", message);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
-
-
     private ApplicationResponseDTO mapToDTO(Application application) {
         return ApplicationResponseDTO.builder()
                 .id(application.getId())

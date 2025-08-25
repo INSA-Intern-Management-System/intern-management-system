@@ -18,13 +18,14 @@ public class CloudinaryService {
 
     public CloudinaryService(Cloudinary cloudinary) {
         this.cloudinary = cloudinary;
-
     }
 
     public String uploadFile(MultipartFile file) throws IOException {
         try {
             Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), Map.of());
+            System.out.println("Cloudinary upload response: " + result);
             return (String) result.get("secure_url");
+
         } catch (Exception e) {
             e.printStackTrace(); // Log full stack trace
             throw new IOException("Cloudinary upload failed: " + e.getMessage());

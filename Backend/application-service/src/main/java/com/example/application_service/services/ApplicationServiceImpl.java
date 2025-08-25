@@ -74,6 +74,7 @@ public class ApplicationServiceImpl implements ApplicationService{
             cvUrl = cloudinaryService.uploadFile(cvFile);
         }
         dto.setCvUrl(cvUrl);
+        System.out.println(cvUrl);
 
         Applicant applicant = Applicant.builder()
                 .id(dto.getId())

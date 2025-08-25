@@ -35,22 +35,43 @@ public class CompanySettingServiceImpl implements CompanySettingService{
         CompanySetting existingProfile = companySettingRepository.findTopByOrderByIdAsc()
                 .orElseThrow(() -> new RuntimeException("Company profile not found"));
 
-        // Update only the necessary fields
-        existingProfile.setCompanyName(updatedProfile.getCompanyName());
-        existingProfile.setCompanySize(updatedProfile.getCompanySize());
-        existingProfile.setAddress(updatedProfile.getAddress());
-        existingProfile.setIndustry(updatedProfile.getIndustry());
-        existingProfile.setWebsite(updatedProfile.getWebsite());
-        existingProfile.setCompanyDescription(updatedProfile.getCompanyDescription());
-
-        existingProfile.setMaxInternsAllowed(updatedProfile.getMaxInternsAllowed());
-        existingProfile.setMinIntershipDuration(updatedProfile.getMinIntershipDuration());
-        existingProfile.setCVRequired(updatedProfile.getCVRequired());
-        existingProfile.setGPARequired(updatedProfile.getGPARequired());
-
-        existingProfile.setEmailNotification(updatedProfile.getEmailNotification());
-
-        existingProfile.setTwoFactorEnabled(updatedProfile.getTwoFactorEnabled());
+        // Update only if provided
+        if (updatedProfile.getCompanyName() != null) {
+            existingProfile.setCompanyName(updatedProfile.getCompanyName());
+        }
+        if (updatedProfile.getCompanySize() != null) {
+            existingProfile.setCompanySize(updatedProfile.getCompanySize());
+        }
+        if (updatedProfile.getAddress() != null) {
+            existingProfile.setAddress(updatedProfile.getAddress());
+        }
+        if (updatedProfile.getIndustry() != null) {
+            existingProfile.setIndustry(updatedProfile.getIndustry());
+        }
+        if (updatedProfile.getWebsite() != null) {
+            existingProfile.setWebsite(updatedProfile.getWebsite());
+        }
+        if (updatedProfile.getCompanyDescription() != null) {
+            existingProfile.setCompanyDescription(updatedProfile.getCompanyDescription());
+        }
+        if (updatedProfile.getMaxInternsAllowed() != null) {
+            existingProfile.setMaxInternsAllowed(updatedProfile.getMaxInternsAllowed());
+        }
+        if (updatedProfile.getMinIntershipDuration() != null) {
+            existingProfile.setMinIntershipDuration(updatedProfile.getMinIntershipDuration());
+        }
+        if (updatedProfile.getCVRequired() != null) {
+            existingProfile.setCVRequired(updatedProfile.getCVRequired());
+        }
+        if (updatedProfile.getGPARequired() != null) {
+            existingProfile.setGPARequired(updatedProfile.getGPARequired());
+        }
+        if (updatedProfile.getEmailNotification() != null) {
+            existingProfile.setEmailNotification(updatedProfile.getEmailNotification());
+        }
+        if (updatedProfile.getTwoFactorEnabled() != null) {
+            existingProfile.setTwoFactorEnabled(updatedProfile.getTwoFactorEnabled());
+        }
 
         return companySettingRepository.save(existingProfile);
     }

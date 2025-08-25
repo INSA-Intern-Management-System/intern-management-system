@@ -156,15 +156,21 @@ public class UserController {
         }
     }
 
-    @PutMapping("/update-password/{id}")
-    public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, @PathVariable Long id, HttpServletRequest request) {
+    @PutMapping("/update-password")
+    public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordDTO dto, HttpServletRequest request) {
 
         try {
             String token = extractAccessToken(request);
             if (token == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
-            userService.updateUserPassword(id, dto);
+            Long userId = (Long) request.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("User ID not found in token");
+            }
+
+
+            userService.updateUserPassword(userId, dto);
             return ResponseEntity.ok("Password updated successfully");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -441,7 +447,7 @@ public class UserController {
         GetRecentActivitiesResponse grpcResponse =
                 activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
 
-        // 5️⃣ Map protobuf response to DTOs
+//         5️⃣ Map protobuf response to DTOs
         List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
                 .map(a -> new ActivityDTO(
                         a.getId(),
@@ -451,50 +457,50 @@ public class UserController {
                         LocalDateTime.parse(a.getCreatedAt())
                 ))
                 .toList();
-
-        // 6️⃣ Fetch intern's project & active milestones
-        InternManagerResponseDTO internDTO = internManagerService.getInfoIdByUserId(userId);
-        List<MilestoneResponse> milestoneDTOs = new ArrayList<>();
-        if (internDTO != null && internDTO.getProjectId() != null) {
-            AllMilestones activeMilestones = projectManagerGrpcClient
-                    .getActiveMilestones(token, internDTO.getProjectId());
-
-            if (activeMilestones != null) {
-                milestoneDTOs = activeMilestones.getMilestonesList().stream()
-                        .map(m -> new MilestoneResponse(
-                                m.getMilestoneId(),
-                                m.getMilestoneTitle(),
-                                m.getMilestoneDescription(),
-                                m.getMilestoneStatus(),
-                                m.hasMilestoneDueDate()
-                                        ? LocalDateTime.ofInstant(
-                                        Instant.ofEpochSecond(
-                                                m.getMilestoneDueDate().getSeconds(),
-                                                m.getMilestoneDueDate().getNanos()
-                                        ),
-                                        ZoneId.systemDefault()
-                                )
-                                        : null,
-                                m.hasMilestoneCreatedAt()
-                                        ? LocalDateTime.ofInstant(
-                                        Instant.ofEpochSecond(
-                                                m.getMilestoneCreatedAt().getSeconds(),
-                                                m.getMilestoneCreatedAt().getNanos()
-                                        ),
-                                        ZoneId.systemDefault()
-                                )
-                                        : null
-                        ))
-                        .toList();
-            }
-        }
+//
+//        // 6️⃣ Fetch intern's project & active milestones
+//        InternManagerResponseDTO internDTO = internManagerService.getInfoIdByUserId(userId);
+//        List<MilestoneResponse> milestoneDTOs = new ArrayList<>();
+//        if (internDTO != null && internDTO.getProjectId() != null) {
+//            AllMilestones activeMilestones = projectManagerGrpcClient
+//                    .getActiveMilestones(token, internDTO.getProjectId());
+//
+//            if (activeMilestones != null) {
+//                milestoneDTOs = activeMilestones.getMilestonesList().stream()
+//                        .map(m -> new MilestoneResponse(
+//                                m.getMilestoneId(),
+//                                m.getMilestoneTitle(),
+//                                m.getMilestoneDescription(),
+//                                m.getMilestoneStatus(),
+//                                m.hasMilestoneDueDate()
+//                                        ? LocalDateTime.ofInstant(
+//                                        Instant.ofEpochSecond(
+//                                                m.getMilestoneDueDate().getSeconds(),
+//                                                m.getMilestoneDueDate().getNanos()
+//                                        ),
+//                                        ZoneId.systemDefault()
+//                                )
+//                                        : null,
+//                                m.hasMilestoneCreatedAt()
+//                                        ? LocalDateTime.ofInstant(
+//                                        Instant.ofEpochSecond(
+//                                                m.getMilestoneCreatedAt().getSeconds(),
+//                                                m.getMilestoneCreatedAt().getNanos()
+//                                        ),
+//                                        ZoneId.systemDefault()
+//                                )
+//                                        : null
+//                        ))
+//                        .toList();
+//            }
+//        }
 
         // 7️⃣ Combine into single response
         Map<String, Object> combinedResponse = new HashMap<>();
         combinedResponse.put("user", userDto);
         combinedResponse.put("statusCounts", status);
-        combinedResponse.put("recentActivities", activityList);
-        combinedResponse.put("tasks", milestoneDTOs); // sending mapped list, not raw gRPC object
+//        combinedResponse.put("recentActivities", activityList);
+//        combinedResponse.put("tasks", milestoneDTOs); // sending mapped list, not raw gRPC object
 
         return ResponseEntity.ok(combinedResponse);
     }
@@ -528,15 +534,15 @@ public class UserController {
                 activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
 
         // 5️⃣ Map protobuf response to DTOs
-        List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
-                .map(a -> new ActivityDTO(
-                        a.getId(),
-                        a.getUserId(),
-                        a.getTitle(),
-                        a.getDescription(),
-                        LocalDateTime.parse(a.getCreatedAt())
-                ))
-                .toList();
+//        List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
+//                .map(a -> new ActivityDTO(
+//                        a.getId(),
+//                        a.getUserId(),
+//                        a.getTitle(),
+//                        a.getDescription(),
+//                        LocalDateTime.parse(a.getCreatedAt())
+//                ))
+//                .toList();
 
         // 6️⃣ Fetch intern's project & active milestones
 //        InternManagerResponseDTO internDTO = internManagerService.getInfoIdByUserId(userId);
@@ -579,11 +585,52 @@ public class UserController {
         Map<String, Object> combinedResponse = new HashMap<>();
         combinedResponse.put("applicationCount", applicationCount);
         combinedResponse.put("activeInterns", activeStudentCount);
-        combinedResponse.put("recentActivities", activityList);
+//        combinedResponse.put("recentActivities", activityList);
 //        combinedResponse.put("tasks", milestoneDTOs);
 
         return ResponseEntity.ok(combinedResponse);
     }
+
+    @GetMapping("/admin/dashboard")
+    public ResponseEntity<?> getAdminDashboard(HttpServletRequest request) {
+        try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            String role = (String) request.getAttribute("role");
+
+            if (!"ADMIN".equalsIgnoreCase(role) ) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only Admin can get admin dashboard."));
+            }
+
+            List<UserStatusCount> statusCounts = userService.countUsersByStatus();
+            Map<String, Long> status = new HashMap<>();
+            for (UserStatusCount sc : statusCounts) {
+                String key = sc.getUserStatus().name().toLowerCase() + "User";
+                status.put(key, sc.getCount());
+            }
+
+            Long allUsers = userService.countAllUsers();
+
+            Map<String, Long> roleCounts = userService.getUserRoleCounts();
+
+            Map<String, Object> combinedResponse = new HashMap<>();
+            combinedResponse.put("allUsers", allUsers);
+            combinedResponse.put("statusCounts", status);
+            combinedResponse.put("roleCounts", roleCounts);
+
+            return ResponseEntity.ok(combinedResponse);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An internal error occurred while gettting Admin Dashboard!");
+        }
+    }
+
+
 
     @GetMapping("/role-count")
     public ResponseEntity<?> getUserRoleCounts(HttpServletRequest request) {
@@ -594,7 +641,7 @@ public class UserController {
 
         String role = (String) request.getAttribute("role");
 
-        if (!"HR".equalsIgnoreCase(role)  ){
+        if (!"HR".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)  ){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Only HR can assign_project manager for student."));
         }
