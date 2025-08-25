@@ -44,6 +44,7 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
     Page<Report> findByManager_IdAndCreatedAtBetween(
             Long managerId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
 
+
     // Generic
     Page<Report> findAll(Pageable pageable);
 

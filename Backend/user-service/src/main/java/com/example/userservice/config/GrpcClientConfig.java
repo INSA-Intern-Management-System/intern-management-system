@@ -2,6 +2,7 @@ package com.example.userservice.config;
 
 
 import com.example.userservice.client.ActivityGrpcClient;
+import com.example.userservice.client.ApplicationGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
 import com.example.userservice.client.ReportGrpcClient;
 
@@ -29,6 +30,12 @@ public class GrpcClientConfig {
     @Value("${grpc.server.report-port}")
     private int report_port;
 
+    @Value("${grpc.server.application-address}")
+    private String application_host;
+
+    @Value("${grpc.server.application-port}")
+    private int application_port;
+
     @Bean
     public ActivityGrpcClient activityGrpcClient() {
         return new ActivityGrpcClient(activity_host, activity_port);
@@ -41,6 +48,11 @@ public class GrpcClientConfig {
     @Bean
     public ReportGrpcClient reportGrpcClient() {
         return new ReportGrpcClient(report_host, report_port);
+    }
+    
+    @Bean
+    public ApplicationGrpcClient applicationGrpcClient() {
+        return new ApplicationGrpcClient(application_host, application_port);
     }
 
 }

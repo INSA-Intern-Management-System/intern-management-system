@@ -67,10 +67,15 @@ public interface UserService {
     Map<String, Long> getUserRoleCounts();
 
     Role createRole(RolesDTO dto);
+    
 
     Page<User> searchSupervisors(String query, Pageable pageable);
     Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable);
 
+    //count user using status 
+    int countByRoleAndUserStatus(String role, UserStatus userStatus);
+    //get list of users based on lists of user id
+    List<UserMessageDTO> getUsersByIds(List<Long> ids);
 
 
 }
