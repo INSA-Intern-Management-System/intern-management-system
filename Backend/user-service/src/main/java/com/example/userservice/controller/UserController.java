@@ -156,17 +156,10 @@ public class UserController {
     }
 
     @PutMapping
-    public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody User user, HttpServletRequest request) {
+    public ResponseEntity<?> updateUserProfile( @RequestBody User user, HttpServletRequest request) {
         try {
-            //get user id and role from request
-            Long userId=(Long)request.getAttribute("userId");
-            String role = (String) request.getAttribute("role");
 
-            if (role == null || !"STUDENT".equalsIgnoreCase(role)) {
-                return ResponseEntity.status(403).body("Access denied");
-            }
-
-            // Extract JWT token
+              // Extract JWT token
             String jwtToken = null;
             if (request.getCookies() != null) {
                 for (Cookie cookie : request.getCookies()) {
@@ -176,22 +169,30 @@ public class UserController {
                     }
                 }
             }
+            
+            //get user id and role from request
+            Long userId=(Long) request.getAttribute("userId");
+            String role = (String) request.getAttribute("role");
+
+            if (role == null || !"STUDENT".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Access denied");
+            }
+
+          
 
             if (jwtToken == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
 
 
-            User updatedUser = userService.updateUser(id, user);
+            User updatedUser = userService.updateUser(userId, user);
 
             //log activity
             logActivity(jwtToken, userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update", jwtToken);
             return ResponseEntity.ok(new UserResponseDto(updatedUser));
         } catch (Exception e) {
             // You can customize error response here
-            return ResponseEntity
-                    .badRequest()
-                    .body("Failed to update user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("an error occurred: " + e.getMessage());
         }
     }
 

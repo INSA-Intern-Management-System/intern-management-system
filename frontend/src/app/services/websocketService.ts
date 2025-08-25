@@ -1,4 +1,3 @@
-// app/services/websocketService.ts
 import { Client } from "@stomp/stompjs";
 
 interface WebSocketCallbacks {
@@ -93,6 +92,7 @@ class WebSocketService {
       try {
         const parsedMessage = JSON.parse(message.body);
         callback(parsedMessage);
+        this.callbacks.onMessage?.(parsedMessage);
       } catch (error) {
         console.error("Failed to parse message:", error);
       }
@@ -117,6 +117,8 @@ class WebSocketService {
     receiverId: number;
     content: string;
     roomId?: number;
+    type?: string;
+    attachment?: any;
   }): boolean {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
@@ -126,11 +128,79 @@ class WebSocketService {
     try {
       this.client.publish({
         destination: "/app/send-message",
-        body: JSON.stringify(message),
+        body: JSON.stringify({
+          ...message,
+          type: message.type || "TEXT",
+        }),
       });
       return true;
     } catch (error) {
       console.error("Failed to send message:", error);
+      return false;
+    }
+  }
+
+  createRoom(roomData: { userId: number; otherUserId: number }): boolean {
+    if (!this.client || !this.isConnected) {
+      console.error("WebSocket not connected");
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: "/app/create-room",
+        body: JSON.stringify(roomData),
+      });
+      return true;
+    } catch (error) {
+      console.error("Failed to create room:", error);
+      return false;
+    }
+  }
+
+  sendTypingIndicator(
+    roomId: number,
+    userId: number,
+    isTyping: boolean
+  ): boolean {
+    if (!this.client || !this.isConnected) {
+      console.error("WebSocket not connected");
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: "/app/typing-indicator",
+        body: JSON.stringify({
+          roomId,
+          userId,
+          type: isTyping ? "TYPING_START" : "TYPING_STOP",
+        }),
+      });
+      return true;
+    } catch (error) {
+      console.error("Failed to send typing indicator:", error);
+      return false;
+    }
+  }
+
+  markAsRead(roomId: number, userId: number): boolean {
+    if (!this.client || !this.isConnected) {
+      console.error("WebSocket not connected");
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: "/app/mark-as-read",
+        body: JSON.stringify({
+          roomId,
+          userId,
+        }),
+      });
+      return true;
+    } catch (error) {
+      console.error("Failed to mark messages as read:", error);
       return false;
     }
   }

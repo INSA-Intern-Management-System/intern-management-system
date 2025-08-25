@@ -387,51 +387,49 @@ export default function MessagesClient({
   }, [searchValue]);
 
   const handleStartConversation = async (user: SearchUser) => {
-    try {
-      // Check if room already exists with this user
-      const existingRoom = rooms.find((room) => room.user.id === user.id);
+    // Check if room already exists with this user
+    const existingRoom = rooms.find((room) => room.user.id === user.id);
 
-      if (existingRoom) {
-        // Select existing room
-        handleRoomSelect(existingRoom);
-        setSearchResults([]);
-        setSearchValue("");
-        setShowSearch(false);
-        return;
-      }
-
-      // Create new room
-      const response = await onCreateRoom(parseInt(user.id));
-
-      if (response.success && response.data) {
-        // Add new room to the list and select it
-        setRooms((prev) => [response.data!, ...prev]);
-        setSelectedRoom(response.data);
-
-        // Update URL with new roomId
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("roomId", response.data.room.id.toString());
-        router.push(`/dashboard/student/messages?${params.toString()}`);
-
-        setSearchResults([]);
-        setSearchValue("");
-        setShowSearch(false);
-
-        toast({
-          title: "Success",
-          description: `Started conversation with ${user.firstName} ${user.lastName}`,
-        });
-      } else {
-        throw new Error(response.error);
-      }
-    } catch (error: any) {
-      console.error("Failed to start conversation:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start conversation",
-        variant: "destructive",
-      });
+    if (existingRoom) {
+      // Select existing room
+      handleRoomSelect(existingRoom);
+      setSearchResults([]);
+      setSearchValue("");
+      setShowSearch(false);
+      return;
     }
+
+    // No room exists: set up a temporary room state for UI, but don't create room yet
+    const tempRoom: RoomUserUnreadDTO = {
+      room: {
+        id: -1, // Temporary ID, backend will assign real ID on send
+        user1Id: Number(userId),
+        user2Id: Number(user.id),
+        lastMessageAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      },
+      user: {
+        ...user,
+        status: "ONLINE", // or use actual status if available
+      },
+      unreadCount: 0,
+    };
+    setSelectedRoom(tempRoom);
+    setRooms((prev) => [tempRoom, ...prev]);
+
+    // Update URL with temp roomId (optional, or skip until real room is created)
+    // const params = new URLSearchParams(searchParams.toString());
+    // params.set("roomId", "-1");
+    // router.push(`/dashboard/company/messages?${params.toString()}`);
+
+    setSearchResults([]);
+    setSearchValue("");
+    setShowSearch(false);
+
+    toast({
+      title: "Ready to chat",
+      description: `Type your first message to start a conversation with ${user.firstName} ${user.lastName}`,
+    });
   };
 
   const filteredRooms = rooms.filter(

@@ -1,12 +1,9 @@
+// app/services/messageService.ts
 import { messageApi } from "@/api/axios";
 import {
   MessagesResponse,
   RoomsResponse,
-  UsersResponse,
   UsersSearchResponse,
-  Message,
-  Room,
-  RoomUserUnreadDTO,
 } from "@/types/entities";
 import { cookies } from "next/headers";
 
@@ -102,103 +99,6 @@ export const fetchRoomMessages = async (
   }
 };
 
-export const searchUsers = async (
-  name: string,
-  page: number = 0,
-  size: number = 10
-): Promise<UsersResponse> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
-
-  try {
-    const response = await messageApi.get<UsersResponse>("/search", {
-      params: { name, page, size },
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-      withCredentials: true,
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error("Failed to search users:", error);
-    return {
-      content: [],
-      pageable: {
-        pageNumber: page,
-        pageSize: size,
-        sort: { sorted: false, empty: true, unsorted: true },
-        offset: page * size,
-        paged: true,
-        unpaged: false,
-      },
-      last: true,
-      totalPages: 0,
-      totalElements: 0,
-      size: size,
-      number: page,
-      sort: { sorted: false, empty: true, unsorted: true },
-      first: true,
-      numberOfElements: 0,
-      empty: true,
-    };
-  }
-};
-
-export const sendMessage = async (
-  roomId: number,
-  content: string,
-  receiverId: number
-): Promise<Message> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
-
-  try {
-    const response = await messageApi.post<Message>(
-      `/messages/rooms/${roomId}/messages`,
-      { content, receiverId },
-      {
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error("Failed to send message:", error);
-    throw error;
-  }
-};
-
-export const markMessagesAsRead = async (roomId: number): Promise<void> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
-
-  try {
-    await messageApi.patch(
-      `/messages/rooms/${roomId}/messages/read`,
-      {},
-      {
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
-  } catch (error) {
-    console.error("Failed to mark messages as read:", error);
-    throw error;
-  }
-};
-
 export const searchUsersByName = async (
   name: string,
   page: number = 0,
@@ -247,29 +147,20 @@ export const searchUsersByName = async (
   }
 };
 
-export const createRoom = async (
-  participantId: number
-): Promise<RoomUserUnreadDTO> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
+// These functions are kept for backward compatibility but will not be used
+// in the client component since we're using WebSocket for these operations
+export const sendMessage = async (
+  roomId: number,
+  content: string,
+  receiverId: number
+): Promise<any> => {
+  throw new Error("Use WebSocket for sending messages");
+};
 
-  try {
-    const response = await messageApi.post<RoomUserUnreadDTO>(
-      "/messages/rooms",
-      { participantId },
-      {
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+export const markMessagesAsRead = async (roomId: number): Promise<void> => {
+  throw new Error("Use WebSocket for marking messages as read");
+};
 
-    return response.data;
-  } catch (error) {
-    console.error("Failed to create room:", error);
-    throw error;
-  }
+export const createRoom = async (participantId: number): Promise<any> => {
+  throw new Error("Use WebSocket for creating rooms");
 };
