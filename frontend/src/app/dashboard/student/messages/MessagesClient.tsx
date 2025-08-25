@@ -1,6 +1,7 @@
+// app/dashboard/student/messages/MessagesClient.tsx
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,12 @@ import {
   MessageSquare,
   Wifi,
   WifiOff,
+  MoreVertical,
+  ImageIcon,
+  Paperclip,
+  Smile,
+  Mic,
 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
@@ -27,13 +32,19 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 import {
-  Room,
-  User,
-  SearchUser,
   RoomUserUnreadDTO,
   Message as MessageType,
+  SearchUser,
 } from "@/types/entities";
 import { webSocketService } from "@/app/services/websocketService";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import EmojiPicker from "@/components/ui/emoji-picker";
 
 interface MessagesClientProps {
   initialRooms: RoomUserUnreadDTO[];
@@ -47,20 +58,9 @@ interface MessagesClientProps {
   userId: number;
   accessToken: string;
   initialRoomId?: number;
-  onSendMessage: (
-    roomId: number,
-    content: string,
-    receiverId: number
-  ) => Promise<{ success: boolean; data?: MessageType; error?: string }>;
-  onMarkAsRead: (
-    roomId: number
-  ) => Promise<{ success: boolean; error?: string }>;
   onSearchUsers: (
     name: string
   ) => Promise<{ success: boolean; data?: SearchUser[]; error?: string }>;
-  onCreateRoom: (
-    otherUserId: number
-  ) => Promise<{ success: boolean; data?: RoomUserUnreadDTO; error?: string }>;
 }
 
 export default function MessagesClient({
@@ -70,10 +70,7 @@ export default function MessagesClient({
   userId,
   accessToken,
   initialRoomId,
-  onSendMessage,
-  onMarkAsRead,
   onSearchUsers,
-  onCreateRoom,
 }: MessagesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,7 +87,12 @@ export default function MessagesClient({
       : null
   );
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -126,6 +128,9 @@ export default function MessagesClient({
           variant: "destructive",
         });
       },
+      onMessage: (message) => {
+        handleIncomingMessage(message);
+      },
     });
 
     return () => {
@@ -152,48 +157,92 @@ export default function MessagesClient({
     };
   }, [selectedRoom, isWebSocketConnected]);
 
-  const handleIncomingMessage = (message: any) => {
-    // Check if this is a deleted message
-    if (message.deletedMessageId) {
-      setMessages((prev) =>
-        prev.filter((msg) => msg.id !== message.deletedMessageId)
+  const handleIncomingMessage = useCallback(
+    (message: any) => {
+      // Handle typing indicators
+      if (message.type === "TYPING_START") {
+        setTypingUsers((prev) => new Set(prev).add(message.userId));
+        return;
+      }
+
+      if (message.type === "TYPING_STOP") {
+        setTypingUsers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(message.userId);
+          return newSet;
+        });
+        return;
+      }
+
+      // Handle room creation response
+      if (message.type === "ROOM_CREATED") {
+        const newRoom: RoomUserUnreadDTO = {
+          room: message.room,
+          user: message.otherUser,
+          unreadCount: 0,
+        };
+
+        setRooms((prev) => [newRoom, ...prev]);
+        setSelectedRoom(newRoom);
+
+        // Update URL with new roomId
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("roomId", newRoom.room.id.toString());
+        router.push(`/dashboard/student/messages?${params.toString()}`);
+
+        toast({
+          title: "Success",
+          description: `Started conversation with ${message.otherUser.firstName} ${message.otherUser.lastName}`,
+        });
+        return;
+      }
+
+      // Check if this is a deleted message
+      if (message.deletedMessageId) {
+        setMessages((prev) =>
+          prev.filter((msg) => msg.id !== message.deletedMessageId)
+        );
+        return;
+      }
+
+      // Handle regular message
+      const newMessage: MessageType = {
+        id: message.id,
+        senderId: message.senderId,
+        roomId: message.roomId,
+        receiverId: message.receiverId,
+        content: message.content,
+        status: message.status,
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
+        // type: message.type,
+        // attachment: message.attachment,
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+
+      // Update room list with new message
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.room.id === message.roomId
+            ? {
+                ...room,
+                room: {
+                  ...room.room,
+                  lastMessageAt: new Date().toISOString(),
+                  lastMessageContent: message.content,
+                },
+                unreadCount:
+                  room.room.id === selectedRoom?.room.id
+                    ? 0
+                    : room.unreadCount + 1,
+              }
+            : room
+        )
       );
-      return;
-    }
-
-    // Handle regular message
-    const newMessage: MessageType = {
-      id: message.id,
-      senderId: message.senderId,
-      roomId: message.roomId,
-      receiverId: message.receiverId,
-      content: message.content,
-      status: message.status,
-      createdAt: message.createdAt,
-      updatedAt: message.updatedAt,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Update room list with new message
-    setRooms((prev) =>
-      prev.map((room) =>
-        room.room.id === message.roomId
-          ? {
-              ...room,
-              room: {
-                ...room.room,
-                lastMessageAt: new Date().toISOString(),
-              },
-              unreadCount:
-                room.room.id === selectedRoom?.room.id
-                  ? 0
-                  : room.unreadCount + 1,
-            }
-          : room
-      )
-    );
-  };
+    },
+    [selectedRoom, searchParams, router]
+  );
 
   // Update rooms and messages when props change
   useEffect(() => {
@@ -214,7 +263,7 @@ export default function MessagesClient({
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, typingUsers]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -238,7 +287,12 @@ export default function MessagesClient({
     e.preventDefault();
     if (!newMessage.trim() || !selectedRoom) return;
 
-    // Try to send via WebSocket first
+    // Send typing stop indicator
+    if (isWebSocketConnected) {
+      webSocketService.sendTypingIndicator(selectedRoom.room.id, userId, false);
+    }
+
+    // Try to send via WebSocket
     if (isWebSocketConnected) {
       const success = webSocketService.sendMessage({
         senderId: userId,
@@ -272,6 +326,7 @@ export default function MessagesClient({
                   room: {
                     ...room.room,
                     lastMessageAt: new Date().toISOString(),
+                    lastMessageContent: newMessage,
                   },
                   unreadCount: 0,
                 }
@@ -282,43 +337,35 @@ export default function MessagesClient({
       }
     }
 
-    // Fallback to HTTP if WebSocket fails
-    try {
-      const receiverId = parseInt(selectedRoom.user.id);
-      const response = await onSendMessage(
-        selectedRoom.room.id,
-        newMessage,
-        receiverId
-      );
+    // If WebSocket fails, show error
+    toast({
+      title: "Error",
+      description: "Failed to send message. Please check your connection.",
+      variant: "destructive",
+    });
+  };
 
-      if (!response.success) {
-        throw new Error(response.error);
-      }
+  const handleTyping = (isTyping: boolean) => {
+    if (!selectedRoom || !isWebSocketConnected) return;
 
-      setMessages([...messages, response.data!]);
-      setNewMessage("");
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
 
-      // Update the room's last message
-      setRooms((prevRooms) =>
-        prevRooms.map((room) =>
-          room.room.id === selectedRoom.room.id
-            ? {
-                ...room,
-                room: {
-                  ...room.room,
-                  lastMessageAt: new Date().toISOString(),
-                },
-                unreadCount: 0,
-              }
-            : room
-        )
-      );
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send message",
-        variant: "destructive",
-      });
+    webSocketService.sendTypingIndicator(
+      selectedRoom.room.id,
+      userId,
+      isTyping
+    );
+
+    if (isTyping) {
+      typingTimeoutRef.current = setTimeout(() => {
+        webSocketService.sendTypingIndicator(
+          selectedRoom.room.id,
+          userId,
+          false
+        );
+      }, 3000);
     }
   };
 
@@ -330,20 +377,15 @@ export default function MessagesClient({
     params.set("roomId", room.room.id.toString());
     router.push(`/dashboard/student/messages?${params.toString()}`);
 
-    // Mark messages as read
-    if (room.unreadCount > 0) {
-      try {
-        const response = await onMarkAsRead(room.room.id);
-        if (response.success) {
-          setRooms((prevRooms) =>
-            prevRooms.map((r) =>
-              r.room.id === room.room.id ? { ...r, unreadCount: 0 } : r
-            )
-          );
-        }
-      } catch (error: any) {
-        console.error("Failed to mark messages as read:", error);
-      }
+    // Mark messages as read via WebSocket if needed
+    if (room.unreadCount > 0 && isWebSocketConnected) {
+      // You might need to implement a WebSocket endpoint for marking as read
+      // For now, we'll just update the UI
+      setRooms((prevRooms) =>
+        prevRooms.map((r) =>
+          r.room.id === room.room.id ? { ...r, unreadCount: 0 } : r
+        )
+      );
     }
   };
 
@@ -356,7 +398,6 @@ export default function MessagesClient({
     setIsSearching(true);
     try {
       const response = await onSearchUsers(query);
-      console.log("Search response:", response, query);
       if (response.success && response.data) {
         setSearchResults(response.data);
       } else {
@@ -401,29 +442,28 @@ export default function MessagesClient({
         return;
       }
 
-      // Create new room
-      const response = await onCreateRoom(parseInt(user.id));
-
-      if (response.success && response.data) {
-        // Add new room to the list and select it
-        setRooms((prev) => [response.data!, ...prev]);
-        setSelectedRoom(response.data);
-
-        // Update URL with new roomId
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("roomId", response.data.room.id.toString());
-        router.push(`/dashboard/student/messages?${params.toString()}`);
-
-        setSearchResults([]);
-        setSearchValue("");
-        setShowSearch(false);
-
-        toast({
-          title: "Success",
-          description: `Started conversation with ${user.firstName} ${user.lastName}`,
+      // Create new room via WebSocket
+      if (isWebSocketConnected) {
+        const success = webSocketService.createRoom({
+          userId: userId,
+          otherUserId: parseInt(user.id),
         });
+
+        if (success) {
+          setSearchResults([]);
+          setSearchValue("");
+          setShowSearch(false);
+
+          // The room will be created and we'll receive it via WebSocket
+          toast({
+            title: "Creating conversation...",
+            description: `Starting conversation with ${user.firstName} ${user.lastName}`,
+          });
+        } else {
+          throw new Error("Failed to create conversation");
+        }
       } else {
-        throw new Error(response.error);
+        throw new Error("WebSocket not connected");
       }
     } catch (error: any) {
       console.error("Failed to start conversation:", error);
@@ -435,11 +475,38 @@ export default function MessagesClient({
     }
   };
 
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Handle file upload logic here
+    const file = files[0];
+    toast({
+      title: "File selected",
+      description: `Selected file: ${file.name}`,
+    });
+
+    // Reset the input
+    e.target.value = "";
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
   const filteredRooms = rooms.filter(
     (room) =>
       room.user.firstName.toLowerCase().includes(searchValue.toLowerCase()) ||
       room.user.lastName.toLowerCase().includes(searchValue.toLowerCase()) ||
       room.user.role.toLowerCase().includes(searchValue.toLowerCase())
+    // room.room.lastMessageContent
+    //   ?.toLowerCase()
+    //   .includes(searchValue.toLowerCase())
   );
 
   const getParticipantName = (room: RoomUserUnreadDTO) => {
@@ -528,6 +595,8 @@ export default function MessagesClient({
     return items;
   };
 
+  const isUserTyping = selectedRoom && typingUsers.size > 0;
+
   return (
     <div className="space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -567,7 +636,7 @@ export default function MessagesClient({
                   <Input
                     autoFocus
                     className="h-10 text-sm pl-10 rounded-md bg-white border border-gray-200"
-                    placeholder="Search users..."
+                    placeholder="Search users or messages..."
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
                     onBlur={() => {
@@ -670,9 +739,9 @@ export default function MessagesClient({
                         {formatDate(room.room.lastMessageAt)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600">
-                      {room.user.role} • {room.user.university}
-                    </p>
+                    {/* <p className="text-xs text-gray-600 truncate">
+                      {room.room.lastMessageContent || "No messages yet"}
+                    </p> */}
                   </div>
                   {room.unreadCount > 0 && (
                     <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
@@ -689,7 +758,7 @@ export default function MessagesClient({
 
         {/* Chat Area */}
         {selectedRoom ? (
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 flex flex-col">
             {/* Chat Header */}
             <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
@@ -710,6 +779,9 @@ export default function MessagesClient({
                     </h3>
                     <p className="text-sm text-gray-600">
                       {selectedRoom.user.role} • {selectedRoom.user.university}
+                      {isUserTyping && (
+                        <span className="text-blue-500 ml-2">typing...</span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -720,76 +792,157 @@ export default function MessagesClient({
                   <Button variant="outline" size="sm">
                     <Video className="h-4 w-4" />
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>View Profile</DropdownMenuItem>
+                      <DropdownMenuItem>Mute Notifications</DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600">
+                        Delete Conversation
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardHeader>
 
             {/* Chat Content */}
-            <CardContent className="p-0 flex flex-col h-[450px]">
+            <CardContent className="p-0 flex flex-col flex-1">
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${
-                      msg.senderId === userId ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm ${
-                        msg.senderId === userId
-                          ? "bg-blue-600 text-white"
-                          : "bg-white border border-gray-200 text-gray-900"
-                      }`}
-                    >
-                      {msg.senderId !== userId && (
-                        <span className="text-xs font-medium text-gray-600 block mb-1">
-                          {selectedRoom.user.firstName}
-                        </span>
-                      )}
-                      <p className="text-sm whitespace-pre-line break-words">
-                        {msg.content}
-                      </p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.senderId === userId
-                            ? "text-blue-100"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {formatTime(msg.createdAt)}
-                      </p>
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center text-gray-500">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                      <p>No messages yet</p>
+                      <p className="text-sm">Start a conversation!</p>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${
+                        msg.senderId === userId
+                          ? "justify-end"
+                          : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm",
+                          msg.senderId === userId
+                            ? "bg-blue-600 text-white"
+                            : "bg-white border border-gray-200 text-gray-900"
+                        )}
+                      >
+                        {msg.senderId !== userId && (
+                          <span className="text-xs font-medium text-gray-600 block mb-1">
+                            {selectedRoom.user.firstName}
+                          </span>
+                        )}
+                        <p className="text-sm whitespace-pre-line break-words">
+                          {msg.content}
+                        </p>
+                        {/* {msg.attachment && (
+                          <div className="mt-2 p-2 bg-black/10 rounded">
+                            <div className="flex items-center">
+                              <Paperclip className="h-3 w-3 mr-1" />
+                              <span className="text-xs truncate">
+                                {msg.attachment.name}
+                              </span>
+                            </div>
+                          </div>
+                        )} */}
+                        <p
+                          className={cn(
+                            "text-xs mt-1 text-right",
+                            msg.senderId === userId
+                              ? "text-blue-100"
+                              : "text-gray-500"
+                          )}
+                        >
+                          {formatTime(msg.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input */}
-              <div className="border-t p-4 bg-white">
+              <div className="border-t p-4 bg-white relative">
                 <form
                   className="flex items-center gap-2"
                   onSubmit={handleSendMessage}
                 >
-                  <Input
-                    placeholder="Type your message..."
-                    className="flex-1"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept="image/*, .pdf, .doc, .docx"
                   />
                   <Button
-                    type="submit"
+                    type="button"
+                    variant="ghost"
                     size="icon"
-                    disabled={!newMessage.trim()}
+                    onClick={handleFileUpload}
                   >
-                    <Send className="h-5 w-5" />
+                    <Paperclip className="h-5 w-5" />
                   </Button>
+                  <Button type="button" variant="ghost" size="icon">
+                    <ImageIcon className="h-5 w-5" />
+                  </Button>
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Type your message..."
+                      className="pr-10"
+                      value={newMessage}
+                      onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        handleTyping(e.target.value.length > 0);
+                      }}
+                      onBlur={() => handleTyping(false)}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    >
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {newMessage.trim() ? (
+                    <Button type="submit" size="icon">
+                      <Send className="h-5 w-5" />
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="ghost" size="icon">
+                      <Mic className="h-5 w-5" />
+                    </Button>
+                  )}
                 </form>
+
+                {/* Emoji Picker */}
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full right-0 mb-2 z-10">
+                    <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         ) : (
           <Card className="lg:col-span-2 flex items-center justify-center">
             <CardContent className="text-center text-gray-500 p-8">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-30" />
               <p>Select a conversation to start messaging</p>
             </CardContent>
           </Card>

@@ -546,14 +546,33 @@ public class UserController {
 
     @PutMapping
     public ResponseEntity<?> updateUserProfile( @RequestBody User user, HttpServletRequest request) {
+    public ResponseEntity<?> updateUserProfile( @RequestBody User user, HttpServletRequest request) {
         try {
+
+              // Extract JWT token
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            
             //get user id and role from request
-            String token = extractAccessToken(request);
-            if (token == null) {
+            Long userId=(Long) request.getAttribute("userId");
+            String role = (String) request.getAttribute("role");
+
+            if (role == null || !"STUDENT".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Access denied");
+            }
+
+          
+
+            if (jwtToken == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
-            Long userId= (Long) request.getAttribute("userId");
-            String role = (String) request.getAttribute("role");
 
 
             User updatedUser = userService.updateUser(userId, user);
@@ -563,45 +582,7 @@ public class UserController {
             return ResponseEntity.ok(new UserResponseDto(updatedUser));
         } catch (Exception e) {
             // You can customize error response here
-            return ResponseEntity
-                    .badRequest()
-                    .body("Failed to update user: " + e.getMessage());
-        }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> adminUpdateUserProfile( @PathVariable Long id, @RequestBody User user, HttpServletRequest request) {
-        try {
-            //get user id and role from request
-            String token = extractAccessToken(request);
-            if (token == null) {
-                return ResponseEntity.status(401).body("Missing access_token cookie");
-            }
-
-            String role = (String) request.getAttribute("role");
-            if (!"ADMIN".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized.");
-            }
-            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)){
-                return errorResponse("Unauthorized.");
-            }
-            if (!"HR".equalsIgnoreCase(role)){
-                return errorResponse("Unauthorized.");
-            }
-            if (!"STUDENT".equalsIgnoreCase(role)){
-                return errorResponse("Unauthorized.");
-            }
-
-            User updatedUser = userService.updateUser(id, user);
-
-            //log activity
-            // logActivity( userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update");
-            return ResponseEntity.ok(new UserResponseDto(updatedUser));
-        } catch (Exception e) {
-            // You can customize error response here
-            return ResponseEntity
-                    .badRequest()
-                    .body("Failed to update user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("an error occurred: " + e.getMessage());
         }
     }
 

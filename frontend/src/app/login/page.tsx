@@ -27,19 +27,21 @@ export default function LoginPage() {
   const router = useRouter();
 
   // Check for existing user session
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["user"],
-    queryFn: async () => {
-      try {
-        const response = await fetch("/api/auth/session");
-        if (!response.ok) throw new Error("Not authenticated");
-        return await response.json();
-      } catch {
-        return null;
-      }
-    },
-    retry: false,
-  });
+  // const { data: user, isLoading } = useQuery<User | null>({
+  //   queryKey: ["user"],
+  //   queryFn: async () => {
+  //     try {
+  //       const response = await fetch("/api/users/me", {
+  //         credentials: "include", // important so cookies are sent
+  //       });
+  //       if (!response.ok) throw new Error("Not authenticated");
+  //       return await response.json();
+  //     } catch {
+  //       return null;
+  //     }
+  //   },
+  //   retry: false,
+  // });
 
   // Redirect if user is authenticated
   useEffect(() => {
@@ -92,13 +94,13 @@ export default function LoginPage() {
     loginMutation.mutate(formData);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       Loading...
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
@@ -109,15 +111,15 @@ export default function LoginPage() {
           onClick={() => router.push("/")}
         >
           <Image
-            src="/logo.png" 
+            src="/logo.png"
             alt="Logo"
             width={50}
             height={50}
             className="mr-2"
           />
-           <span className="text-l font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                INSA 
-              </span>
+          <span className="text-l font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            INSA
+          </span>
         </div>
       </nav>
 
