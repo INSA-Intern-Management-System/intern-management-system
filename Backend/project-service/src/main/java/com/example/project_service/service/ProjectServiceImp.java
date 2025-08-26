@@ -162,6 +162,13 @@ public class ProjectServiceImp implements ProjectServiceInterface {
 
     @Transactional
     @Override
+    public List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status) {
+        return milestoneRepo.findMilestoneStatsByProjectsAndStatus(projectIds, status);
+    }
+
+
+    @Transactional
+    @Override
     public void deleteMilestone(String jwtToken,Long user_id,Long milestoneId) {
         // Validate milestone exists & check if user is the project creator
         Milestone milestone = milestoneRepo.getMilestoneById(milestoneId)

@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -582,6 +581,34 @@ public class UserServiceImpl implements UserService {
                 supervisorRole, query, supervisorRole, query, pageable
         );
     }
+    @Override
+    public int countByRoleAndUserStatus(String role, UserStatus userStatus){
+    
+        Role studentRole = roleRepo.findByName("STUDENT");
+        UserStatus activeStatus = UserStatus.valueOf("ACTIVE");
+        return userRepo.countByRoleIdAndUserStatus(studentRole.getId(), activeStatus);
+    }
+    
+    @Override
+    public List<UserMessageDTO> getUsersByIds(List<Long> ids) {
+        List<User> users = userRepo.findByIdIn(ids);
+        List<UserMessageDTO> userMessages = new ArrayList<>();
+        for (User user : users) {
+            UserMessageDTO userMessage = new UserMessageDTO(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getFieldOfStudy(),
+                user.getInstitution(),
+                user.getStatus(),
+                user.getRole()
+            );
+            userMessages.add(userMessage);
+        }
+        return userMessages;
+            
+
+    }
 
     // --- Helper Methods (no changes needed) ---
     private String generateRandomPassword(int length) {
@@ -618,5 +645,6 @@ public class UserServiceImpl implements UserService {
         }
 
     }
+
 
 }

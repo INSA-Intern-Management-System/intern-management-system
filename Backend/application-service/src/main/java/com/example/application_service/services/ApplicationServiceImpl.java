@@ -31,7 +31,9 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -281,7 +283,18 @@ public class ApplicationServiceImpl implements ApplicationService{
         return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
     }
 
+    @Override
+    @Transactional
+    public HashMap<String, Long> getStats() {
+        HashMap<String,Long> stats = new HashMap<>();
+        stats.put("total",applicationRepository.count());
+        stats.put("pending",applicationRepository.countByStatus(ApplicationStatus.Pending));
+        stats.put("accepted",applicationRepository.countByStatus(ApplicationStatus.Accepted));
+        stats.put("rejected",applicationRepository.countByStatus(ApplicationStatus.Rejected));
+        return stats;
 
+
+    }
     private String generateRandomPassword(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
         SecureRandom random = new SecureRandom();

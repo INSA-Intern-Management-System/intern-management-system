@@ -2,17 +2,35 @@ syntax = "proto3";
 
 package com.example.report_service.gRPC;
 
+import "google/protobuf/empty.proto";
+
 option java_multiple_files = true;
 option java_package = "com.example.report_service.gRPC";
 option java_outer_classname = "ReportServiceProto";
 
 service ReportService {
   rpc getReportStats (ReportStatsRequest) returns (ReportStatsResponse);
+  rpc getTotalReportsForPM (ReportStatsRequest) returns (TotalReportResponse);
+  rpc getTotalReportsForHR (google.protobuf.Empty) returns (TotalReportResponse);
+  rpc getTopInterns (TopInternsRequest) returns (TopInternsResponse);
 }
-
 
 message ReportStatsRequest {
   int64 user_id = 1;
+}
+
+message TopInternsRequest{
+  int64 page = 1;
+  int64 size = 2;
+}
+
+message TopInterns{
+  int64 user_id =1;
+  double rating = 2;
+}
+
+message TopInternsResponse {
+  repeated TopInterns interns = 1;
 }
 
 message ReportStatsResponse {
@@ -20,3 +38,7 @@ message ReportStatsResponse {
   double averageRating = 2;
 }
 
+message TotalReportResponse {
+  int64 totalPendingReports = 1;
+  int64 totalResolvedReports = 2;
+}
