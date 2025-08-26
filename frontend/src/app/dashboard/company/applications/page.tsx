@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import  DashboardLayout  from "@/app/layout/dashboard-layout";
 import {
   User,
   Search,
