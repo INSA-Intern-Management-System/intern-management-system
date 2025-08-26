@@ -22,7 +22,7 @@ public class CloudinaryService {
 
     public String uploadFile(MultipartFile file) throws IOException {
         try {
-            Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), Map.of())
+            Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), Map.of());
             return (String) result.get("secure_url");
 
         } catch (Exception e) {

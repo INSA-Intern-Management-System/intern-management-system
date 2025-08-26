@@ -203,6 +203,33 @@ public class UserController {
         }
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> adminUpdateUserProfile( @PathVariable Long id, @RequestBody User user, HttpServletRequest request) {
+        try {
+            //get user id and role from request
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            String role = (String) request.getAttribute("role");
+            if (!"ADMIN".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only Admin can update user.");
+            }
+            User updatedUser = userService.updateUser(id, user);
+
+            //log activity
+            // logActivity( userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update");
+            return ResponseEntity.ok(new UserResponseDto(updatedUser));
+        } catch (Exception e) {
+            // You can customize error response here
+            return ResponseEntity
+                    .badRequest()
+                    .body("Failed to update user: " + e.getMessage());
+        }
+    }
+
+
 
 
     @GetMapping("/interns")
@@ -706,6 +733,34 @@ public class UserController {
         Map<String, Long> roleCounts = userService.getUserRoleCounts();
         return ResponseEntity.ok(roleCounts);
     }
+
+    @GetMapping("/status-count")
+    public ResponseEntity<?> getAllUserStatusCount(HttpServletRequest request) {
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+
+        List<UserStatusCount> roleCounts = userService.countUsersByStatus();
+        Long totalUser = userService.countAllUsers();
+
+        Map<String, Long> statusMap = roleCounts.stream()
+                .collect(Collectors.toMap(
+                        item -> item.getUserStatus().toString(), // Convert enum to String
+                        UserStatusCount::getCount
+                ));
+
+//        Map<String, Object> response = Map.of("statuses", statusMap);
+
+        Map<String, Object> combinedResponse = new HashMap<>();
+        combinedResponse.put("totalUser", totalUser);
+        combinedResponse.put("statuses", statusMap);
+
+
+        return ResponseEntity.ok(combinedResponse);
+    }
+
 
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(

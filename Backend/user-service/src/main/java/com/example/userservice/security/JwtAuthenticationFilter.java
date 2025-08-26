@@ -83,6 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getServletPath();
+
         return path.equals("/api/auth/login") ||
                 path.equals("/api/auth/request-password-change-otp") ||
                 path.equals("/api/users") ||
@@ -102,7 +103,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/api/users/role-counts") ||
                 path.equals("/api/auth/confirm-password-change-otp") ||
                 path.equals("/actuator/**");
-
 
     }
 }

@@ -285,7 +285,7 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Override
     public Page<Application> filterByUniversity(String university, Pageable pageable) {
-        return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
+        return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCase(university, pageable);
     }
 
 
