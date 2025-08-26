@@ -466,10 +466,10 @@ export default function ApplicationsClient({
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                      <SelectContent className="bg-white ">
+                        <SelectItem value="Male" className="hover:bg-gray-100">Male</SelectItem>
+                        <SelectItem value="Female" className="hover:bg-gray-100">Female</SelectItem>
+                        <SelectItem value="Other" className="hover:bg-gray-100">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
