@@ -45,22 +45,22 @@ export default function LoginPage() {
   // });
 
   // Redirect if user is authenticated
-  useEffect(() => {
-    if (user && !isLoading) {
-      if (user.roles.name === "Admin") {
-        router.push("/dashboard/admin");
-      } else if (
-        user.roles.name.toLocaleLowerCase() === "hr" ||
-        user.roles.name.toLocaleLowerCase() === "project_manager"
-      ) {
-        router.push("/dashboard/company");
-      } else if (user.roles.name.toLocaleLowerCase() === "supervisor") {
-        router.push("/dashboard/university");
-      } else {
-        router.push(`/dashboard/${user.roles.name.toLowerCase()}`);
-      }
-    }
-  }, [user, isLoading, router]);
+  // useEffect(() => {
+  //   if (user && !isLoading) {
+  //     if (user.roles.name === "Admin") {
+  //       router.push("/dashboard/admin");
+  //     } else if (
+  //       user.roles.name.toLocaleLowerCase() === "hr" ||
+  //       user.roles.name.toLocaleLowerCase() === "project_manager"
+  //     ) {
+  //       router.push("/dashboard/company");
+  //     } else if (user.roles.name.toLocaleLowerCase() === "supervisor") {
+  //       router.push("/dashboard/university");
+  //     } else {
+  //       router.push(`/dashboard/${user.roles.name.toLowerCase()}`);
+  //     }
+  //   }
+  // }, [user, isLoading, router]);
 
   const loginMutation = useMutation({
     mutationFn: login,
