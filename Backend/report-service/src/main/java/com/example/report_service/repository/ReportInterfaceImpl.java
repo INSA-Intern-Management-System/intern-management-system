@@ -1,13 +1,17 @@
 package com.example.report_service.repository;
 
+import com.example.report_service.dto.ProjectReportCountDTO;
+import com.example.report_service.dto.UserReportCountDTO;
 import com.example.report_service.model.Report;
 import com.example.report_service.model.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,6 +53,33 @@ public class ReportInterfaceImpl implements ReportReposInterface {
     public Page<Report> searchByTitleAndFeedback(Long userId, String keyword, Pageable pageable) {
         return reportJpa.findByIntern_IdAndTitleContainingIgnoreCase(userId, keyword, pageable);
     }
+
+    @Override
+    public Page<Report> findReportsByInternAndFilters(Long internId,String title, String feedbackStatus,String period,Pageable pageable){
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = getStartDateByPeriod(period);
+        return reportJpa.findReportsByInternAndFilters(internId, title, Status.valueOf(feedbackStatus.toUpperCase()), startDate, endDate, pageable);
+     }
+
+    @Override
+    public Page<Report> findReportsByManagerAndFilters(Long managerId,String title,String feedbackStatus,String period,Pageable pageable){
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = getStartDateByPeriod(period);
+        return reportJpa.findReportsByManagerAndFilters(managerId, title, Status.valueOf(feedbackStatus.toUpperCase()), startDate, endDate, pageable);
+
+    }
+
+    @Override
+    public Page<Report> findReportsByTitleOrStatusOrDate(String title,String feedbackStatus, String period, Pageable pageable){
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = getStartDateByPeriod(period);
+        return reportJpa.findReportsByTitleOrStatusOrDate(title, Status.valueOf(feedbackStatus), startDate, endDate, pageable);
+        
+    }
+
+   
+
+
 
     @Override
     public Page<Report> filterByStatusAndDate(Long userId, String status, String period, Pageable pageable) {
@@ -130,10 +161,22 @@ public class ReportInterfaceImpl implements ReportReposInterface {
     public Long countAllReports() {
         return reportJpa.countBy();
     }
+    
+
+    @Override
+    public Long countReportsByUserIds(List<Long> userIds){
+        return reportJpa.countReportsByUserIds(userIds);
+    }
+
 
     @Override
     public Long countAllByFeedbackStatus(String status) {
         return reportJpa.countByFeedbackStatus(Status.valueOf(status.toUpperCase()));
+    }
+
+    @Override
+    public List<UserReportCountDTO> countReportByUserIds(@Param("userIds") List<Long> userIds){
+        return reportJpa.countReportByUserIds(userIds);
     }
 
     // Helper

@@ -1,9 +1,12 @@
 package com.example.project_service.service;
 
 import com.example.project_service.client.ActivityGrpcClient;
+import com.example.project_service.client.InternManagerGrpcClient;
 import com.example.project_service.dto.*;
 import com.example.project_service.models.*;
 import com.example.project_service.repository.*;
+import com.example.userservice.gRPC.CreateResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -22,6 +25,7 @@ public class ProjectServiceImp implements ProjectServiceInterface {
     private final TeamMemberReposInterface teamMemberRepo;
     private final MilestoneReposInterface milestoneRepo;
     private final ActivityGrpcClient activityGrpcClient;
+    private final InternManagerGrpcClient internManagerGrpcClient;
 
     @Autowired
     private ProjectMapper projectMapper;
@@ -31,12 +35,14 @@ public class ProjectServiceImp implements ProjectServiceInterface {
                              TeamReposInterface teamRepo,
                              TeamMemberReposInterface teamMemberRepo,
                              MilestoneReposInterface milestoneRepo,
-                             ActivityGrpcClient activityGrpcClient) {
+                             ActivityGrpcClient activityGrpcClient,
+                             InternManagerGrpcClient internManagerGrpcClient) {
         this.projectRepo = projectRepo;
         this.teamRepo = teamRepo;
         this.teamMemberRepo = teamMemberRepo;
         this.milestoneRepo = milestoneRepo;
         this.activityGrpcClient = activityGrpcClient;
+        this.internManagerGrpcClient= internManagerGrpcClient;
     }
 
     // ---------------- Projects ----------------
@@ -71,6 +77,32 @@ public class ProjectServiceImp implements ProjectServiceInterface {
     }
 
     @Override
+    @Transactional
+    public void deleteProject(String jwtToken,Long user_id,Long projectId){
+        //get the project base on the project id
+        Optional<Project> project = projectRepo.getProjectById(projectId);
+        
+        //check if the project exists
+        if(project.isEmpty()){
+            new RuntimeException("Project not found with id: " + projectId);
+        }
+
+        //check if the user is the manager of the project
+        if(!project.get().getCreatedBy().getId().equals(user_id)){
+            new RuntimeException("Unauthorized access for the project");
+        }
+        //delete project by id
+        try{
+            projectRepo.deleteProjectById(projectId);
+        }catch( Exception e){
+            new RuntimeException("cant delete project from projects");
+        }
+        // Log activity
+        logActivity(jwtToken, user_id, "DELETE_PROJECT", "Project '" + project.get().getName() + "' deleted successfully.");
+        
+    }
+
+    @Override
     public Page<ProjectResponse> searchProjectsHR(String keyword, Pageable pageable) {
         Page<Project> projects = projectRepo.searchProjectsByNameOrTechnologyHR(keyword, pageable);
         return projects.map(this::mapToDto);
@@ -95,10 +127,15 @@ public class ProjectServiceImp implements ProjectServiceInterface {
     }
 
     @Override
-    public ProjectResponse updateProjectStatus(String jwtToken,Long projectId, ProjectStatus newStatus) {
+    public ProjectResponse updateProjectStatus(String jwtToken,Long user_id,Long projectId, ProjectStatus newStatus) {
         // Validate project exists
         Project project = projectRepo.getProjectById(projectId)
             .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
+        
+        //check wether the user is a manager 
+        if( project.getCreatedBy().getId()==user_id){
+            throw new RuntimeException("Unauthorized: Only project manager can update project status");
+        }
 
         //update project status
         if (project.getStatus() == newStatus) {
@@ -160,11 +197,59 @@ public class ProjectServiceImp implements ProjectServiceInterface {
         return projectMapper.mapToDto(new_milestone);
     }
 
+    @Override
+    @Transactional
+    public void updateStatus(String jwtToken,Long user_id,UpdateRequestDTO request){
+        if(request.getProjectId()!=null){
+            // Validate project exists
+            Project project = projectRepo.getProjectById(request.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found with id: " + request.getProjectId()));
+
+            //update project status
+            if (project.getStatus() == request.getProjectStatus()) {
+                throw new RuntimeException("Project already has the status: " + request.getProjectId());
+            }
+        
+            Project new_project=projectRepo.updateProjectStatus(request.getProjectId(), request.getProjectStatus());
+            logActivity(jwtToken, project.getCreatedBy().getId(), "Project status updated","Project Name: " + project.getName() +  "Project ID: " +request.getProjectId() + ", New Status: " + request.getProjectStatus());
+        }
+        if (request.getMilestoneIds()!=null){
+            //get the list of milestone using lists of milestone ids;
+            List<Milestone> milestones = milestoneRepo.findByIdIn(request.getMilestoneIds());
+            if (milestones == null || milestones.isEmpty()) {
+                throw new RuntimeException("Milestone not found with id: " + request.getMilestoneIds());
+            }
+
+            //check wether the miletones the user if the creator of the project
+            for(Milestone milestone:milestones){
+                Project project = milestone.getProject();
+                if (!project.getCreatedBy().getId().equals(user_id)) {
+                    throw new RuntimeException("Unauthorized: Only project creator can update milestone status");
+                }
+            }
+            milestoneRepo.updateStatuses(request.getMilestoneIds(), request.getMilestoneStatuses());
+            logActivity(jwtToken, user_id, "Milestone status updated","Milestone status is updated");
+        }
+        
+
+    }
+
     @Transactional
     @Override
     public List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status) {
         return milestoneRepo.findMilestoneStatsByProjectsAndStatus(projectIds, status);
     }
+
+    @Transactional
+    @Override
+    public UniveristyMilestoneStatsDTO getStats(List<Long> ids){
+        UniveristyMilestoneStatsDTO result=new UniveristyMilestoneStatsDTO(null, null);
+        result.setStatusCount(milestoneRepo.countByProjectIdsAndStatus(ids, MilestoneStatus.PENDING));
+        result.setTotalMilestones(milestoneRepo.countByProjectIds(ids));
+        return result;
+
+    }
+
 
 
     @Transactional
@@ -387,6 +472,16 @@ public class ProjectServiceImp implements ProjectServiceInterface {
         Team team = teamRepo.getTeamById(teamId)
             .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
 
+        //Fetch teams members based on team_id
+        List<TeamMember> teamMembers = teamMemberRepo.getMemberByTeamId(teamId);
+
+        //collect user_id into the list
+        List<Long> memberIds = teamMembers.stream()
+            .map(TeamMember::getMemberId)
+            .toList();
+
+        
+
         // fetch the project
         Project current_project = projectRepo.getProjectById(projectId)
             .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
@@ -416,6 +511,13 @@ public class ProjectServiceImp implements ProjectServiceInterface {
         dto.setTeamMembers(members.stream()
             .map(projectMapper::mapToDto)
             .collect(Collectors.toList()));
+        
+        //send through intern manager grpc 
+
+        CreateResponse response=internManagerGrpcClient.createInternManagers(jwtToken, memberIds, projectId, team.getManagerId(), teamId);
+        if (response.getMessage()==false){
+            new RuntimeException("Failed to assign project to team");
+        }
 
         // Log activity
         logActivity(jwtToken, user_id, "ASSIGN_PROJECT_TO_TEAM", "Project '" + assignedProject.getName() + "' assigned to team '" + updatedTeam.getName() + "'.");

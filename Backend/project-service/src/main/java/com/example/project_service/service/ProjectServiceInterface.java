@@ -17,7 +17,10 @@ public interface ProjectServiceInterface {
     Page<ProjectResponse> searchProjectsPM(Long userId, String keyword, Pageable pageable);
     Page<ProjectResponse> getProjectsForHr(Pageable pageable);
     Page<ProjectResponse> getProjectsForPm(Long createdById, Pageable pageable);
-    ProjectResponse updateProjectStatus(String jwtToken,Long projectId, ProjectStatus newStatus);
+    ProjectResponse updateProjectStatus(String jwtToken,Long user_id,Long projectId, ProjectStatus newStatus);
+    void updateStatus(String jwtToken,Long user_id,UpdateRequestDTO request);
+    void deleteProject(String jwtToken,Long user_id,Long projectId);
+
 
     // Milestones
     MilestoneResponse addMilestone(String jwtToken,Long user_id,MilestoneRequest request);
@@ -26,6 +29,7 @@ public interface ProjectServiceInterface {
     List<MilestoneResponse> getMilestonesByProjectId(Long userID,Long projectId);
     List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId);
     List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status);
+    UniveristyMilestoneStatsDTO getStats(List<Long> ids);
     
 
 

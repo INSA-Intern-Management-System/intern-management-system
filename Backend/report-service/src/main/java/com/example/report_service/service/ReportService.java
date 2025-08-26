@@ -12,6 +12,8 @@ import com.example.report_service.model.Review;
 import com.example.report_service.model.User;
 import com.example.report_service.repository.ReportReposInterface;
 import com.example.report_service.repository.ReviewReposInterface;
+import com.google.common.collect.Lists;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -169,8 +171,8 @@ public class ReportService {
         });
     }
 
-    public Page<ReportResponseDTO> filterReports(String jwtToken,Long userId, String status, String period, Pageable pageable) {
-        Page<Report> reports = reportRepos.filterByStatusAndDate(userId, status, period, pageable);
+    public Page<ReportResponseDTO> filterReports(String jwtToken,Long userId,String title, String status, String period, Pageable pageable) {
+        Page<Report> reports = reportRepos.findReportsByInternAndFilters(userId,title, status, period, pageable);
         if (reports.isEmpty()) {
             return Page.empty(pageable);
         }
@@ -256,8 +258,8 @@ public class ReportService {
         });
     }
 
-    public Page<ReportResponseDTO> filterManagerReports(String jwtToken,Long managerId, String status, String period, Pageable pageable) {
-        Page<Report> reports = reportRepos.filterByManagerAndStatusAndDate(managerId, status, period, pageable);
+    public Page<ReportResponseDTO> filterManagerReports(String jwtToken,Long managerId,String title, String status, String period, Pageable pageable) {
+        Page<Report> reports = reportRepos.findReportsByManagerAndFilters(managerId,title, status, period, pageable);
         List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
         Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
                 .stream().collect(Collectors.toMap(
@@ -445,8 +447,8 @@ public class ReportService {
         });
     }
     //filter all reports by status and date
-    public Page<ReportResponseDTO> filterAllReports(String jwtToken,String status, String period, Pageable pageable) {
-        Page<Report> reports = reportRepos.filterAllByStatusAndDate(status, period, pageable);
+    public Page<ReportResponseDTO> filterAllReports(String jwtToken,String title,String status, String period, Pageable pageable) {
+        Page<Report> reports = reportRepos.findReportsByTitleOrStatusOrDate(title,status, period, pageable);
         List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
         Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
                 .stream().collect(Collectors.toMap(
@@ -504,6 +506,75 @@ public class ReportService {
         }
         return result;
     }
+
+    public Double calculateAverageRatingForUsers(List<Long> userIds){
+        return reviewRepos.calculateAverageRatingForUsers(userIds);
+    }
+
+    
+
+    @Transactional
+    public UniversityStatsResponseDTO getUniversityStats(List<Long> userIds){
+        UniversityStatsResponseDTO result= new UniversityStatsResponseDTO();
+        result.setAverageRating(reviewRepos.calculateAverageRatingForUsers(userIds));
+        result.setTotalReports(reportRepos.countReportsByUserIds(userIds));
+        return result;
+    }
+
+        @Transactional
+        public List<UserUniversityStatsDTO> getUniversityStatsOfUsers(List<Long> userIds) {
+
+                // 1. Average ratings per user
+                List<InternRatingProjection> averageRatings = reviewRepos.calculateAverageRatingsForUsers(userIds);
+
+                // 2. Last review per user
+                List<Review> lastReviews = reviewRepos.findLastReviewByUserIds(userIds);
+
+                // 3. Total reports per user
+                List<UserReportCountDTO> reportCounts = reportRepos.countReportByUserIds(userIds);
+
+                // 4. Combine results into one DTO per user
+                List<UserUniversityStatsDTO> result = new ArrayList<>();
+
+                for (Long userId : userIds) {
+
+                Double avgRating = averageRatings.stream()
+                        .filter(r -> r.getInternId().equals(userId))
+                        .map(InternRatingProjection::getAverageRating)
+                        .findFirst()
+                        .orElse(0.0);
+
+                Long totalReports = reportCounts.stream()
+                        .filter(r -> r.getUserId().equals(userId))
+                        .map(UserReportCountDTO::getReportCount)
+                        .findFirst()
+                        .orElse(0L);
+
+                Review lastReview = lastReviews.stream()
+                        .filter(r -> r.getReport().getIntern().getId().equals(userId))
+                        .findFirst()
+                        .orElse(null);
+
+                result.add(new UserUniversityStatsDTO(userId, avgRating, totalReports, lastReview));
+                }
+
+                return result;
+        }
+
+        @Transactional
+        public ReportStatsDTO getUniversityStatsOfReport(List<Long> userIds){
+                ReportStatsDTO result= new ReportStatsDTO();
+
+                result.setAverageRating(reviewRepos.calculateAverageRatingForUsers(userIds));
+                result.setTotalReports(reportRepos.countReportsByUserIds(userIds));
+
+                System.out.print("----------------------->" + result);
+                return result;
+
+        }
+
+
+
 
 
     private Page<ReportResponseDTO> mapReportsWithReviews(Page<Report> reports) {
