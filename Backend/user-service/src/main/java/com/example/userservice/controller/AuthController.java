@@ -79,7 +79,6 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
         try {
 
-
             User user = userService.loginUser(request);
 
             String token = jwtUtil.generateToken(user);

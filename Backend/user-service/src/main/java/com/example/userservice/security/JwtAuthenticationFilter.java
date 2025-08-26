@@ -101,7 +101,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/api/users/status-count") ||
                 path.equals("/api/users/role-counts") ||
                 path.equals("/api/auth/confirm-password-change-otp") ||
-                path.equals("/actuator/health");
+                path.equals("/actuator/**");
+
 
     }
 }

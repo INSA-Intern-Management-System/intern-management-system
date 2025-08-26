@@ -1,5 +1,8 @@
 package com.example.userservice.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.GrantedAuthority;
@@ -56,16 +59,20 @@ public class User implements UserDetails {
 
     @ManyToOne
     @JoinColumn(name = "supervisor_id")
+    @JsonBackReference
     private User supervisor;
 
     @OneToMany(mappedBy = "supervisor")
+    @JsonManagedReference
     private List<User> supervisedInterns;
 
     @ManyToOne
     @JoinColumn(name = "project_manager_id")
+    @JsonBackReference
     private User projectManager;
 
     @OneToMany(mappedBy = "projectManager")
+    @JsonManagedReference
     private List<User> projectManagerInterns;
 
 

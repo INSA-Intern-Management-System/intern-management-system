@@ -1,6 +1,7 @@
 package com.example.userservice.controller;
 
 
+import com.example.activity_service.gRPC.GetAllActivitiesResponse;
 import com.example.activity_service.gRPC.GetRecentActivitiesResponse;
 import com.example.applicationservice.grpc.ApplicationCountResponse;
 import com.example.project_service.gRPC.AllMilestones;
@@ -178,24 +179,21 @@ public class UserController {
     }
 
     @PutMapping
-    public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody User user, HttpServletRequest request) {
+    public ResponseEntity<?> updateUserProfile( @RequestBody User user, HttpServletRequest request) {
         try {
             //get user id and role from request
             String token = extractAccessToken(request);
             if (token == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
-            Long userId=(Long)request.getAttribute("userId");
+            Long userId=(Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
 
-            if (role == null || !"STUDENT".equalsIgnoreCase(role)) {
-                return ResponseEntity.status(403).body("Access denied");
-            }
 
-            User updatedUser = userService.updateUser(id, user);
+            User updatedUser = userService.updateUser(userId, user);
 
             //log activity
-            logActivity(token, userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update", token);
+            // logActivity( userId, "for " + updatedUser.getFirstName() + " " + updatedUser.getLastName()+ "profile update");
             return ResponseEntity.ok(new UserResponseDto(updatedUser));
         } catch (Exception e) {
             // You can customize error response here
@@ -204,6 +202,7 @@ public class UserController {
                     .body("Failed to update user: " + e.getMessage());
         }
     }
+
 
 
     @GetMapping("/interns")
@@ -352,7 +351,7 @@ public class UserController {
     public ResponseEntity<?> getSupervisors(
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size){
+            @RequestParam(defaultValue = "10") int size) {
 
         String token = extractAccessToken(request);
         if (token == null) {
@@ -362,18 +361,29 @@ public class UserController {
         String institution = (String) request.getAttribute("institution");
         String role = (String) request.getAttribute("role");
 
-        if (!"UNIVERSITY".equalsIgnoreCase(role)  ){
+        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Only University can get this resource!"));
         }
 
-        try{
+        try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<User> supervisors = userService.filterSupervisorByInstitution(institution, pageable);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Fetched supervisors successfully");
-            response.put("supervisors", supervisors);
-            return ResponseEntity.status(201).body(response);
+            Page<User> pageResult = userService.filterSupervisorByInstitution(institution, pageable);
+
+            List<SupervisorDTO> content = pageResult.getContent().stream()
+                    .map(supervisor -> {
+                        SupervisorDTO dto = new SupervisorDTO(supervisor);
+                        dto.setSupervisedInterns(supervisor.getSupervisedInterns());
+                        return dto;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
 
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -381,7 +391,6 @@ public class UserController {
             return ResponseEntity.status(400).body(error);
         }
     }
-
 
 
     @PostMapping("/admin/reset-password")
@@ -591,8 +600,55 @@ public class UserController {
         return ResponseEntity.ok(combinedResponse);
     }
 
+    @GetMapping("/university/dashboard")
+    public ResponseEntity<?> getUniversityDashboard(HttpServletRequest request, Pageable pageable) {
+
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
+
+        if(!"UNIVERSITY".equalsIgnoreCase(role)){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only University can get university dashboard."));
+        }
+
+        // 2️⃣ Get userId from request attribute
+        Long userId = (Long) request.getAttribute("userId");
+
+        InternStatusesCount internStatusesCount = userService.countInternStatuses();
+        long supervisorCount = userService.countSupervisor();
+
+        // 4️⃣ Fetch recent activities from gRPC
+        GetRecentActivitiesResponse grpcResponse =
+                activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        // 5️⃣ Map protobuf response to DTOs
+        List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
+                .map(a -> new ActivityDTO(
+                        a.getId(),
+                        a.getUserId(),
+                        a.getTitle(),
+                        a.getDescription(),
+                        LocalDateTime.parse(a.getCreatedAt())
+                ))
+                .toList();
+
+
+
+        // 7️⃣ Combine into single response
+        Map<String, Object> combinedResponse = new HashMap<>();
+        combinedResponse.put("internStatusesCount", internStatusesCount);
+        combinedResponse.put("supervisorCount", supervisorCount);
+        combinedResponse.put("recentActivities", activityList);
+
+        return ResponseEntity.ok(combinedResponse);
+    }
+
     @GetMapping("/admin/dashboard")
-    public ResponseEntity<?> getAdminDashboard(HttpServletRequest request) {
+    public ResponseEntity<?> getAdminDashboard(HttpServletRequest request, Pageable pageable) {
         try {
             String token = extractAccessToken(request);
             if (token == null) {
@@ -603,24 +659,28 @@ public class UserController {
 
             if (!"ADMIN".equalsIgnoreCase(role) ) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only Admin can get admin dashboard."));
+                        .body(Map.of("error", "Only Admin can access admin dashboard."));
             }
 
-            List<UserStatusCount> statusCounts = userService.countUsersByStatus();
-            Map<String, Long> status = new HashMap<>();
-            for (UserStatusCount sc : statusCounts) {
-                String key = sc.getUserStatus().name().toLowerCase() + "User";
-                status.put(key, sc.getCount());
-            }
+            UserStatsResponse userStats = userService.userStats();
 
-            Long allUsers = userService.countAllUsers();
+            GetAllActivitiesResponse grpcResponse =
+                    activityGrpcClient.getAllActivities(token, pageable.getPageNumber(), pageable.getPageSize());
 
-            Map<String, Long> roleCounts = userService.getUserRoleCounts();
+//         5️⃣ Map protobuf response to DTOs
+            List<ActivityDTO> allActivities = grpcResponse.getActivitiesList().stream()
+                    .map(a -> new ActivityDTO(
+                            a.getId(),
+                            a.getUserId(),
+                            a.getTitle(),
+                            a.getDescription(),
+                            LocalDateTime.parse(a.getCreatedAt())
+                    ))
+                    .toList();
 
             Map<String, Object> combinedResponse = new HashMap<>();
-            combinedResponse.put("allUsers", allUsers);
-            combinedResponse.put("statusCounts", status);
-            combinedResponse.put("roleCounts", roleCounts);
+            combinedResponse.put("userStats", userStats);
+            combinedResponse.put("allActivities", allActivities);
 
             return ResponseEntity.ok(combinedResponse);
 
@@ -629,8 +689,6 @@ public class UserController {
                     .body("An internal error occurred while gettting Admin Dashboard!");
         }
     }
-
-
 
     @GetMapping("/role-count")
     public ResponseEntity<?> getUserRoleCounts(HttpServletRequest request) {
@@ -648,7 +706,6 @@ public class UserController {
         Map<String, Long> roleCounts = userService.getUserRoleCounts();
         return ResponseEntity.ok(roleCounts);
     }
-
 
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
@@ -780,6 +837,45 @@ public class UserController {
 
             Pageable pageable = PageRequest.of(page, size);
             Page<User> pageResult = userService.filterByInstitution(query, pageable);
+
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while intern by university");
+        }
+    }
+
+    @GetMapping("/get-student-for-university")
+    public ResponseEntity<?> filterInternForUniversity(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            String token = extractAccessToken(request);
+            String institution = (String) request.getAttribute("institution");
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            String role = (String) request.getAttribute("role");
+
+            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only University can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterByInstitution(institution, pageable);
 
             List<UserResponseDto> content = pageResult.getContent().stream()
                     .map(this::mapToDTO)

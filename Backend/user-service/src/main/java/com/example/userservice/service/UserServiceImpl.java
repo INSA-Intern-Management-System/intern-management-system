@@ -19,6 +19,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -208,7 +209,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public Long countInterns(){
         Role studentRole = roleRepo.findByName("STUDENT");
-
         return userRepo.countByRole(studentRole);
     }
 
@@ -508,8 +508,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public long countActiveInterns() {
         Role studentRole = roleRepo.findByName("STUDENT");
-        UserStatus activeStatus = UserStatus.valueOf("ACTIVE");
-        return userRepo.countByRoleIdAndUserStatus(studentRole.getId(), activeStatus);
+        UserStatus activeInterns = UserStatus.valueOf("ACTIVE");
+        return userRepo.countByRoleIdAndUserStatus(studentRole.getId(), activeInterns);
+    }
+
+    @Override
+    public InternStatusesCount countInternStatuses() {
+        Role studentRole = roleRepo.findByName("STUDENT");
+        Long roleId = studentRole.getId();
+
+        long activeCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.ACTIVE);
+        long completedCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.COMPLETED);
+
+        return new InternStatusesCount(activeCount, completedCount);
     }
 
     @Override
@@ -647,6 +658,62 @@ public class UserServiceImpl implements UserService {
         );
     }
 
+    @Override
+    public long countSupervisor(){
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+        return userRepo.countByRole(supervisorRole);
+    }
+
+    @Override
+    public UserStatsResponse userStats() {
+        // 1. Total users
+        long allUsers = userRepo.count();
+
+        // 2. Status counts -> Map<String, Long>
+        List<UserStatusCount> statusList = userRepo.countUsersByStatus();
+        Map<String, Long> statusCounts = new HashMap<>();
+        for (UserStatusCount usc : statusList) {
+            // Handle possible nulls
+            if (usc.getUserStatus() != null && usc.getCount() != null) {
+                statusCounts.put(usc.getUserStatus().name(), usc.getCount());
+            }
+        }
+
+        // 3. Role counts -> Map<String, Long>
+        Map<String, Long> roleCounts = new HashMap<>();
+
+        // List all roles manually if you have enum or constant list
+        List<String> roles = List.of("STUDENT", "HR", "PROJECT_MANAGER", "UNIVERSITY", "ADMIN", "SUPERVISOR");
+
+        for (String roleName : roles) {
+            Role roleEntity = roleRepo.findByName(roleName); // inject roleRepo if not yet
+
+            if (roleEntity != null) {
+                long count = userRepo.countByRole(roleEntity);
+                // map your display name if needed
+                switch (roleName) {
+                    case "STUDENT" -> roleCounts.put("Student", count);
+                    case "HR" -> roleCounts.put("HR", count);
+                    case "PROJECT_MANAGER" -> roleCounts.put("Project_Manager", count);
+                    case "UNIVERSITY" -> roleCounts.put("University", count);
+                    case "ADMIN" -> roleCounts.put("Administrator", count);
+                    case "SUPERVISOR" -> roleCounts.put("Supervisor", count);
+                }
+            } else {
+                // If role not found, count = 0
+                switch (roleName) {
+                    case "STUDENT" -> roleCounts.put("Student", 0L);
+                    case "HR", "PROJECT_MANAGER" -> roleCounts.put("Company", 0L);
+                    case "UNIVERSITY" -> roleCounts.put("University", 0L);
+                    case "ADMIN" -> roleCounts.put("Administrator", 0L);
+                    case "SUPERVISOR" -> roleCounts.put("Supervisor", 0L);
+                }
+            }
+        }
+
+        // 4. Build response
+        return new UserStatsResponse(statusCounts, allUsers, roleCounts);
+    }
 
 
     // --- Helper Methods (no changes needed) ---

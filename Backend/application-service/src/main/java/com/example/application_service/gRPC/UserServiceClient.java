@@ -43,6 +43,7 @@ public class UserServiceClient {
         return stubWithAuth.getMaxIntern(request);
     }
 
+
     public void shutdown() {
         if (channel != null && !channel.isShutdown()) {
             channel.shutdown();

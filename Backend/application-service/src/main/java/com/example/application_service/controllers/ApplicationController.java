@@ -208,7 +208,6 @@ public class ApplicationController {
                     .body(Collections.singletonMap("message", "An applicant with this email already applied."));
         }
 
-
         // ✅ Create new Applicant DTO
         ApplicantDTO applicantDTO = ApplicantDTO.builder()
                 .firstName(firstName)
@@ -249,13 +248,17 @@ public class ApplicationController {
                 (createdApplication.getApplicant().getFieldOfStudy() != null ? createdApplication.getApplicant().getFieldOfStudy() : "N/A")
         );
 
-         notificationGrpcClient.sendNotification(
-                 Set.of(RecipientRole.HR), //
-                 "New Internship Application Submitted",
-                 message,
-                 Instant.now(),
-                 NotificationType.SUCCESS
-         );
+        try {
+            notificationGrpcClient.sendNotification(
+                    Set.of(RecipientRole.HR),
+                    "New Internship Application Submitted",
+                    message,
+                    Instant.now(),
+                    NotificationType.SUCCESS
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occured while sending notification");
+        }
 
         return ResponseEntity.status(201).body(response);
     }
@@ -371,11 +374,23 @@ public class ApplicationController {
                         .body(Map.of("error", "Only universities can access this resource"));
             }
 
-            List<ApplicantDTO> savedApplicants = applicationService.batchApplication(file);
+            List<Application> savedApplicants = applicationService.batchApplication(file);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Batch import created successfully");
-            response.put("applicants", savedApplicants);
+            response.put("application", savedApplicants);
+
+            try {
+                notificationGrpcClient.sendNotification(
+                        Set.of(RecipientRole.HR),
+                        "New Internship Application Submitted",
+                        "Batch internship application has been submitted!",
+                        Instant.now(),
+                        NotificationType.SUCCESS
+                );
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occured while sending notification");
+            }
 
             return ResponseEntity.status(201).body(response);
 
@@ -686,6 +701,7 @@ public class ApplicationController {
         error.put("error", message);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
+
     private ApplicationResponseDTO mapToDTO(Application application) {
         return ApplicationResponseDTO.builder()
                 .id(application.getId())

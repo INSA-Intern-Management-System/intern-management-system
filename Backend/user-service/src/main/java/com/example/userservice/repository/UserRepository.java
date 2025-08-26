@@ -58,12 +58,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Role role1, String firstName, Pageable pageable
     );
 
-
-
-
-
-
-
 }
 
 
