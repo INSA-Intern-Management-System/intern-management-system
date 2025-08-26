@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import  DashboardLayout  from "@/app/layout/dashboard-layout";
 import {
   Send,
   Search,
