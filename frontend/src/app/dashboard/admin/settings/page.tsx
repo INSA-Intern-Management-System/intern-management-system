@@ -40,7 +40,7 @@ export default async function ProfilePage() {
   };
 
   return (
-    <DashboardLayout requiredRole="university">
+    <DashboardLayout requiredRole="admin">
       <ProfileClient
         initialProfile={userProfile}
         onUpdateProfile={handleUpdateProfile}
