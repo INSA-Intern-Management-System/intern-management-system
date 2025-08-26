@@ -5,6 +5,7 @@ import com.example.activity_service.gRPC.GetRecentActivitiesResponse;
 import com.example.application_service.gRPC.ApplicationCountResponse;
 import com.example.project_service.gRPC.AllMilestones;
 import com.example.project_service.gRPC.AllProjectResponses;
+import com.example.project_service.gRPC.MilestoneStats;
 import com.example.project_service.gRPC.MilestoneStatsResponse;
 import com.example.project_service.gRPC.ProjectResponse;
 import com.example.project_service.gRPC.ProjectStatsResponse;
@@ -14,6 +15,8 @@ import com.example.report_service.gRPC.ReportStatsResponse;
 import com.example.report_service.gRPC.TopInterns;
 import com.example.report_service.gRPC.TopInternsResponse;
 import com.example.report_service.gRPC.TotalReportResponse;
+import com.example.report_service.gRPC.UserUniversityStats;
+import com.example.report_service.gRPC.UserUniversityStatsResponse;
 import com.example.userservice.client.ActivityGrpcClient;
 import com.example.userservice.client.ApplicationGrpcClient;
 import com.example.userservice.client.ProjectManagerGrpcClient;
@@ -78,6 +81,348 @@ public class UserController {
         this.internManagerService = internManagerService;
 
     }
+
+    @GetMapping("/performance/filter")
+    public ResponseEntity<?> computeFilter(HttpServletRequest request,@RequestParam String filter, Pageable pageable) {
+        try {
+            String role = (String) request.getAttribute("role");
+            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only supervisor can access university.");
+            }
+            String institution = (String) request.getAttribute("institution");
+
+            // 0. get data from cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            // 1. Fetch paginated users
+            Page<User> usersPage = userService.findByRoleAndInstitutionAndSupervisorName(institution,filter,pageable);
+            List<User> users = usersPage.getContent();
+
+            List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
+
+            // 2. Call gRPC to get stats for all users in this page
+            UserUniversityStatsResponse userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+
+            // Map stats by userId
+            Map<Long, UserUniversityStats> statsMap = userStatsList.getStatsList().stream()
+                    .collect(Collectors.toMap(UserUniversityStats::getUserId, s -> s));
+
+            // 3. Build UserPerformanceDTO list
+            List<UserPerformanceDTO> performanceList = new ArrayList<>();
+            for (User user : users) {
+                UserUniversityStats stats = statsMap.get(user.getId());
+
+                int attendance = 95; // mock value
+                String grade = "N/A";
+                String performanceLabel = "N/A";
+
+                if (stats != null && stats.hasLastReview()) {
+                    int lastRating = stats.getLastReview().getRating();
+                    if (lastRating >= 4.5) { grade = "A"; performanceLabel = "Excellent"; }
+                    else if (lastRating >= 3.5) { grade = "B"; performanceLabel = "Very Good"; }
+                    else if (lastRating >= 2.5) { grade = "C"; performanceLabel = "Good"; }
+                    else { grade = "D"; performanceLabel = "Needs Improvement"; }
+                }
+
+                UserPerformanceDTO dto = new UserPerformanceDTO();
+                dto.setUserId(user.getId());
+                dto.setFullName(user.getFirstName() + " " + user.getLastName());
+                dto.setSupervisorName(user.getSupervisor() != null ?
+                        user.getSupervisor().getFirstName() + " " + user.getSupervisor().getLastName() : "N/A");
+                dto.setAttendance(attendance);
+                dto.setTotalReports(stats != null ? stats.getTotalReports() : 0);
+                dto.setLastReviewFeedback(stats != null && stats.hasLastReview() ? stats.getLastReview().getFeedback() : "N/A");
+                dto.setLastReviewTime(stats != null && stats.hasLastReview() ? stats.getLastReview().getCreatedAt() : "N/A");
+                dto.setLastRating(stats != null && stats.hasLastReview() ? stats.getLastReview().getRating() : 0);
+                dto.setGrade(grade);
+                dto.setPerformanceLabel(performanceLabel);
+
+                performanceList.add(dto);
+            }
+
+            // 4. Build paginated response
+            PagedUserPerformanceDTO pagedResponse = new PagedUserPerformanceDTO();
+            pagedResponse.setUsers(performanceList);
+            pagedResponse.setPageNumber(usersPage.getNumber());
+            pagedResponse.setPageSize(usersPage.getSize());
+            pagedResponse.setTotalElements(usersPage.getTotalElements());
+            pagedResponse.setTotalPages(usersPage.getTotalPages());
+
+            return ResponseEntity.ok(pagedResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error computing performance: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/performance/search")
+    public ResponseEntity<?> computeSearch(HttpServletRequest request,@RequestParam String keyword, Pageable pageable) {
+        try {
+            String role = (String) request.getAttribute("role");
+            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only supervisor can access university.");
+            }
+
+            String institution = (String) request.getAttribute("institution");
+
+            // 0. get data from cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+
+            // 1. Fetch paginated users
+            Page<User> usersPage = userService.searchByRoleInstitutionAndKeyword(institution, keyword,pageable);
+            List<User> users = usersPage.getContent();
+
+            List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
+
+            // 2. Call gRPC to get stats for all users in this page
+            UserUniversityStatsResponse userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+
+            // Map stats by userId
+            Map<Long, UserUniversityStats> statsMap = userStatsList.getStatsList().stream()
+                    .collect(Collectors.toMap(UserUniversityStats::getUserId, s -> s));
+
+            // 3. Build UserPerformanceDTO list
+            List<UserPerformanceDTO> performanceList = new ArrayList<>();
+            for (User user : users) {
+                UserUniversityStats stats = statsMap.get(user.getId());
+
+                int attendance = 95; // mock value
+                String grade = "N/A";
+                String performanceLabel = "N/A";
+
+                if (stats != null && stats.hasLastReview()) {
+                    int lastRating = stats.getLastReview().getRating();
+                    if (lastRating >= 4.5) { grade = "A"; performanceLabel = "Excellent"; }
+                    else if (lastRating >= 3.5) { grade = "B"; performanceLabel = "Very Good"; }
+                    else if (lastRating >= 2.5) { grade = "C"; performanceLabel = "Good"; }
+                    else { grade = "D"; performanceLabel = "Needs Improvement"; }
+                }
+
+                UserPerformanceDTO dto = new UserPerformanceDTO();
+                dto.setUserId(user.getId());
+                dto.setFullName(user.getFirstName() + " " + user.getLastName());
+                dto.setSupervisorName(user.getSupervisor() != null ?
+                        user.getSupervisor().getFirstName() + " " + user.getSupervisor().getLastName() : "N/A");
+                dto.setAttendance(attendance);
+                dto.setTotalReports(stats != null ? stats.getTotalReports() : 0);
+                dto.setLastReviewFeedback(stats != null && stats.hasLastReview() ? stats.getLastReview().getFeedback() : "N/A");
+                dto.setLastReviewTime(stats != null && stats.hasLastReview() ? stats.getLastReview().getCreatedAt() : "N/A");
+                dto.setLastRating(stats != null && stats.hasLastReview() ? stats.getLastReview().getRating() : 0);
+                dto.setGrade(grade);
+                dto.setPerformanceLabel(performanceLabel);
+
+                performanceList.add(dto);
+            }
+
+            // 4. Build paginated response
+            PagedUserPerformanceDTO pagedResponse = new PagedUserPerformanceDTO();
+            pagedResponse.setUsers(performanceList);
+            pagedResponse.setPageNumber(usersPage.getNumber());
+            pagedResponse.setPageSize(usersPage.getSize());
+            pagedResponse.setTotalElements(usersPage.getTotalElements());
+            pagedResponse.setTotalPages(usersPage.getTotalPages());
+
+            return ResponseEntity.ok(pagedResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error computing performance: " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/performance/stat")
+    public ResponseEntity<?> computeDashboard(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,         // page number, default 0
+            @RequestParam(defaultValue = "100") int size        // page size, default 10
+    ) {
+        try {
+            String role = (String) request.getAttribute("role");
+            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only supervisor can access university.");
+            }
+            String institution = (String) request.getAttribute("institution");
+
+            // Create Pageable dynamically from request params
+            Pageable pageable = PageRequest.of(page, size);
+
+            // 0. get data from cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+
+            // 1. Fetch paginated users
+            Page<User> usersPage = userService.getInternsForUniveristy(institution, pageable);
+            List<User> users = usersPage.getContent();
+
+            // 2. Collect user IDs
+            List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
+
+            // 3. Fetch intern-manager info
+            List<InternManager> internManagers = internManagerService.getInfos(userIds);
+
+            // 4. Collect project IDs
+            List<Long> projectIds = internManagers.stream()
+                .map(im -> im.getProject() != null ? im.getProject().getId() : null)
+                .filter(Objects::nonNull) // remove nulls
+                .collect(Collectors.toList());
+
+            // 5. Call gRPC clients to fetch milestone stats & report stats
+            MilestoneStats milestoneStats = projectManagerGrpcClient.getMilestoneStatsForUnivseristy(jwtToken,projectIds);
+            ReportStatsResponse reportStats = reportGrpcClient.getReportStatsForUniversity(jwtToken, userIds);
+
+            // 6. Build final DTO
+            DashboardStatDTO dashboardStat = new DashboardStatDTO();
+            dashboardStat.setTotalReports(reportStats.getTotalReports());
+            dashboardStat.setAverageRating(reportStats.getAverageRating());
+            dashboardStat.setScore(milestoneStats.getTotal() > 0
+                    ? (double) milestoneStats.getCompleted() / milestoneStats.getTotal()
+                    : 0.0);
+            dashboardStat.setAttendance(95); // Mocked
+
+
+            return ResponseEntity.ok(dashboardStat);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error computing dashboard stats: " + e.getMessage());
+        }
+}
+
+
+    @GetMapping("/performance")
+    public ResponseEntity<?> computePerformance(HttpServletRequest request, Pageable pageable) {
+        try {
+            String role = (String) request.getAttribute("role");
+
+            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only supervisor can access university.");
+            }
+            String institution = (String) request.getAttribute("institution");
+
+            // 0. get data from cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+
+            // 1. Fetch paginated users
+            Page<User> usersPage = userService.filterByInstitution(institution, pageable);
+            System.out.println("========================"+usersPage);
+            List<User> users = usersPage.getContent();
+
+            List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
+            System.out.println("========================"+userIds);
+
+            // 2. Call gRPC to get stats for all users in this page
+            UserUniversityStatsResponse userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+
+            // Map stats by userId
+            Map<Long, UserUniversityStats> statsMap = userStatsList.getStatsList().stream()
+                    .collect(Collectors.toMap(UserUniversityStats::getUserId, s -> s));
+
+            // 3. Build UserPerformanceDTO list
+            List<UserPerformanceDTO> performanceList = new ArrayList<>();
+            for (User user : users) {
+                UserUniversityStats stats = statsMap.get(user.getId());
+
+                int attendance = 95; // mock value
+                String grade = "N/A";
+                String performanceLabel = "N/A";
+
+                if (stats != null && stats.hasLastReview()) {
+                    int lastRating = stats.getLastReview().getRating();
+                    if (lastRating >= 4.5) { grade = "A"; performanceLabel = "Excellent"; }
+                    else if (lastRating >= 3.5) { grade = "B"; performanceLabel = "Very Good"; }
+                    else if (lastRating >= 2.5) { grade = "C"; performanceLabel = "Good"; }
+                    else { grade = "D"; performanceLabel = "Needs Improvement"; }
+                }
+
+                UserPerformanceDTO dto = new UserPerformanceDTO();
+                dto.setUserId(user.getId());
+                dto.setFullName(user.getFirstName() + " " + user.getLastName());
+                dto.setSupervisorName(user.getSupervisor() != null ?
+                        user.getSupervisor().getFirstName() + " " + user.getSupervisor().getLastName() : "N/A");
+                dto.setAttendance(attendance);
+                dto.setTotalReports(stats != null ? stats.getTotalReports() : 0);
+                dto.setLastReviewFeedback(stats != null && stats.hasLastReview() ? stats.getLastReview().getFeedback() : "N/A");
+                dto.setLastReviewTime(stats != null && stats.hasLastReview() ? stats.getLastReview().getCreatedAt() : "N/A");
+                dto.setLastRating(stats != null && stats.hasLastReview() ? stats.getLastReview().getRating() : 0);
+                dto.setGrade(grade);
+                dto.setPerformanceLabel(performanceLabel);
+
+                performanceList.add(dto);
+            }
+
+            // 4. Build paginated response
+            PagedUserPerformanceDTO pagedResponse = new PagedUserPerformanceDTO();
+            pagedResponse.setUsers(performanceList);
+            pagedResponse.setPageNumber(usersPage.getNumber());
+            pagedResponse.setPageSize(usersPage.getSize());
+            pagedResponse.setTotalElements(usersPage.getTotalElements());
+            pagedResponse.setTotalPages(usersPage.getTotalPages());
+
+            return ResponseEntity.ok(pagedResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error computing performance: " + e.getMessage());
+        }
+    }
+
+
 
     @GetMapping
     public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "0") int page,

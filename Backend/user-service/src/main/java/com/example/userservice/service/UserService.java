@@ -76,6 +76,9 @@ public interface UserService {
     int countByRoleAndUserStatus(String role, UserStatus userStatus);
     //get list of users based on lists of user id
     List<UserMessageDTO> getUsersByIds(List<Long> ids);
+    Page<User> getInternsForUniveristy(String where, Pageable pageable);
+    Page<User> searchByRoleInstitutionAndKeyword( String institution, String keyword, Pageable pageable);
+    Page<User> findByRoleAndInstitutionAndSupervisorName(String institution, String supervisorName, Pageable pageable);
 
 
 }
