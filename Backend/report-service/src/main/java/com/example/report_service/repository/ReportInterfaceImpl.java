@@ -58,13 +58,31 @@ public class ReportInterfaceImpl implements ReportReposInterface {
     public Page<Report> findReportsByInternAndFilters(Long internId,String title, String feedbackStatus,String period,Pageable pageable){
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = getStartDateByPeriod(period);
-        return reportJpa.findReportsByInternAndFilters(internId, title, Status.valueOf(feedbackStatus.toUpperCase()), startDate, endDate, pageable);
+        //if start date is null make start date by deault one month before
+        if (startDate == null) {
+            startDate = LocalDateTime.now().minusMonths(12);
+        }
+
+        if(feedbackStatus == null || feedbackStatus.trim().isEmpty()){
+            return reportJpa.findReportsByInternAndFiltersNostatus(internId, title, startDate, endDate, pageable);
+            }
+        else{
+            return reportJpa.findReportsByInternAndFilters(internId, title, Status.valueOf(feedbackStatus.toUpperCase()), startDate, endDate, pageable);
+        }
      }
 
     @Override
     public Page<Report> findReportsByManagerAndFilters(Long managerId,String title,String feedbackStatus,String period,Pageable pageable){
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = getStartDateByPeriod(period);
+
+        if (startDate == null) {
+            startDate = LocalDateTime.now().minusMonths(12);
+        }
+
+        if(feedbackStatus == null || feedbackStatus.trim().isEmpty()){
+            return reportJpa.findReportsByManagerAndFiltersNoStatus(managerId, title, startDate, endDate, pageable);
+         }
         return reportJpa.findReportsByManagerAndFilters(managerId, title, Status.valueOf(feedbackStatus.toUpperCase()), startDate, endDate, pageable);
 
     }
@@ -73,6 +91,13 @@ public class ReportInterfaceImpl implements ReportReposInterface {
     public Page<Report> findReportsByTitleOrStatusOrDate(String title,String feedbackStatus, String period, Pageable pageable){
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = getStartDateByPeriod(period);
+
+        if (startDate == null) {
+            startDate = LocalDateTime.now().minusMonths(12);
+        }
+        if(feedbackStatus == null || feedbackStatus.trim().isEmpty()){
+            return reportJpa.findReportsByTitleOrDate(title, startDate, endDate, pageable);
+        }
         return reportJpa.findReportsByTitleOrStatusOrDate(title, Status.valueOf(feedbackStatus), startDate, endDate, pageable);
         
     }
@@ -179,6 +204,11 @@ public class ReportInterfaceImpl implements ReportReposInterface {
         return reportJpa.countReportByUserIds(userIds);
     }
 
+    @Override
+    public int updateFeedbackStatus(Long reportId,Status feedbackStatus){
+        return reportJpa.updateFeedbackStatus(reportId,feedbackStatus);
+
+    }
     // Helper
     private LocalDateTime getStartDateByPeriod(String period) {
         LocalDateTime now = LocalDateTime.now();

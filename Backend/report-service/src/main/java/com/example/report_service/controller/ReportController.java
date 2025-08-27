@@ -113,9 +113,9 @@ public class ReportController {
      */
     @GetMapping("/my/search")
     public ResponseEntity<?> searchMyReports(HttpServletRequest request,
-                                             @RequestParam String keyword,
-                                             @RequestParam String status,
-                                             @RequestParam String period,
+                                             @RequestParam(required = false) String keyword,
+                                             @RequestParam(required = false) String status,
+                                             @RequestParam(required = false) String period,
                                              Pageable pageable) {
         try {
             Long userId = (Long) request.getAttribute("userId");
@@ -163,8 +163,8 @@ public class ReportController {
      */
     @GetMapping("/my/filter")
     public ResponseEntity<?> filterMyReports(HttpServletRequest request,
-                                             @RequestParam String status,
-                                             @RequestParam String period,
+                                             @RequestParam(required = false) String status,
+                                             @RequestParam(required = false) String period,
                                              Pageable pageable) {
         try {
             Long userId = (Long) request.getAttribute("userId");

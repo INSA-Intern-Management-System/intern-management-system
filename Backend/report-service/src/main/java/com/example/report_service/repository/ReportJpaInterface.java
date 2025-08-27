@@ -5,9 +5,13 @@ import com.example.report_service.dto.ProjectReportCountDTO;
 import com.example.report_service.dto.UserReportCountDTO;
 import com.example.report_service.model.Report;
 import com.example.report_service.model.Status;
+
+import jakarta.transaction.Transactional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ReportJpaInterface extends JpaRepository<Report, Long> {
+
 
     Long countBy(); // total count
 
@@ -79,6 +84,20 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
                 @Param("startDate") LocalDateTime startDate,
                 @Param("endDate") LocalDateTime endDate,
                 Pageable pageable);
+        @Query("""
+        SELECT r FROM Report r
+        WHERE r.intern.id = :internId 
+        AND (
+                LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) 
+                OR r.createdAt BETWEEN :startDate AND :endDate
+        )
+                """)
+                Page<Report> findReportsByInternAndFiltersNostatus(
+                        @Param("internId") Long internId,
+                        @Param("title") String title,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate,
+                        Pageable pageable);
 
         @Query("""
         SELECT r FROM Report r
@@ -90,12 +109,28 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
         )
         """)
         Page<Report> findReportsByManagerAndFilters(
-                @Param("internId") Long internId,
+                @Param("managerId") Long managerId,
                 @Param("title") String title,
                 @Param("feedbackStatus") Status feedbackStatus,
                 @Param("startDate") LocalDateTime startDate,
                 @Param("endDate") LocalDateTime endDate,
                 Pageable pageable);
+
+        @Query("""
+        SELECT r FROM Report r
+        WHERE r.manager.id = :managerId 
+        AND (
+                LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) 
+                OR r.createdAt BETWEEN :startDate AND :endDate
+        )
+        """)
+        Page<Report> findReportsByManagerAndFiltersNoStatus(
+                @Param("managerId") Long managerId,
+                @Param("title") String title,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate,
+                Pageable pageable);
+
         @Query("""
         SELECT r FROM Report r
         WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
@@ -108,6 +143,29 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
                 @Param("startDate") LocalDateTime startDate,
                 @Param("endDate") LocalDateTime endDate,
                 Pageable pageable);
+
+        // @Query("""
+        // SELECT r FROM Report r
+        // WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')
+        // OR r.createdAt BETWEEN :startDate AND :endDate
+        // """)
+        // Page<Report> findReportsByTitleOrDate(
+        //         @Param("title") String title,
+        //         @Param("startDate") LocalDateTime startDate,
+        //         @Param("endDate") LocalDateTime endDate,
+        //         Pageable pageable);
+
+        @Query("""
+        SELECT r FROM Report r
+        WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
+        OR r.createdAt BETWEEN :startDate AND :endDate
+        """)
+        Page<Report> findReportsByTitleOrDate(
+                @Param("title") String title,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate,
+                Pageable pageable);
+
 
         @Query("SELECT COUNT(r) FROM Report r WHERE r.intern.id IN :userIds")
         Long countReportsByUserIds(List<Long> userIds);
@@ -126,6 +184,14 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
         "WHERE r.intern.id IN :userIds " +
         "GROUP BY r.intern.id")
          List<UserReportCountDTO> countReportByUserIds(@Param("userIds") List<Long> userIds);
+
+
+        @Modifying
+        @Transactional
+        @Query("UPDATE Report r SET r.feedbackStatus = :feedbackStatus WHERE r.id = :reportId")
+        int updateFeedbackStatus(@Param("reportId") Long reportId, @Param("feedbackStatus") Status feedbackStatus);
+
+
 
          
 

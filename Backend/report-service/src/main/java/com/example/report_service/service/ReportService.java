@@ -9,6 +9,7 @@ import com.example.report_service.dto.*;
 import com.example.report_service.model.Project;
 import com.example.report_service.model.Report;
 import com.example.report_service.model.Review;
+import com.example.report_service.model.Status;
 import com.example.report_service.model.User;
 import com.example.report_service.repository.ReportReposInterface;
 import com.example.report_service.repository.ReviewReposInterface;
@@ -313,6 +314,10 @@ public class ReportService {
         review.setCreatedAt(LocalDateTime.now());
 
         Review saved = reviewRepos.saveReview(review);
+        int result=reportRepos.updateFeedbackStatus(report.getId(),Status.GIVEN);
+        if (result==0){
+                new RuntimeException("report with given id: " + report.getId()+" not found");
+        }
 
         // get the report to return together
         //Report report = reportRepos.getReportById(dto.getReportId()).orElseThrow();

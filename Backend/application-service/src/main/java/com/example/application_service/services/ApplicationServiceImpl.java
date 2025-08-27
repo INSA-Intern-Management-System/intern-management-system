@@ -3,6 +3,7 @@ package com.example.application_service.services;
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.CreateUserRequest;
+import com.example.application_service.gRPC.NotificationGrpcClient;
 import com.example.application_service.gRPC.UserServiceClient;
 import com.example.application_service.model.*;
 import com.example.application_service.repository.ApplicantRepository;
@@ -31,6 +32,7 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +48,9 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private UserServiceClient userServiceClient;
 
 
     @Value("${user.service.url}") // e.g., http://user-service/api/users
@@ -72,6 +77,7 @@ public class ApplicationServiceImpl implements ApplicationService{
             cvUrl = cloudinaryService.uploadFile(cvFile);
         }
         dto.setCvUrl(cvUrl);
+        System.out.println(cvUrl);
 
         Applicant applicant = Applicant.builder()
                 .id(dto.getId())
@@ -139,8 +145,9 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public List<ApplicantDTO> batchApplication(MultipartFile file) throws IOException {
-        List<ApplicantDTO> applicantDTOs = new ArrayList<>();
+    @Transactional
+    public List<Application> batchApplication(MultipartFile file) throws IOException {
+        List<Application> savedApplications = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             String line;
@@ -153,46 +160,46 @@ public class ApplicationServiceImpl implements ApplicationService{
                 }
 
                 String[] data = line.split(",");
+                if (data.length < 10) continue; // skip invalid rows
 
-                if (data.length < 10) continue; // adjust based on your columns
+                try {
+                    // 1️⃣ Save Applicant
+                    Applicant savedApplicant = applicantRepository.save(
+                            Applicant.builder()
+                                    .firstName(data[0].trim())
+                                    .lastName(data[1].trim())
+                                    .email(data[2].trim())
+                                    .phoneNumber(data[3].trim())
+                                    .institution(data[4].trim())
+                                    .fieldOfStudy(data[5].trim())
+                                    .gender(data[6].trim())
+                                    .duration(data[7].trim())
+                                    .linkedInUrl(data[8].trim())
+                                    .githubUrl(data[9].trim())
+                                    .cvUrl(data.length > 10 ? data[10].trim() : null)
+                                    .build()
+                    );
 
-                Applicant applicant = Applicant.builder()
-                        .firstName(data[0].trim())
-                        .lastName(data[1].trim())
-                        .email(data[2].trim())
-                        .phoneNumber(data[3].trim())
-                        .institution(data[4].trim())
-                        .fieldOfStudy(data[5].trim())
-                        .gender(data[6].trim())
-                        .duration(data[7].trim())
-                        .linkedInUrl(data[8].trim())
-                        .githubUrl(data[9].trim())
-                        .cvUrl(data.length > 10 ? data[10].trim() : null)
-                        .build();
+                    // 2️⃣ Save Application
+                    Application savedApplication = applicationRepository.save(
+                            Application.builder()
+                                    .applicant(savedApplicant)
+                                    .status(ApplicationStatus.Pending)
+                                    .createdAt(LocalDateTime.now())
+                                    .build()
+                    );
 
-                Applicant saved = applicantRepository.save(applicant);
+                    // 3️⃣ Add to return list
+                    savedApplications.add(savedApplication);
 
-                ApplicantDTO dto = ApplicantDTO.builder()
-                        .id(saved.getId()) // ✅ include this
-                        .firstName(saved.getFirstName())
-                        .lastName(saved.getLastName())
-                        .email(saved.getEmail())
-                        .phoneNumber(saved.getPhoneNumber())
-                        .institution(saved.getInstitution())
-                        .fieldOfStudy(saved.getFieldOfStudy())
-                        .gender(saved.getGender())
-                        .duration(saved.getDuration())
-                        .linkedInUrl(saved.getLinkedInUrl())
-                        .githubUrl(saved.getGithubUrl())
-                        .cvUrl(saved.getCvUrl())
-                        .createdAt(saved.getCreatedAt())
-                        .build();
-
-                applicantDTOs.add(dto);
+                } catch (Exception e) {
+                    System.err.println("Failed to process row: " + Arrays.toString(data));
+                    e.printStackTrace();
+                }
             }
         }
 
-        return applicantDTOs;
+        return savedApplications;
     }
 
     @Override
@@ -225,8 +232,8 @@ public class ApplicationServiceImpl implements ApplicationService{
                     .build();
 
             try {
-                UserServiceClient client = new UserServiceClient();
-                CreateUserResponse response = client.registerUser(grpcRequest, jwtToken);
+//                UserServiceClient client = new UserServiceClient();
+                CreateUserResponse response = userServiceClient.registerUser(grpcRequest, jwtToken);
                 System.out.println("✅ Created new user with ID: " + response.getUserId());
 
                 // 🟢 The email logic must be here
@@ -280,7 +287,7 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Override
     public Page<Application> filterByUniversity(String university, Pageable pageable) {
-        return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
+        return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCase(university, pageable);
     }
 
     @Override
@@ -323,8 +330,6 @@ public class ApplicationServiceImpl implements ApplicationService{
         }
 
     }
-
-
 
 
 }

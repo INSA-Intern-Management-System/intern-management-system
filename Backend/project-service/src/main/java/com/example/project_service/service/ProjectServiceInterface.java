@@ -37,7 +37,7 @@ public interface ProjectServiceInterface {
     TeamDetailsResponse createTeam(String jwtToken,TeamRequest request);
     Page<Team> getTeamsForHr(Pageable pageable);
     Page<Team> getTeamsForPm(Long managerId, Pageable pageable);
-    void deleteTeam(String jwtToken,Long teamId);
+    void deleteTeam(String jwtToken,Long user_id,Long teamId);
 
     // Team members
     List<TeamMemberResponse> addTeamMember(String jwtToken,Long menagerId,TeamMemberRequest request);
@@ -49,11 +49,11 @@ public interface ProjectServiceInterface {
     TeamDetailsResponse removeAssignedProjectFromTeam(String jwtToken,Long user_id,Long teamId);
 
     // Getters
-    Page<ProjectDetailsResponse> getDetailedProjectsForHr(Pageable pageable);
-    Page<ProjectDetailsResponse> getDetailedProjectsForPm(Long createdById, Pageable pageable);
+    Page<ProjectDetailsResponse> getDetailedProjectsForHr(String jwtToken,Pageable pageable);
+    Page<ProjectDetailsResponse> getDetailedProjectsForPm(String jwtToken,Long createdById, Pageable pageable);
 
-    Page<TeamDetailsResponse> getDetailedTeamsForHr(Pageable pageable);
-    Page<TeamDetailsResponse> getDetailedTeamsForPm(Long managerId, Pageable pageable);
+    Page<TeamDetailsResponse> getDetailedTeamsForHr(String jwtToken,Pageable pageable);
+    Page<TeamDetailsResponse> getDetailedTeamsForPm(String jwtToken,Long managerId, Pageable pageable);
 
 
 }

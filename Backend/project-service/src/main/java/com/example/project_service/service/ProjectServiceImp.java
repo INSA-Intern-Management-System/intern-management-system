@@ -2,10 +2,13 @@ package com.example.project_service.service;
 
 import com.example.project_service.client.ActivityGrpcClient;
 import com.example.project_service.client.InternManagerGrpcClient;
+import com.example.project_service.client.UserGrpcClient;
 import com.example.project_service.dto.*;
 import com.example.project_service.models.*;
 import com.example.project_service.repository.*;
 import com.example.userservice.gRPC.CreateResponse;
+import com.example.userservice.gRPC.UserResponse;
+import com.example.userservice.gRPC.UsersResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,7 @@ public class ProjectServiceImp implements ProjectServiceInterface {
     private final MilestoneReposInterface milestoneRepo;
     private final ActivityGrpcClient activityGrpcClient;
     private final InternManagerGrpcClient internManagerGrpcClient;
+    private final UserGrpcClient userGrpcClient;
 
     @Autowired
     private ProjectMapper projectMapper;
@@ -36,13 +40,15 @@ public class ProjectServiceImp implements ProjectServiceInterface {
                              TeamMemberReposInterface teamMemberRepo,
                              MilestoneReposInterface milestoneRepo,
                              ActivityGrpcClient activityGrpcClient,
-                             InternManagerGrpcClient internManagerGrpcClient) {
+                             InternManagerGrpcClient internManagerGrpcClient,
+                             UserGrpcClient userGrpcClient) {
         this.projectRepo = projectRepo;
         this.teamRepo = teamRepo;
         this.teamMemberRepo = teamMemberRepo;
         this.milestoneRepo = milestoneRepo;
         this.activityGrpcClient = activityGrpcClient;
         this.internManagerGrpcClient= internManagerGrpcClient;
+        this.userGrpcClient=userGrpcClient;
     }
 
     // ---------------- Projects ----------------
@@ -360,11 +366,29 @@ public class ProjectServiceImp implements ProjectServiceInterface {
             response.setProject(projectMapper.mapToDto(savedTeam.getProject()));
         }
 
-        // Set team members
+        //collect all member ids 
+        List<Long> memberIds = savedMembers.stream()
+            .map(TeamMember::getMemberId)
+            .toList();
+
+        // get team members information using user grpc
+        UsersResponse result = userGrpcClient.getAllUsers(jwtToken, memberIds);
+
+        // create a lookup map for user responses
+        Map<Long, UserResponse> userMap = result.getUsersList().stream()
+                .collect(Collectors.toMap(UserResponse::getUserId, u -> u));
+
+        // Set team members with enriched data
         List<TeamMemberResponse> memberResponses = savedMembers.stream()
-                .map(projectMapper::mapToDto)
+                .map(member -> {
+                    UserResponse userResponse = userMap.get(member.getMemberId());
+                    return projectMapper.mapToDto(member, userResponse);
+                })
+                .filter(Objects::nonNull)
                 .toList();
+
         response.setTeamMembers(memberResponses);
+
         // Log activity
         logActivity(jwtToken, savedTeam.getManagerId(), "CREATE_TEAM", "Team '" + savedTeam.getName() + "' created successfully with " + savedMembers.size() + " members.");
         return response;
@@ -384,10 +408,16 @@ public class ProjectServiceImp implements ProjectServiceInterface {
 
     @Transactional
     @Override
-    public void deleteTeam(String jwtToken,Long teamId) {
+    public void deleteTeam(String jwtToken,Long user_id,Long teamId) {
         // Validate team exists
         Team team = teamRepo.getTeamById(teamId)
             .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
+
+        //check wether the user is the manager of the team
+        if(!team.getManager().getId().equals(user_id)){
+            throw new RuntimeException("Unauthorized access for the team)");
+        }
+
         teamMemberRepo.deleteMembersByTeam(teamId);
         teamRepo.deleteTeamById(teamId);
 
@@ -433,10 +463,32 @@ public class ProjectServiceImp implements ProjectServiceInterface {
 
         // Fetch updated list and map to DTOs
         List<TeamMember> updatedMembers = teamMemberRepo.getMemberByTeamId(request.getTeamId());
-        logActivity(jwtToken, managerId, "ADD_TEAM_MEMBER", "Member with ID " + request.getMemberId() + " added to team '" + team.getName() + "' with role '" + request.getRole() + "'.");
-        return updatedMembers.stream()
-            .map(projectMapper::mapToDto)
-            .collect(Collectors.toList());
+
+        //collect team members into list
+        List<Long> memberIds = updatedMembers.stream()
+            .map(TeamMember::getMemberId)
+            .toList();
+
+        UsersResponse result=userGrpcClient.getAllUsers(jwtToken, memberIds);
+
+        // map by user ID for easy lookup
+         Map<Long, UserResponse> userMap = result.getUsersList().stream()
+            .collect(Collectors.toMap(UserResponse::getUserId, u -> u));
+
+        // map TeamMember + UserResponse → DTO
+        List<TeamMemberResponse> memberResponses = updatedMembers.stream()
+            .map(member -> {
+                UserResponse userResponse = userMap.get(member.getMemberId());
+                return projectMapper.mapToDto(member, userResponse);
+            })
+            .filter(Objects::nonNull)
+            .toList();
+
+        // log activity
+        logActivity(jwtToken, managerId, "ADD_TEAM_MEMBER",
+                "Member with ID " + request.getMemberId() + " added to team '" + team.getName() + "' with role '" + request.getRole() + "'.");
+
+        return memberResponses;
         
     }
 
@@ -467,110 +519,152 @@ public class ProjectServiceImp implements ProjectServiceInterface {
     // ---------------- Assign/remove project ----------------
     @Transactional
     @Override
-    public TeamDetailsResponse assignProjectToTeam(String jwtToken,Long user_id,Long teamId, Long projectId) {
+    public TeamDetailsResponse assignProjectToTeam(String jwtToken, Long user_id, Long teamId, Long projectId) {
         // Fetch the team
         Team team = teamRepo.getTeamById(teamId)
             .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
 
-        //Fetch teams members based on team_id
+        // Fetch team members
         List<TeamMember> teamMembers = teamMemberRepo.getMemberByTeamId(teamId);
 
-        //collect user_id into the list
+        // Collect member IDs
         List<Long> memberIds = teamMembers.stream()
             .map(TeamMember::getMemberId)
             .toList();
 
-        
-
-        // fetch the project
-        Project current_project = projectRepo.getProjectById(projectId)
+        // Fetch the project
+        Project currentProject = projectRepo.getProjectById(projectId)
             .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
 
-        // Check if the user is the team manager
+        // Authorization checks
         if (!team.getManager().getId().equals(user_id)) {
             throw new RuntimeException("Unauthorized: Only team manager can assign projects");
         }
 
-        // Check if the project is managed by the user
-        if (!current_project.getCreatedBy().getId().equals(user_id)) {
+        if (!currentProject.getCreatedBy().getId().equals(user_id)) {
             throw new RuntimeException("Unauthorized: Only project creator can assign the project to a team");
         }
-       
-        Project project =new Project();
-        project.setId(projectId);
-        team.setProject(project);
+
+        // Assign project
+        team.setProject(currentProject);
         Team updatedTeam = teamRepo.updateAssignedProject(teamId, projectId);
-        List<TeamMember> members = teamMemberRepo.getMemberByTeamId(teamId);
+
         Project assignedProject = projectRepo.getProjectById(projectId)
             .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
 
-        // Map to DTO
+        // ✅ Fetch user info from gRPC
+        UsersResponse result = userGrpcClient.getAllUsers(jwtToken, memberIds);
+
+        // Build map for quick lookup
+        Map<Long, UserResponse> userMap = result.getUsersList().stream()
+            .collect(Collectors.toMap(UserResponse::getUserId, u -> u));
+
+        // ✅ Map members + user info
+        List<TeamMemberResponse> memberResponses = teamMembers.stream()
+            .map(member -> {
+                UserResponse userResponse = userMap.get(member.getMemberId());
+                return projectMapper.mapToDto(member, userResponse);
+            })
+            .filter(Objects::nonNull)
+            .toList();
+
+        // Build DTO
         TeamDetailsResponse dto = new TeamDetailsResponse();
         dto.setProject(projectMapper.mapToDto(assignedProject));
         dto.setTeams(projectMapper.mapToDto(updatedTeam));
-        dto.setTeamMembers(members.stream()
-            .map(projectMapper::mapToDto)
-            .collect(Collectors.toList()));
-        
-        //send through intern manager grpc 
+        dto.setTeamMembers(memberResponses);
 
-        CreateResponse response=internManagerGrpcClient.createInternManagers(jwtToken, memberIds, projectId, team.getManagerId(), teamId);
-        if (response.getMessage()==false){
-            new RuntimeException("Failed to assign project to team");
+        // send through intern manager gRPC 
+        CreateResponse response = internManagerGrpcClient.createInternManagers(
+                jwtToken, memberIds, projectId, team.getManagerId(), teamId);
+
+        if (!response.getMessage()) {
+            throw new RuntimeException("Failed to assign project to team");
         }
 
         // Log activity
-        logActivity(jwtToken, user_id, "ASSIGN_PROJECT_TO_TEAM", "Project '" + assignedProject.getName() + "' assigned to team '" + updatedTeam.getName() + "'.");
+        logActivity(jwtToken, user_id, "ASSIGN_PROJECT_TO_TEAM",
+                "Project '" + assignedProject.getName() + "' assigned to team '" + updatedTeam.getName() + "'.");
 
         return dto;
-    }
+}
+
 
     @Transactional
     @Override
-    public TeamDetailsResponse removeAssignedProjectFromTeam(String jwtToken,Long user_id,Long teamId) {
-        // Fetch the team && Check if the user is the team manager
+    public TeamDetailsResponse removeAssignedProjectFromTeam(String jwtToken, Long user_id, Long teamId) {
+        // Fetch the team
         Team team = teamRepo.getTeamById(teamId)
             .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
+
+        // Authorization: Only manager can remove assigned project
         if (!team.getManager().getId().equals(user_id)) {
             throw new RuntimeException("Unauthorized: Only team manager can remove assigned project");
         }
+
+        // Get team members
         List<TeamMember> members = teamMemberRepo.getMemberByTeamId(teamId);
-        
-        // Remove the assigned project from the team
+
+        // Collect member IDs
+        List<Long> memberIds = members.stream()
+            .map(TeamMember::getMemberId)
+            .toList();
+
+        // ✅ Fetch user info from gRPC
+        UsersResponse result = userGrpcClient.getAllUsers(jwtToken, memberIds);
+
+        // Build map for quick lookup
+        Map<Long, UserResponse> userMap = result.getUsersList().stream()
+            .collect(Collectors.toMap(UserResponse::getUserId, u -> u));
+
+        // ✅ Map members + user info
+        List<TeamMemberResponse> memberResponses = members.stream()
+            .map(member -> {
+                UserResponse userResponse = userMap.get(member.getMemberId());
+                return projectMapper.mapToDto(member, userResponse);
+            })
+            .filter(Objects::nonNull)
+            .toList();
+
+        // Remove the assigned project
         Team updatedTeam = teamRepo.removeAssignedProject(teamId);
+
+        // Build DTO
         TeamDetailsResponse dto = new TeamDetailsResponse();
         dto.setProject(null); // No project assigned now
         dto.setTeams(projectMapper.mapToDto(updatedTeam));
-        dto.setTeamMembers(members.stream()
-            .map(projectMapper::mapToDto)
-            .collect(Collectors.toList()));
+        dto.setTeamMembers(memberResponses);
+
         // Log activity
-        logActivity(jwtToken, user_id, "REMOVE_ASSIGNED_PROJECT", "Assigned project removed from team '" + updatedTeam.getName() + "'.");
+        logActivity(jwtToken, user_id, "REMOVE_ASSIGNED_PROJECT",
+                "Assigned project removed from team '" + updatedTeam.getName() + "'.");
+
         return dto;
-    
-    }
+}
+
 
 
 
     // ---------------- New detailed use cases ----------------
     @Transactional(readOnly = true)
     @Override
-    public Page<ProjectDetailsResponse> getDetailedProjectsForHr(Pageable pageable) {
+    public Page<ProjectDetailsResponse> getDetailedProjectsForHr(String jwtToken,Pageable pageable) {
         Page<Project> projects = projectRepo.getAllProjects(pageable);
-        List<ProjectDetailsResponse> detailedList = buildProjectDetailsList(projects.getContent());
+        List<ProjectDetailsResponse> detailedList = buildProjectDetailsList(jwtToken,projects.getContent());
         return new PageImpl<>(detailedList, pageable, projects.getTotalElements());
     }
 
     @Transactional(readOnly = true)
     @Override
-    public Page<ProjectDetailsResponse> getDetailedProjectsForPm(Long createdById, Pageable pageable) {
+    public Page<ProjectDetailsResponse> getDetailedProjectsForPm(String jwtToken,Long createdById, Pageable pageable) {
         Page<Project> projects = projectRepo.getProjectsByCreator(createdById, pageable);
-        List<ProjectDetailsResponse> detailedList = buildProjectDetailsList(projects.getContent());
+        List<ProjectDetailsResponse> detailedList = buildProjectDetailsList(jwtToken,projects.getContent());
         return new PageImpl<>(detailedList, pageable, projects.getTotalElements());
     }
 
-    private List<ProjectDetailsResponse> buildProjectDetailsList(List<Project> projects) {
+    private List<ProjectDetailsResponse> buildProjectDetailsList(String jwtToken, List<Project> projects) {
         List<ProjectDetailsResponse> result = new ArrayList<>();
+
         for (Project project : projects) {
             ProjectDetailsResponse dto = new ProjectDetailsResponse();
 
@@ -583,12 +677,33 @@ public class ProjectServiceImp implements ProjectServiceInterface {
                 .toList();
             dto.setTeams(teamDtos);
 
-            // Fetch and map team members
-            List<TeamMemberResponse> memberDtos = new ArrayList<>();
+            // Collect all team members for this project
+            List<TeamMember> allMembers = new ArrayList<>();
             for (Team team : teams) {
                 List<TeamMember> members = teamMemberRepo.getMemberByTeamId(team.getId());
-                members.forEach(member -> memberDtos.add(projectMapper.mapToDto(member)));
+                allMembers.addAll(members);
             }
+
+            // Collect member IDs
+            List<Long> memberIds = allMembers.stream()
+                .map(TeamMember::getMemberId)
+                .toList();
+
+            // ✅ Fetch user info via gRPC once for all members
+            UsersResponse grpcUsers = userGrpcClient.getAllUsers(jwtToken, memberIds);
+
+            // Build lookup map
+            Map<Long, UserResponse> userMap = grpcUsers.getUsersList().stream()
+                .collect(Collectors.toMap(UserResponse::getUserId, u -> u));
+
+            // ✅ Map members + enrich with user info
+            List<TeamMemberResponse> memberDtos = allMembers.stream()
+                .map(member -> {
+                    UserResponse userResponse = userMap.get(member.getMemberId());
+                    return projectMapper.mapToDto(member, userResponse);
+                })
+                .filter(Objects::nonNull)
+                .toList();
             dto.setTeamMembers(memberDtos);
 
             // Fetch and map milestones
@@ -605,24 +720,25 @@ public class ProjectServiceImp implements ProjectServiceInterface {
 
 
 
+
     @Transactional(readOnly = true)
     @Override
-    public Page<TeamDetailsResponse> getDetailedTeamsForHr(Pageable pageable) {
+    public Page<TeamDetailsResponse> getDetailedTeamsForHr(String jwtToken,Pageable pageable) {
         Page<Team> teams = teamRepo.getAllTeams(pageable);
-        List<TeamDetailsResponse> detailedList = buildTeamDetailsList(teams.getContent());
+        List<TeamDetailsResponse> detailedList = buildTeamDetailsList(jwtToken,teams.getContent());
         return new PageImpl<>(detailedList, pageable, teams.getTotalElements());
     }
 
     @Transactional(readOnly = true)
     @Override
-    public Page<TeamDetailsResponse> getDetailedTeamsForPm(Long managerId, Pageable pageable) {
+    public Page<TeamDetailsResponse> getDetailedTeamsForPm(String jwtToken,Long managerId, Pageable pageable) {
             Page<Team> teams = teamRepo.getTeamsByManager(managerId, pageable);
-            List<TeamDetailsResponse> detailedList = buildTeamDetailsList(teams.getContent());
+            List<TeamDetailsResponse> detailedList = buildTeamDetailsList(jwtToken,teams.getContent());
             return new PageImpl<>(detailedList, pageable, teams.getTotalElements());
         }
 
 
-    private List<TeamDetailsResponse> buildTeamDetailsList(List<Team> teams) {
+    private List<TeamDetailsResponse> buildTeamDetailsList(String jwtToken, List<Team> teams) {
         List<TeamDetailsResponse> result = new ArrayList<>();
 
         for (Team team : teams) {
@@ -631,21 +747,41 @@ public class ProjectServiceImp implements ProjectServiceInterface {
             // Map project
             dto.setProject(projectMapper.mapToDto(team.getProject()));
 
-            // Map the team itself into a list (single element)
+            // Map the team itself
             dto.setTeams(projectMapper.mapToDto(team));
 
             // Fetch and map members
             List<TeamMember> members = teamMemberRepo.getMembersByTeam(team.getId());
+
+            // Collect member IDs
+            List<Long> memberIds = members.stream()
+                .map(TeamMember::getMemberId)
+                .toList();
+
+            // ✅ Fetch user info from gRPC
+            UsersResponse grpcUsers = userGrpcClient.getAllUsers(jwtToken, memberIds);
+
+            // Build lookup map
+            Map<Long, UserResponse> userMap = grpcUsers.getUsersList().stream()
+                .collect(Collectors.toMap(UserResponse::getUserId, u -> u));
+
+            // ✅ Map members + user info
             List<TeamMemberResponse> memberDtos = members.stream()
-                .map(projectMapper::mapToDto)
+                .map(member -> {
+                    UserResponse userResponse = userMap.get(member.getMemberId());
+                    return projectMapper.mapToDto(member, userResponse);
+                })
+                .filter(Objects::nonNull)
                 .toList();
 
             dto.setTeamMembers(memberDtos);
 
             result.add(dto);
         }
+
         return result;
 }
+
 
 
     public ProjectResponse mapToDto(Project project) {

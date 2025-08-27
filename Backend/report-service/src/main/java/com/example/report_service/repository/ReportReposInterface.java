@@ -30,24 +30,11 @@ public interface ReportReposInterface {
     //             @Param("startDate") LocalDateTime startDate,
     //             @Param("endDate") LocalDateTime endDate,
     //             Pageable pageable);
-    Page<Report> findReportsByInternAndFilters(
-                @Param("internId") Long internId,
-                @Param("title") String title,
-                @Param("feedbackStatus") String feedbackStatus,
-                @Param("period") String period,
-                Pageable pageable);
-    Page<Report> findReportsByManagerAndFilters(
-                @Param("managerId") Long managerId,
-                @Param("title") String title,
-                @Param("feedbackStatus") String feedbackStatus,
-                @Param("period") String period,
-                Pageable pageable);
-                
-    Page<Report> findReportsByTitleOrStatusOrDate(
-                @Param("title") String title,
-                @Param("feedbackStatus") String feedbackStatus,
-                @Param("period") String period,
-                Pageable pageable);
+    Page<Report> findReportsByInternAndFilters(Long internId,String title,String feedbackStatus,String period,Pageable pageable);
+    Page<Report> findReportsByManagerAndFilters(Long managerId,String title,String feedbackStatus,String period,Pageable pageable);         
+    Page<Report> findReportsByTitleOrStatusOrDate(String title,String feedbackStatus, String period,Pageable pageable);
+
+
 
 
     Long countByUserId(Long userId);
@@ -67,5 +54,8 @@ public interface ReportReposInterface {
     Long countAllByFeedbackStatus(String status);
     Long countReportsByUserIds(List<Long> userIds);
     List<UserReportCountDTO> countReportByUserIds(@Param("userIds") List<Long> userIds);
+
+    //update feedbackstatus for report
+    int updateFeedbackStatus(Long reportId,Status feedbackStatus);
 
 }
