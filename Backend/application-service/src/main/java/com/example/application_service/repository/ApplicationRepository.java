@@ -27,7 +27,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     Page<Application> findByApplicant_FieldOfStudyContainingIgnoreCase(String fieldOfStudy, Pageable pageable);
 
     // Filter by university
-    Page<Application> findByApplicant_InstitutionContainingIgnoreCase(String institution, Pageable pageable);
+    Page<Application> findByApplicant_InstitutionEqualsIgnoreCase(String institution, Pageable pageable);
 
     //count application by application status
     Long countByStatus(ApplicationStatus status);

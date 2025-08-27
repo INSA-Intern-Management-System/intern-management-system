@@ -1,9 +1,5 @@
 package com.example.userservice.client;
-import com.example.activity_service.gRPC.ActivityResponse;
-import com.example.activity_service.gRPC.ActivityServiceGrpc;
-import com.example.activity_service.gRPC.CreateActivityRequest;
-import com.example.activity_service.gRPC.GetRecentActivitiesRequest;
-import com.example.activity_service.gRPC.GetRecentActivitiesResponse;
+import com.example.activity_service.gRPC.*;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -47,6 +43,22 @@ public class ActivityGrpcClient {
 
         return stubWithAuth.getRecentActivities(request);
     }
+
+    public GetAllActivitiesResponse getAllActivities(String jwtToken, int page, int size) {
+        JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
+        ActivityServiceGrpc.ActivityServiceBlockingStub stubWithAuth = blockingStub.withInterceptors(authInterceptor);
+
+        GetAllActivitiesRequest request = GetAllActivitiesRequest.newBuilder()
+                .setPage(page)
+                .setSize(size)
+                .build();
+
+        return stubWithAuth.getAllActivities(request);
+    }
+
+
+
+
 
     public void shutdown() throws InterruptedException {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);

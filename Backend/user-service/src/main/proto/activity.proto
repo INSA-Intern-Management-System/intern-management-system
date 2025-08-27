@@ -9,6 +9,7 @@ option java_outer_classname = "ActivityProto";
 service ActivityService {
   rpc CreateActivity (CreateActivityRequest) returns (ActivityResponse);
   rpc GetRecentActivities (GetRecentActivitiesRequest) returns (GetRecentActivitiesResponse);
+  rpc GetAllActivities (GetAllActivitiesRequest) returns (GetAllActivitiesResponse);
 }
 
 message CreateActivityRequest {
@@ -32,6 +33,18 @@ message GetRecentActivitiesRequest {
 }
 
 message GetRecentActivitiesResponse {
+  repeated ActivityResponse activities = 1;
+  int32 total_pages = 2;
+  int64 total_elements = 3;
+  int32 current_page = 4;
+}
+
+message GetAllActivitiesRequest{
+  int32 page=1;
+  int32 size=2;
+}
+
+message GetAllActivitiesResponse{
   repeated ActivityResponse activities = 1;
   int32 total_pages = 2;
   int64 total_elements = 3;
