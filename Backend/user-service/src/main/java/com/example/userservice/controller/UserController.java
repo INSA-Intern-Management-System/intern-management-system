@@ -564,8 +564,18 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
             if (!"ADMIN".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only Admin can update user.");
+                return errorResponse("Unauthorized.");
             }
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)){
+                return errorResponse("Unauthorized.");
+            }
+            if (!"HR".equalsIgnoreCase(role)){
+                return errorResponse("Unauthorized.");
+            }
+            if (!"STUDENT".equalsIgnoreCase(role)){
+                return errorResponse("Unauthorized.");
+            }
+
             User updatedUser = userService.updateUser(id, user);
 
             //log activity
