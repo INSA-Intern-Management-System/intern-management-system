@@ -26,10 +26,11 @@ public class RegisterRequest {
     public String cvUrl;
     public String profilePicUrl;
     public Date lastReadNotificationAt;
+    public UserStatus userStatus;
+
 
     @NotNull
     public Role role;
-    public UserStatus userStatus;
 
     public Role getRole() {
         return role;

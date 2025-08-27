@@ -113,7 +113,9 @@ public class ReportController {
      */
     @GetMapping("/my/search")
     public ResponseEntity<?> searchMyReports(HttpServletRequest request,
-                                             @RequestParam String keyword,
+                                             @RequestParam(required = false) String keyword,
+                                             @RequestParam(required = false) String status,
+                                             @RequestParam(required = false) String period,
                                              Pageable pageable) {
         try {
             Long userId = (Long) request.getAttribute("userId");
@@ -138,13 +140,13 @@ public class ReportController {
             } 
 
             if ("STUDENT".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.searchReports(jwtToken,userId, keyword, pageable);
+                Page<ReportResponseDTO> results = reportService.filterReports(jwtToken, userId,keyword, status, period, pageable);
                 return ResponseEntity.ok(results);
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.searchManagerReports(jwtToken,userId, keyword, pageable);
+                Page<ReportResponseDTO> results = reportService.filterManagerReports(jwtToken, userId,keyword, status, period, pageable);
                 return ResponseEntity.ok(results);
             } else if ("HR".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.searchAllReports(jwtToken,keyword, pageable);
+                Page<ReportResponseDTO> results = reportService.filterAllReports(jwtToken,keyword, status, period, pageable);
                 return ResponseEntity.ok(results);
             } else {
                 return ResponseEntity.status(403).body("Access denied: Invalid role");
@@ -161,8 +163,8 @@ public class ReportController {
      */
     @GetMapping("/my/filter")
     public ResponseEntity<?> filterMyReports(HttpServletRequest request,
-                                             @RequestParam String status,
-                                             @RequestParam String period,
+                                             @RequestParam(required = false) String status,
+                                             @RequestParam(required = false) String period,
                                              Pageable pageable) {
         try {
             Long userId = (Long) request.getAttribute("userId");
@@ -186,13 +188,13 @@ public class ReportController {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             } 
             if ("STUDENT".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> filtered = reportService.filterReports(jwtToken,userId, status, period, pageable);
+                Page<ReportResponseDTO> filtered = reportService.filterReports(jwtToken,userId,"", status, period, pageable);
                 return ResponseEntity.ok(filtered);
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> filtered = reportService.filterManagerReports(jwtToken,userId, status, period, pageable);
+                Page<ReportResponseDTO> filtered = reportService.filterManagerReports(jwtToken,userId,"", status, period, pageable);
                 return ResponseEntity.ok(filtered);
             } else if ("HR".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> filtered = reportService.filterAllReports(jwtToken,status, period, pageable);
+                Page<ReportResponseDTO> filtered = reportService.filterAllReports(jwtToken,"",status, period, pageable);
                 return ResponseEntity.ok(filtered);
             } else {
                 return ResponseEntity.status(403).body("Access denied: Invalid role");

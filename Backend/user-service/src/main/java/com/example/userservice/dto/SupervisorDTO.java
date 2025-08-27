@@ -1,6 +1,7 @@
 package com.example.userservice.dto;
 
 import com.example.userservice.model.User;
+import java.util.List;
 
 public class SupervisorDTO {
     private Long id;
@@ -9,6 +10,8 @@ public class SupervisorDTO {
     private String email;
     private String fieldOfStudy;
     private String institution;
+    private String phoneNumber;
+    private List<User> supervisedInterns;
 
     public SupervisorDTO(User supervisor) {
         this.id = supervisor.getId();
@@ -17,10 +20,10 @@ public class SupervisorDTO {
         this.email = supervisor.getEmail();
         this.fieldOfStudy = supervisor.getFieldOfStudy();
         this.institution = supervisor.getInstitution();
+        this.phoneNumber = supervisor.getPhoneNumber();
     }
-    // getters and setters
 
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -67,5 +70,21 @@ public class SupervisorDTO {
 
     public void setInstitution(String institution) {
         this.institution = institution;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public List<User> getSupervisedInterns() {
+        return supervisedInterns;
+    }
+
+    public void setSupervisedInterns(List<User> supervisedInterns) {
+        this.supervisedInterns = supervisedInterns;
     }
 }

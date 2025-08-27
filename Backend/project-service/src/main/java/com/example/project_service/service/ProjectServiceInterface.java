@@ -17,7 +17,10 @@ public interface ProjectServiceInterface {
     Page<ProjectResponse> searchProjectsPM(Long userId, String keyword, Pageable pageable);
     Page<ProjectResponse> getProjectsForHr(Pageable pageable);
     Page<ProjectResponse> getProjectsForPm(Long createdById, Pageable pageable);
-    ProjectResponse updateProjectStatus(String jwtToken,Long projectId, ProjectStatus newStatus);
+    ProjectResponse updateProjectStatus(String jwtToken,Long user_id,Long projectId, ProjectStatus newStatus);
+    void updateStatus(String jwtToken,Long user_id,UpdateRequestDTO request);
+    void deleteProject(String jwtToken,Long user_id,Long projectId);
+
 
     // Milestones
     MilestoneResponse addMilestone(String jwtToken,Long user_id,MilestoneRequest request);
@@ -26,6 +29,7 @@ public interface ProjectServiceInterface {
     List<MilestoneResponse> getMilestonesByProjectId(Long userID,Long projectId);
     List<Milestone> getMilestonesByProjectIdExceptCompleted(Long projectId);
     List<ProjectMilestoneStatsDTO> findMilestoneStatsByProjectsAndStatus(List<Long> projectIds, MilestoneStatus status);
+    UniveristyMilestoneStatsDTO getStats(List<Long> ids);
     
 
 
@@ -33,7 +37,7 @@ public interface ProjectServiceInterface {
     TeamDetailsResponse createTeam(String jwtToken,TeamRequest request);
     Page<Team> getTeamsForHr(Pageable pageable);
     Page<Team> getTeamsForPm(Long managerId, Pageable pageable);
-    void deleteTeam(String jwtToken,Long teamId);
+    void deleteTeam(String jwtToken,Long user_id,Long teamId);
 
     // Team members
     List<TeamMemberResponse> addTeamMember(String jwtToken,Long menagerId,TeamMemberRequest request);
@@ -45,11 +49,11 @@ public interface ProjectServiceInterface {
     TeamDetailsResponse removeAssignedProjectFromTeam(String jwtToken,Long user_id,Long teamId);
 
     // Getters
-    Page<ProjectDetailsResponse> getDetailedProjectsForHr(Pageable pageable);
-    Page<ProjectDetailsResponse> getDetailedProjectsForPm(Long createdById, Pageable pageable);
+    Page<ProjectDetailsResponse> getDetailedProjectsForHr(String jwtToken,Pageable pageable);
+    Page<ProjectDetailsResponse> getDetailedProjectsForPm(String jwtToken,Long createdById, Pageable pageable);
 
-    Page<TeamDetailsResponse> getDetailedTeamsForHr(Pageable pageable);
-    Page<TeamDetailsResponse> getDetailedTeamsForPm(Long managerId, Pageable pageable);
+    Page<TeamDetailsResponse> getDetailedTeamsForHr(String jwtToken,Pageable pageable);
+    Page<TeamDetailsResponse> getDetailedTeamsForPm(String jwtToken,Long managerId, Pageable pageable);
 
 
 }

@@ -38,7 +38,7 @@ public class SystemSettingController {
     }
 
     @PutMapping()
-    public ResponseEntity<?> updateCompanyProfile(@RequestBody SystemSetting newSystemSetting, HttpServletRequest request){
+    public ResponseEntity<?> updateSystemSetting(@RequestBody SystemSetting newSystemSetting, HttpServletRequest request){
         try {
 
             String role = (String) request.getAttribute("role");

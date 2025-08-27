@@ -52,4 +52,17 @@ public class ReviewInterfaceImpl implements ReviewReposInterface {
         return reviewJpa.findTopInternsByAverageRating(pageable);      
     }
 
+    @Override
+    public Double calculateAverageRatingForUsers(List<Long> userIds){
+        return reviewJpa.calculateAverageRatingForUsers(userIds);
+    }
+    @Override
+    public List<InternRatingProjection> calculateAverageRatingsForUsers(List<Long> userIds){
+        return reviewJpa.calculateAverageRatingsForUsers(userIds);
+    }
+    @Override
+    public List<Review> findLastReviewByUserIds(List<Long> userIds){
+        return reviewJpa.findLastReviewByUserIds(userIds);
+    }
+
 }

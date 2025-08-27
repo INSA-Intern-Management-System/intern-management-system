@@ -26,7 +26,7 @@ public interface ApplicationService {
 
     Application getApplicationById( Long applicantId);
 
-    List<ApplicantDTO> batchApplication(MultipartFile file) throws IOException;
+    List<Application> batchApplication(MultipartFile file) throws IOException;
 
     ApplicationDTO updateApplicationStatus(Long applicantId, ApplicationStatus status, String jwtToken);
 
@@ -39,7 +39,6 @@ public interface ApplicationService {
     Page<Application> filterByUniversity(String university, Pageable pageable);
 
     HashMap<String,Long> getStats();
-
 
 
 }

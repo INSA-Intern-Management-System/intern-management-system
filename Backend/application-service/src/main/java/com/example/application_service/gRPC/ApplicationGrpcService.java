@@ -2,7 +2,6 @@ package com.example.application_service.gRPC;
 
 import java.util.HashMap;
 import com.example.application_service.services.ApplicationService;
-
 import io.grpc.stub.StreamObserver;
 
 public class ApplicationGrpcService extends ApplicationServiceGrpc.ApplicationServiceImplBase {

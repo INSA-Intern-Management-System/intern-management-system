@@ -1,5 +1,6 @@
 package com.example.userservice.client;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.example.project_service.gRPC.ProjectStatsResponse;
@@ -9,6 +10,8 @@ import com.example.report_service.gRPC.ReportStatsResponse;
 import com.example.report_service.gRPC.TopInternsRequest;
 import com.example.report_service.gRPC.TopInternsResponse;
 import com.example.report_service.gRPC.TotalReportResponse;
+import com.example.report_service.gRPC.UserUniversityStatsRequest;
+import com.example.report_service.gRPC.UserUniversityStatsResponse;
 import com.google.protobuf.Empty;
 
 import io.grpc.ManagedChannel;
@@ -62,6 +65,26 @@ public class ReportGrpcClient {
                 .setSize(size)
                 .build();
         return stubWithAuth.getTopInterns(request);
+    }
+
+    public UserUniversityStatsResponse getUserUniversityStats(String jwtToken,List<Long> userIds) {
+        JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
+        ReportServiceGrpc.ReportServiceBlockingStub stubWithAuth = blockingStub.withInterceptors(authInterceptor);
+        UserUniversityStatsRequest request = UserUniversityStatsRequest.newBuilder()
+                .addAllUserIds(userIds)
+                .build();
+
+        return stubWithAuth.getUserUniversityStats(request);
+    }
+
+    public ReportStatsResponse getReportStatsForUniversity(String jwtToken,List<Long> userIds) {
+        JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
+        ReportServiceGrpc.ReportServiceBlockingStub stubWithAuth = blockingStub.withInterceptors(authInterceptor);
+        UserUniversityStatsRequest request = UserUniversityStatsRequest.newBuilder()
+                .addAllUserIds(userIds)
+                .build();
+
+        return stubWithAuth.getUniversityReportstats(request);
     }
 
 
