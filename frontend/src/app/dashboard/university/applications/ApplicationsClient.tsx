@@ -382,7 +382,7 @@ export default function ApplicationsClient({
                 New Application
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
               <DialogHeader>
                 <DialogTitle>New Application</DialogTitle>
               </DialogHeader>
@@ -546,7 +546,7 @@ export default function ApplicationsClient({
                 Batch Import
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-white">
               <DialogHeader>
                 <DialogTitle>Batch Application Import</DialogTitle>
               </DialogHeader>
