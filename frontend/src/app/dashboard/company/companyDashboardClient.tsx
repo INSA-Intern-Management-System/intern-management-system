@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import DashboardLayout from "@/app/layout/dashboard-layout";
 import {
   Users,
   FileText,
@@ -21,6 +20,7 @@ import {
   Clock,
   Building2,
   TrendingUp,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,18 +31,19 @@ interface CompanyStats {
   pendingReports: number;
 }
 
-interface Activity {
+interface RecentActivity {
   id: number;
-  type: string;
-  message: string;
-  time: string;
+  userId: number;
+  title: string;
+  description: string;
+  createdAt: string;
 }
 
 interface Task {
   id: number;
   task: string;
   count: number;
-  priority: "high" | "medium" | "low";
+  priority: string;
 }
 
 interface Intern {
@@ -51,13 +52,14 @@ interface Intern {
   position: string;
   progress: number;
   rating: number;
+  university?: string;
 }
 
 interface CompanyDashboardClientProps {
   user: User;
   stats: CompanyStats;
-  recentActivity: Activity[];
-  upcomingTasks: Task[];
+  recentActivity: RecentActivity[];
+  // upcomingTasks: Task[];
   topInterns: Intern[];
 }
 
@@ -65,7 +67,7 @@ export default function CompanyDashboardClient({
   user,
   stats,
   recentActivity,
-  upcomingTasks,
+  // upcomingTasks,
   topInterns,
 }: CompanyDashboardClientProps) {
   const getPriorityColor = (priority: string) => {
@@ -81,15 +83,33 @@ export default function CompanyDashboardClient({
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffTime / (1000 * 60));
+
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
+    } else {
+      return "Just now";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Company Dashboard
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900">Company Dashboard</h1>
         <p className="text-gray-600">
-          Welcome back, {user.firstName || "Manager"}! Here is your internship program overview.
+          Welcome back, {user.firstName || "Manager"}! Here is your internship
+          program overview.
         </p>
       </div>
 
@@ -178,10 +198,17 @@ export default function CompanyDashboardClient({
                   >
                     <div className="w-2 h-2 bg-green-600 rounded-full mt-2"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {activity.time}
+                      <p className="text-sm font-medium">
+                        {activity.description}
                       </p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-gray-500">
+                          {activity.title}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatDate(activity.createdAt)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -191,7 +218,7 @@ export default function CompanyDashboardClient({
         </Card>
 
         {/* Upcoming Tasks */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <CheckCircle className="h-5 w-5 mr-2 text-blue-700" />
@@ -225,7 +252,7 @@ export default function CompanyDashboardClient({
               </div>
             </CardContent>
           )}
-        </Card>
+        </Card> */}
       </div>
 
       {/* Top Performing Interns */}
@@ -258,6 +285,11 @@ export default function CompanyDashboardClient({
                     <div>
                       <h4 className="font-semibold">{intern.name}</h4>
                       <p className="text-sm text-gray-600">{intern.position}</p>
+                      {intern.university && (
+                        <p className="text-xs text-gray-500">
+                          {intern.university}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -293,7 +325,11 @@ export default function CompanyDashboardClient({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/dashboard/company/applications" passHref legacyBehavior>
+            <Link
+              href="/dashboard/company/applications"
+              passHref
+              legacyBehavior
+            >
               <Button
                 variant="outline"
                 className="h-20 flex-col space-y-2 bg-transparent hover:bg-blue-100 cursor-pointer"

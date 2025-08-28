@@ -32,6 +32,7 @@ export const logout = async (): Promise<LogoutResponse> => {
   );
   if (typeof window !== "undefined") {
     document.cookie = "userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    sessionStorage.clear();
   }
   return response.data;
 };

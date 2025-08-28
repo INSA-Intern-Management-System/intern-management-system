@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { redirect, usePathname, useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -167,7 +167,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
-      router.push("/login");
+      redirect("/login");
     },
     onError: (error) => {
       console.error("Logout failed:", error);

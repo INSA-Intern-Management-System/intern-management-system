@@ -19,7 +19,15 @@ export async function middleware(request: NextRequest) {
   // Protect dashboard routes
   if (pathname.startsWith("/dashboard")) {
     if (!accessToken) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const redirectRes = NextResponse.redirect(new URL("/login", request.url));
+      redirectRes.headers.set(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+      );
+      redirectRes.headers.set("Pragma", "no-cache");
+      redirectRes.headers.set("Expires", "0");
+      return redirectRes;
+      // return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
