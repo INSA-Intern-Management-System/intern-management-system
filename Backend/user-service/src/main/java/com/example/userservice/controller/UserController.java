@@ -11,8 +11,10 @@ import com.example.project_service.gRPC.MilestoneStatsResponse;
 import com.example.project_service.gRPC.ProjectResponse;
 import com.example.project_service.gRPC.ProjectStatsResponse;
 import com.example.project_service.gRPC.StatsResponse;
+import com.example.report_service.gRPC.ReportProgressResponse;
 import com.example.report_service.gRPC.ReportStatsRequest;
 import com.example.report_service.gRPC.ReportStatsResponse;
+import com.example.report_service.gRPC.SingleProgress;
 import com.example.report_service.gRPC.TopInterns;
 import com.example.report_service.gRPC.TopInternsResponse;
 import com.example.report_service.gRPC.TotalReportResponse;
@@ -42,6 +44,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.XsiNilLoader.Single;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties.Http;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -591,7 +594,6 @@ public class UserController {
 
 
 
-
     @GetMapping("/interns")
     public ResponseEntity<?> getInterns(
             @RequestParam(defaultValue = "0") int page,
@@ -600,12 +602,12 @@ public class UserController {
 
         String token = extractAccessToken(request);
         if (token == null) {
-            return ResponseEntity.status(401).body("Missing access_token cookie");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Missing access_token cookie"));
         }
 
         String role = (String) request.getAttribute("role");
-
-        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
+        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only HR and PROJECT_MANAGER can access this resource"));
         }
@@ -613,52 +615,88 @@ public class UserController {
         try {
             Pageable pageable = PageRequest.of(page, size);
 
-            // Fetch the Roles entity for "STUDENT"
             Role studentRole = roleRepo.findByName("STUDENT");
-
             Page<User> interns = userService.getInterns(studentRole, pageable);
-            long totalInterns = userService.countInterns(); // total count
+            interns.getContent().forEach(user -> user.setPassword(null));
 
-            // Collect student IDs
+            long totalInterns = userService.countInterns();
+
             List<Long> studentIds = interns.getContent().stream()
                     .map(User::getId)
                     .toList();
 
-            // Get intern manager info
             List<InternManager> internInfos = internManagerService.getInfos(studentIds);
 
-            // Collect project IDs
             List<Long> projectIds = internInfos.stream()
                     .map(im -> im.getProject().getId())
                     .toList();
 
-            // Fetch projects from gRPC
-            AllProjectResponses projects = projectManagerGrpcClient.getProjects(token, projectIds);
+            List<Long> userIds = internInfos.stream()
+                    .map(im -> im.getUser().getId())
+                    .toList();
 
-            // Map projectId -> ProjectDTO
-            Map<Long, ProjectDTO> projectMap = projects.getProjectsList().stream()
-                    .collect(Collectors.toMap(
-                            ProjectResponse::getProjectId,
-                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription())
-                    ));
+            // ===== gRPC calls with fallback =====
+            Map<Long, ProjectDTO> tempProjectMap;
+            try {
+                AllProjectResponses projects = projectManagerGrpcClient.getProjects(token, projectIds);
+                tempProjectMap = projects.getProjectsList().stream()
+                        .collect(Collectors.toMap(
+                                ProjectResponse::getProjectId,
+                                p -> new ProjectDTO(
+                                        p.getProjectId(),
+                                        p.getProjectName(),
+                                        p.getProjectDescription(),
+                                        p.getProgress()
+                                )
+                        ));
+            } catch (Exception e) {
+                tempProjectMap = Collections.emptyMap();
+            }
+            final Map<Long, ProjectDTO> projectMap = tempProjectMap;
 
-            // Build intern-project mapping
+            Map<Long, ReportProgressDTO> tempProgressMap;
+            try {
+                ReportProgressResponse reportProgress = reportGrpcClient.getProgressResponse(token, userIds);
+                tempProgressMap = reportProgress.getProgressList().stream()
+                        .collect(Collectors.toMap(
+                                SingleProgress::getUserId,
+                                p -> new ReportProgressDTO(
+                                        p.getTotalReports(),
+                                        p.getProgress(),
+                                        p.getUserId()
+                                )
+                        ));
+            } catch (Exception e) {
+                tempProgressMap = Collections.emptyMap();
+            }
+            final Map<Long, ReportProgressDTO> progressMap = tempProgressMap;
+
+            // ===== Build intern-project mapping with report progress =====
             List<Map<String, Object>> internWithProjects = interns.getContent().stream().map(intern -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("intern", intern);
 
-                // Find projects assigned to this intern
-                List<ProjectDTO> assignedProjects = internInfos.stream()
+                // Assigned project (pick first if multiple, or default if none)
+                ProjectDTO project = internInfos.stream()
                         .filter(im -> im.getUser().getId().equals(intern.getId()))
                         .map(im -> projectMap.get(im.getProject().getId()))
                         .filter(Objects::nonNull)
-                        .toList();
+                        .findFirst() // instead of list
+                        .orElse(new ProjectDTO(0L, "N/A", "No project assigned", 0.0));
 
-                map.put("projects", assignedProjects);
+                map.put("project", project);
+
+                // Report progress
+                ReportProgressDTO progress = progressMap.getOrDefault(
+                        intern.getId(),
+                        new ReportProgressDTO(0L, 0.0, intern.getId()) // default if missing
+                );
+                map.put("reportProgress", progress);
+
                 return map;
             }).toList();
 
-            // Build final response
+            // ===== Final response =====
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Fetched interns successfully");
             response.put("interns", internWithProjects);
@@ -669,10 +707,13 @@ public class UserController {
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
         }
-    }
+}
 
+
+    
 
     @PutMapping("/assign-supervisor")
     public ResponseEntity<?> assignSupervisor(
