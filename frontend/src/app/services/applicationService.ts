@@ -82,6 +82,7 @@ export const fetchApplications = async (
 ): Promise<ApplicationsResponse> => {
   const accessToken = await getAccessToken();
 
+
   try {
     let url = "/applications/all";
     const params: Record<string, string | number> = { page, size };
