@@ -34,7 +34,7 @@ public interface UserService {
     void deleteUser(Long id);
 
     User  getUserById(Long id);
-    User updateUser(Long id, User user);
+    User updateUser(Long userId, User user);
 
     User saveUser(User user);
 

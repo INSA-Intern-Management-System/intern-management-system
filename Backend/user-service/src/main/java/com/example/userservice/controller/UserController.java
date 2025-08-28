@@ -186,7 +186,7 @@ public class UserController {
             if (token == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
-            Long userId=(Long) request.getAttribute("userId");
+            Long userId= (Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
 
 
