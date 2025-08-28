@@ -15,6 +15,22 @@ service ReportService {
   rpc getTopInterns (TopInternsRequest) returns (TopInternsResponse);
   rpc getUserUniversityStats (UserUniversityStatsRequest) returns (UserUniversityStatsResponse);
   rpc getUniversityReportstats(UserUniversityStatsRequest) returns (ReportStatsResponse);
+  rpc getReportProgress(ReportProgressRequest) returns (ReportProgressResponse);
+}
+
+
+message ReportProgressRequest {
+  repeated int64 user_id = 1;
+}
+
+message SingleProgress{
+  int64 user_id = 1;
+  int64 total_reports=2;
+  double progress = 3;
+}
+
+message ReportProgressResponse {
+  repeated SingleProgress progress = 1;
 }
 
 message ReportStatsRequest {

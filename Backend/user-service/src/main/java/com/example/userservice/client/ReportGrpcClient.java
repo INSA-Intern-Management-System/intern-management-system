@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.example.project_service.gRPC.ProjectStatsResponse;
+import com.example.report_service.gRPC.ReportProgressRequest;
+import com.example.report_service.gRPC.ReportProgressResponse;
 import com.example.report_service.gRPC.ReportServiceGrpc;
 import com.example.report_service.gRPC.ReportStatsRequest;
 import com.example.report_service.gRPC.ReportStatsResponse;
@@ -65,6 +67,17 @@ public class ReportGrpcClient {
                 .setSize(size)
                 .build();
         return stubWithAuth.getTopInterns(request);
+    }
+
+     public ReportProgressResponse getProgressResponse(String jwtToken,List<Long> userIds) {
+        JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
+        ReportServiceGrpc.ReportServiceBlockingStub stubWithAuth = blockingStub.withInterceptors(authInterceptor);
+
+        ReportProgressRequest request = ReportProgressRequest.newBuilder()
+                .addAllUserId(userIds)
+                .build();
+
+        return stubWithAuth.getReportProgress(request);
     }
 
     public UserUniversityStatsResponse getUserUniversityStats(String jwtToken,List<Long> userIds) {
