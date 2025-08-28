@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 
 import com.example.report_service.dto.GenericStatsDTO;
 import com.example.report_service.dto.ManagerReportStatsDTO;
+import com.example.report_service.dto.ReportProgressDTO;
 import com.example.report_service.dto.ReportStatsDTO;
 import com.example.report_service.dto.ReviewStatsDTO;
 import com.example.report_service.dto.UserUniversityStatsDTO;
@@ -179,6 +180,33 @@ public class ReportGrpcService extends ReportServiceGrpc.ReportServiceImplBase {
 
         responseObserver.onNext(responseBuilder.build());
         responseObserver.onCompleted();
+    }
+
+    @Override
+    public void getReportProgress(ReportProgressRequest request, StreamObserver<ReportProgressResponse> responseObserver) {
+        try {
+
+            List<ReportProgressDTO> result = service.getReportProgress(request.getUserIdList());
+            if (result == null || result.isEmpty()) {
+                responseObserver.onError(new RuntimeException("No reports found"));
+                return;
+            }
+            // Build gRPC response
+            ReportProgressResponse.Builder responseBuilder = ReportProgressResponse.newBuilder();
+            for (ReportProgressDTO dto : result) {
+                SingleProgress progress = SingleProgress.newBuilder()
+                        .setUserId(dto.getInternId())               // Long → int64
+                        .setProgress(dto.getAverageRating())
+                        .setTotalReports(dto.getTotalReports())
+                        .build();
+                responseBuilder.addProgress(progress);
+            }
+            responseObserver.onNext(responseBuilder.build());
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
     }
 
 

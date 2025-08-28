@@ -67,6 +67,7 @@ message ProjectResponse {
   int64 project_id = 1;
   string project_name = 2;
   string project_description = 3;
+  double progress=4;
 }
 
 message MilestoneResponseProto {

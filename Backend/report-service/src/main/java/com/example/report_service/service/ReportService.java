@@ -18,6 +18,7 @@ import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -516,6 +517,8 @@ public class ReportService {
         return reviewRepos.calculateAverageRatingForUsers(userIds);
     }
 
+
+
     
 
     @Transactional
@@ -574,6 +577,38 @@ public class ReportService {
                 result.setTotalReports(reportRepos.countReportsByUserIds(userIds));
 
                 System.out.print("----------------------->" + result);
+                return result;
+
+        }
+
+        @Transactional
+        public List<ReportProgressDTO> getReportProgress(List<Long> userIds){
+                //get report progress for each users
+                List<UserReportCountDTO> rprogress= reportRepos.countReportByUserIds( userIds);
+                if (rprogress==null){
+                        new RuntimeException("No reports found for users");
+                }
+
+                //get review rating for  each users
+                List<InternRatingProjection> rating= reviewRepos.calculateAverageRatingsForUsers(userIds);
+                if (rating==null){
+                        new RuntimeException("No reviews found for users");
+                }
+
+                //collect rating and total reports
+                Map<Long,Double> mapping =new HashMap<>();
+                for(InternRatingProjection r:rating){
+                        mapping.put(r.getInternId(),r.getAverageRating());
+                }
+
+                //collect into the list and return 
+                List<ReportProgressDTO> result = new ArrayList<>();
+                for(UserReportCountDTO r:rprogress){
+                        if(!mapping.containsKey(r.getUserId())){
+                                continue;
+                        }
+                        result.add(new ReportProgressDTO(r.getUserId(),mapping.get(r.getUserId()),r.getReportCount()));
+                }
                 return result;
 
         }

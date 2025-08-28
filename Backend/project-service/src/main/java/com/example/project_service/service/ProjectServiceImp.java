@@ -781,8 +781,42 @@ public class ProjectServiceImp implements ProjectServiceInterface {
 
         return result;
 }
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectProgressDTO> getProjectProgress(List<Long> project_ids){
+        //get needed data from the data
+        List<Project> projects=projectRepo.findByProjectIds(project_ids);
+        if (projects==null){
+            new RuntimeException("Project not found");
+        }
+        List<ProjectMilestoneStatsDTO> stats=milestoneRepo.findMilestoneStatsByProjectsAndStatus(project_ids, MilestoneStatus.PENDING);
+        if (stats==null){
+            new RuntimeException("Milestone not found");
+        } 
+        //compute rating and use map for lookup
+        Map<Long,Long> mapping= new HashMap<>();
+        for(ProjectMilestoneStatsDTO stat: stats){
+            if (stat.getTotalMilestones()==0){
+                continue;
+            }
+            Long rating=stat.getStatusCount()/stat.getTotalMilestones();
+            mapping.put(stat.getProjectId(), rating);
+        }
 
+        List<ProjectProgressDTO> response=new ArrayList<>();
+        for(Project project:projects){
+            if(mapping.get(project.getId())==null){
+                continue;
+            }
+            ProjectProgressDTO dto=new ProjectProgressDTO();
+            dto.setProjectID(project.getId());
+            dto.setProjectName(project.getName());
+            dto.setProjectDescription(project.getDescription());
+            dto.setProgress(mapping.get(project.getId()));
+        }
+        return response;
 
+    }
 
     public ProjectResponse mapToDto(Project project) {
         ProjectResponse dto = new ProjectResponse();
