@@ -337,9 +337,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User updateUser(Long id, User updatedUser) {
-        User existingUser = userRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    public User updateUser(Long userId, User updatedUser) {
+        User existingUser = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
         // Only update fields if they're not null
         if (updatedUser.getFirstName() != null) {
@@ -381,6 +381,14 @@ public class UserServiceImpl implements UserService {
         if (updatedUser.getLastLogin() != null) {
             existingUser.setLastLogin(updatedUser.getLastLogin());
         }
+
+        if (updatedUser.getNotifyEmail() != null) {
+            existingUser.setNotifyEmail(updatedUser.getNotifyEmail());
+        }
+        if (updatedUser.getVisibility() != null) {
+            existingUser.setVisibility(updatedUser.getVisibility());
+        }
+
 
         return userRepo.save(existingUser);
     }

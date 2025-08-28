@@ -31,7 +31,7 @@ public class GrpcClientConfig {
     @Value("${grpc.server.notification-port}")
     private int notification_port;
 
-
+//
     @Value("${grpc.server.application-address}")
     private String application_host;
 

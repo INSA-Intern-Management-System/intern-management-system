@@ -63,22 +63,8 @@ public class NotificationController {
         String roleStr = (String) request.getAttribute("role");
 
         try {
-            String enumRole;
-
-            if ("HR".equalsIgnoreCase(roleStr)) {
-                // Keep HR as-is
-                enumRole = "HR";
-            } else {
-                // Convert roles like "PROJECT_MANAGER" → "Project_Manager"
-                enumRole = Arrays.stream(roleStr.split("_"))
-                        .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase())
-                        .collect(Collectors.joining("_")); // join with underscore
-            }
-
-            RecipientRole role = RecipientRole.valueOf(enumRole);
-
+            RecipientRole role = RecipientRole.valueOf(roleStr);
             Pageable pageable = PageRequest.of(page, size);
-
             Page<Notification> notifications = notificationService.getNotificationsByRole(role, pageable);
             return ResponseEntity.ok(notifications);
 
@@ -223,17 +209,18 @@ public class NotificationController {
             if (roleString == null) {
                 return ResponseEntity.status(403).body("User role not found");
             }
+            RecipientRole recipientRole = RecipientRole.valueOf(roleString);
 
-            RecipientRole role;
-            try {
-                role = normalizeRole(roleString);
-            } catch (IllegalArgumentException ex) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Invalid role: " + roleString);
-            }
+//            RecipientRole role;
+//            try {
+//                role = normalizeRole(roleString);
+//            } catch (IllegalArgumentException ex) {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                        .body("Invalid role: " + roleString);
+//            }
 
             // Mark notification as read
-            Notification notification = notificationService.markAsRead(id, role);
+            Notification notification = notificationService.markAsRead(id,recipientRole);
 
             // Map to Response DTO
             NotificationResponse responseDto = new NotificationResponse();
@@ -284,16 +271,18 @@ public class NotificationController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Role not found in request");
             }
-            // ✅ Convert role string (uppercase) to enum
-            RecipientRole role;
-            try {
-                role = normalizeRole(roleString);
-            } catch (IllegalArgumentException ex) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Invalid role: " + roleString);
-            }
 
-            List<NotificationRecipients> notifications = notificationService.markAllAsRead(role);
+            RecipientRole recipientRole = RecipientRole.valueOf(roleString);
+            // ✅ Convert role string (uppercase) to enum
+//            RecipientRole role;
+//            try {
+//                role = normalizeRole(roleString);
+//            } catch (IllegalArgumentException ex) {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                        .body("Invalid role: " + roleString);
+//            }
+
+            List<NotificationRecipients> notifications = notificationService.markAllAsRead(recipientRole);
 
             return ResponseEntity.ok(notifications);
         } catch (Exception e) {
@@ -326,7 +315,5 @@ public class NotificationController {
 
         return RecipientRole.valueOf(normalized);
     }
-
-
 
 }
