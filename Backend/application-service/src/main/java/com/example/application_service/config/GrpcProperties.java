@@ -10,6 +10,7 @@ public class GrpcProperties {
     private int port;
     private int maxMessageSize;
 
+    // getters and setters
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
 
@@ -19,3 +20,6 @@ public class GrpcProperties {
     public int getMaxMessageSize() { return maxMessageSize; }
     public void setMaxMessageSize(int maxMessageSize) { this.maxMessageSize = maxMessageSize; }
 }
+
+
+

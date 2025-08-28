@@ -68,8 +68,7 @@ message UserResponse {
   string university = 5;
   Status status = 6;
   RoleMessage role = 7;
-  Boolean notify_email = 8;
-
+  bool notify_email = 8;   // ✅ fixed Boolean -> bool
 }
 
 message UsersResponse {

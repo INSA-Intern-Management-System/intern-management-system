@@ -161,10 +161,13 @@ public class LeaveController {
             String role = (String) request.getAttribute("role");
             Long userId = (Long) request.getAttribute("userId");
 
-            if(!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)){
+            if(!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role) && !"STUDENT".equalsIgnoreCase(role)){
                 return errorResponse("Unauthorized: Only PROJECT_MANAGER and HR can view leave status counts");
             }
-            if ("HR".equalsIgnoreCase(role)) {
+            if ("STUDENT".equalsIgnoreCase(role)) {
+                Map<String, Long> counts = leaveService.getLeaveStatusCountsForStudent(userId);
+                return ResponseEntity.ok(counts);
+            }else if ("HR".equalsIgnoreCase(role)) {
                 Map<String, Long> counts = leaveService.getLeaveStatusCounts();
                 return ResponseEntity.ok(counts);
             }else{

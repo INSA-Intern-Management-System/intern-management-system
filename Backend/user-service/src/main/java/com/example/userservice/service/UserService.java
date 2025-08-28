@@ -68,6 +68,7 @@ public interface UserService {
     Map<String, Long> getUserRoleCounts();
 
     Role createRole(RolesDTO dto);
+    
 
     long countActiveInterns();
     long countSupervisor();
@@ -75,9 +76,15 @@ public interface UserService {
     Page<User> searchSupervisors(String query, String institution, Pageable pageable);
     Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable);
 
-    UserStatsResponse userStats();
+    //count user using status 
+    Long countByRoleAndUserStatus(String role, UserStatus userStatus);
+    //get list of users based on lists of user id
+    List<UserMessageDTO> getUsersByIds(List<Long> ids);
+    Page<User> getInternsForUniveristy(String where, Pageable pageable);
+    Page<User> searchByRoleInstitutionAndKeyword( String institution, String keyword, Pageable pageable);
+    Page<User> findByRoleAndInstitutionAndSupervisorName(String institution, String supervisorName, Pageable pageable);
     InternStatusesCount countInternStatuses();
-
+    UserStatsResponse userStats();
 
 
 }

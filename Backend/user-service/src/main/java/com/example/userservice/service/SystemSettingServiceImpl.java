@@ -146,7 +146,7 @@ public class SystemSettingServiceImpl implements SystemSettingService{
         if (!maintenanceModeBefore && maintenanceModeAfter) {
             try {
                 notificationGrpcClient.sendNotification(
-                        Set.of(RecipientRole.HR,RecipientRole.Student,RecipientRole.University,RecipientRole.Project_Manager, RecipientRole.Supervisor),       // send to university
+                        Set.of(RecipientRole.HR,RecipientRole.STUDENT,RecipientRole.UNIVERSITY,RecipientRole.PROJECT_MANAGER, RecipientRole.SUPERVISOR),       // send to university
                         "System Maintenance Mode Activated",    // title
                         "The system has been put under maintenance mode. Logins are temporarily disabled.", // description
                         Instant.now(),

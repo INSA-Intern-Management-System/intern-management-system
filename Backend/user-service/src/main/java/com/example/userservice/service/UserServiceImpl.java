@@ -18,8 +18,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -384,6 +382,14 @@ public class UserServiceImpl implements UserService {
             existingUser.setLastLogin(updatedUser.getLastLogin());
         }
 
+        if (updatedUser.getNotifyEmail() != null) {
+            existingUser.setNotifyEmail(updatedUser.getNotifyEmail());
+        }
+        if (updatedUser.getVisibility() != null) {
+            existingUser.setVisibility(updatedUser.getVisibility());
+        }
+
+
         return userRepo.save(existingUser);
     }
 
@@ -441,6 +447,25 @@ public class UserServiceImpl implements UserService {
     public Page<User> filterSupervisorByInstitution(String institution, Pageable pageable) {
         Role supervisorRole = roleRepo.findByName("SUPERVISOR");
         return userRepo.findByRoleAndInstitution(supervisorRole, institution, pageable);
+    }
+
+    @Override
+    public Page<User> getInternsForUniveristy(String where, Pageable pageable){
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.findByRoleAndInstitution(studentRole, where, pageable);
+
+    }
+
+    @Override
+    public Page<User> searchByRoleInstitutionAndKeyword(String institution, String keyword, Pageable pageable){
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.searchByRoleInstitutionAndKeyword(studentRole,institution,keyword,pageable);
+    }
+
+    @Override
+    public Page<User> findByRoleAndInstitutionAndSupervisorName(String institution, String supervisorName, Pageable pageable){
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.findByRoleAndInstitutionAndSupervisorName(studentRole,institution,supervisorName,pageable);
     }
 
     @Override
@@ -657,6 +682,34 @@ public class UserServiceImpl implements UserService {
                 pageable
         );
     }
+    @Override
+    public Long countByRoleAndUserStatus(String role, UserStatus userStatus){
+    
+        Role studentRole = roleRepo.findByName("STUDENT");
+        UserStatus activeStatus = UserStatus.valueOf("ACTIVE");
+        return userRepo.countByRoleIdAndUserStatus(studentRole.getId(), activeStatus);
+    }
+    
+    @Override
+    public List<UserMessageDTO> getUsersByIds(List<Long> ids) {
+        List<User> users = userRepo.findByIdIn(ids);
+        List<UserMessageDTO> userMessages = new ArrayList<>();
+        for (User user : users) {
+            UserMessageDTO userMessage = new UserMessageDTO(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getFieldOfStudy(),
+                user.getInstitution(),
+                user.getStatus(),
+                user.getRole()
+            );
+            userMessages.add(userMessage);
+        }
+        return userMessages;
+            
+
+    }
 
     @Override
     public long countSupervisor(){
@@ -751,5 +804,6 @@ public class UserServiceImpl implements UserService {
         }
 
     }
+
 
 }

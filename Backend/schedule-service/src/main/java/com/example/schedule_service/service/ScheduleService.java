@@ -66,6 +66,7 @@ public class ScheduleService {
     public HashMap<String,Object> getSchedulesByUserId(String jwtToken,Long userId, Pageable pageable) {
         Page<Schedule> schedulesPage = scheduleRepository.findByUserId(userId, pageable);
         InternManagerResponse internDTO = internManagerGrpcClient.getInternManagerByUserId(jwtToken, userId);
+  
         List<MilestoneResponse> milestoneDTOs = new ArrayList<>();
         if (internDTO != null && internDTO.getProjectId() != 0) {
             AllMilestones activeMilestones = projectManagerGrpcClient

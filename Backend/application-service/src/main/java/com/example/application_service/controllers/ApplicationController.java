@@ -449,7 +449,7 @@ public class ApplicationController {
 
             try {
                 notificationGrpcClient.sendNotification(
-                        Set.of(RecipientRole.University), // ✅ send to university
+                        Set.of(RecipientRole.UNIVERSITY), // ✅ send to university
                         "Application Status Update",
                         message,                          // ✅ use message as description
                         Instant.now(),

@@ -1,6 +1,12 @@
 package com.example.userservice.gRPC;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.example.userservice.model.InternManager;
+import com.example.userservice.model.Project;
+import com.example.userservice.model.Team;
 import com.example.userservice.repository.InternManagerReposInterface;
 import com.example.userservice.security.JwtServerInterceptor;
 
@@ -38,6 +44,24 @@ public class InternManagerGrpcService extends InternManagerServiceGrpc.InternMan
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+    }
+
+     @Override
+    public void createInternManager(CreateRequest request, StreamObserver<CreateResponse> responseObserver) {
+        try {
+            List<Long> userIds = request.getUserIdsList();
+            List<InternManager> internManagers=repository.createOrUpdateInternManagers(userIds, request.getProjectId(), request.getManagerId(), request.getTeamId());
+            
+            CreateResponse response = CreateResponse.newBuilder()
+                    .setMessage(true)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            responseObserver.onError(new RuntimeException("Failed to create/update intern managers: " + e.getMessage()));
+        }
     }
 
     // @Override

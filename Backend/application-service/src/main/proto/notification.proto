@@ -9,19 +9,20 @@ option java_package = "com.example.grpc";
 option java_outer_classname = "NotificationProto";
 
 enum RecipientRole {
-  Student = 0;
-  HR = 1;
-  Project_Manager = 2;
-  University = 3;
-  Supervisor = 4;
+  RECIPIENT_ROLE_UNSPECIFIED = 0;
+  STUDENT = 1;
+  HR = 2;
+  PROJECT_MANAGER = 3;
+  UNIVERSITY = 4;
+  SUPERVISOR = 5;
 }
 
-enum NotificationType{
-     ALERT = 0;
-     INFO = 1;
-     WARNING = 2;
-     SUCCESS = 3;
-     CHANGE = 4;
+enum NotificationType {
+  ALERT = 0;
+  INFO = 1;
+  WARNING = 2;
+  SUCCESS = 3;
+  CHANGE = 4;
 }
 
 service NotificationService {
@@ -32,7 +33,7 @@ message NotificationRequest {
   repeated RecipientRole roles = 1;      // multiple roles supported
   string title = 2;
   string description = 3;
-  NotificationType notificationType= 4;
+  NotificationType notificationType = 4;
   google.protobuf.Timestamp created_at = 5;
 }
 

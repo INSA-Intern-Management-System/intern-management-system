@@ -1,13 +1,16 @@
 package com.example.application_service.config;
 
-import com.example.application_service.gRPC.ApplicationGrpcService;
-import com.example.application_service.repository.ApplicationRepository;
-import com.example.applicationservice.grpc.ApplicationServiceGrpc;
+
 import io.grpc.Server;
+import io.grpc.ServerInterceptors;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
+
+import com.example.application_service.gRPC.ApplicationGrpcService;
+import com.example.application_service.security.JwtServerInterceptor;
+import com.example.application_service.services.ApplicationService;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
@@ -15,13 +18,17 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class GrpcServerRunner {
 
-    private final ApplicationRepository applicationRepository;
+    private final ApplicationService service;
+    private final JwtServerInterceptor jwtInterceptor;
     private final GrpcProperties grpcProperties;
+
     private Server server;
 
-    public GrpcServerRunner(ApplicationRepository applicationRepository,
+    public GrpcServerRunner(ApplicationService service,
+                            JwtServerInterceptor jwtInterceptor,
                             GrpcProperties grpcProperties) {
-        this.applicationRepository = applicationRepository;
+        this.service = service;
+        this.jwtInterceptor = jwtInterceptor;
         this.grpcProperties = grpcProperties;
     }
 
@@ -32,12 +39,16 @@ public class GrpcServerRunner {
                 .maxInboundMessageSize(grpcProperties.getMaxMessageSize())
                 .permitKeepAliveTime(5, TimeUnit.SECONDS);
 
-        // Register ApplicationGrpcService (no JWT interceptor unless you need auth)
-        builder.addService(new ApplicationGrpcService(applicationRepository));
+        // Register each service separately, with the JWT interceptor applied
+        builder.addService(ServerInterceptors.intercept(
+                new ApplicationGrpcService(service),
+                jwtInterceptor
+        ));
+    
 
         server = builder.build().start();
 
-        System.out.println("✅ Application-service gRPC server started on "
+        System.out.println("✅ gRPC server started on "
                 + grpcProperties.getAddress() + ":" + grpcProperties.getPort());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -52,13 +63,15 @@ public class GrpcServerRunner {
     @PreDestroy
     public void stop() throws InterruptedException {
         if (server != null) {
-            System.out.println("⏳ Shutting down application-service gRPC server...");
+            System.out.println("⏳ Shutting down gRPC server...");
             server.shutdown();
             if (!server.awaitTermination(10, TimeUnit.SECONDS)) {
-                System.out.println("⚠️ Timed out waiting, forcing shutdown now.");
+                System.out.println("⚠️ Timed out waiting for gRPC server to shutdown, forcing now.");
                 server.shutdownNow();
             }
-            System.out.println("✅ Application-service gRPC server stopped.");
+            System.out.println("✅ gRPC server stopped.");
         }
     }
 }
+
+

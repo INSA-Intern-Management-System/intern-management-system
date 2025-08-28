@@ -15,7 +15,7 @@ public class JwtServerInterceptor implements ServerInterceptor {
 
     // Define the custom metadata key for the token, matching the client
     private static final Metadata.Key<String> COOKIE_TOKEN_KEY =
-            Metadata.Key.of("access-token", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(

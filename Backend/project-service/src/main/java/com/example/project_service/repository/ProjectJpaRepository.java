@@ -36,5 +36,8 @@ public interface ProjectJpaRepository extends JpaRepository<Project, Long> {
     Long countByStatus(ProjectStatus status);
 
     List<Project> findByIdIn(List<Long> ids);
+
+    //delete project by id
+    void deleteById(Long id);
 }
 
