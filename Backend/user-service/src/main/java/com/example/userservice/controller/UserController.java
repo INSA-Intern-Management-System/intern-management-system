@@ -419,8 +419,6 @@ public class UserController {
         }
     }
 
-
-
     @GetMapping
     public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "10") int size,
@@ -490,6 +488,22 @@ public class UserController {
         }
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(HttpServletRequest request, @PathVariable Long id){
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+            User user = userService.getUserById(id);
+            return ResponseEntity.ok(new UserResponseDto(user));
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getUser(HttpServletRequest request){
         try{
@@ -536,7 +550,7 @@ public class UserController {
             if (token == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
-            Long userId=(Long) request.getAttribute("userId");
+            Long userId= (Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
 
 
@@ -588,9 +602,6 @@ public class UserController {
                     .body("Failed to update user: " + e.getMessage());
         }
     }
-
-
-
 
     @GetMapping("/interns")
     public ResponseEntity<?> getInterns(
@@ -959,6 +970,139 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/admin/dashboard")
+    public ResponseEntity<?> getAdminDashboard(HttpServletRequest request, Pageable pageable) {
+        try {
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            String role = (String) request.getAttribute("role");
+
+            if (!"ADMIN".equalsIgnoreCase(role) ) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only Admin can access admin dashboard."));
+            }
+
+            UserStatsResponse userStats = userService.userStats();
+
+            GetAllActivitiesResponse grpcResponse =
+                    activityGrpcClient.getAllActivities(token, pageable.getPageNumber(), pageable.getPageSize());
+
+//         5️⃣ Map protobuf response to DTOs
+            List<ActivityDTO> allActivities = grpcResponse.getActivitiesList().stream()
+                    .map(a -> new ActivityDTO(
+                            a.getId(),
+                            a.getUserId(),
+                            a.getTitle(),
+                            a.getDescription(),
+                            LocalDateTime.parse(a.getCreatedAt())
+                    ))
+                    .toList();
+
+            Map<String, Object> combinedResponse = new HashMap<>();
+            combinedResponse.put("userStats", userStats);
+            combinedResponse.put("allActivities", allActivities);
+
+            return ResponseEntity.ok(combinedResponse);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An internal error occurred while gettting Admin Dashboard!");
+        }
+    }
+
+    @GetMapping("/university/dashboard")
+    public ResponseEntity<?> getUniversityDashboard(HttpServletRequest request, Pageable pageable) {
+
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
+
+        if(!"UNIVERSITY".equalsIgnoreCase(role)){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only University can get university dashboard."));
+        }
+
+        // 2️⃣ Get userId from request attribute
+        Long userId = (Long) request.getAttribute("userId");
+
+        InternStatusesCount internStatusesCount = userService.countInternStatuses();
+        long supervisorCount = userService.countSupervisor();
+
+        // 4️⃣ Fetch recent activities from gRPC
+        GetRecentActivitiesResponse grpcResponse =
+                activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        // 5️⃣ Map protobuf response to DTOs
+        List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
+                .map(a -> new ActivityDTO(
+                        a.getId(),
+                        a.getUserId(),
+                        a.getTitle(),
+                        a.getDescription(),
+                        LocalDateTime.parse(a.getCreatedAt())
+                ))
+                .toList();
+
+
+
+        // 7️⃣ Combine into single response
+        Map<String, Object> combinedResponse = new HashMap<>();
+        combinedResponse.put("internStatusesCount", internStatusesCount);
+        combinedResponse.put("supervisorCount", supervisorCount);
+        combinedResponse.put("recentActivities", activityList);
+
+        return ResponseEntity.ok(combinedResponse);
+    }
+
+    @GetMapping("/role-count")
+    public ResponseEntity<?> getUserRoleCounts(HttpServletRequest request) {
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)  ){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only HR can assign_project manager for student."));
+        }
+        Map<String, Long> roleCounts = userService.getUserRoleCounts();
+        return ResponseEntity.ok(roleCounts);
+    }
+
+    @GetMapping("/status-count")
+    public ResponseEntity<?> getAllUserStatusCount(HttpServletRequest request) {
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+
+        List<UserStatusCount> roleCounts = userService.countUsersByStatus();
+        Long totalUser = userService.countAllUsers();
+
+        Map<String, Long> statusMap = roleCounts.stream()
+                .collect(Collectors.toMap(
+                        item -> item.getUserStatus().toString(), // Convert enum to String
+                        UserStatusCount::getCount
+                ));
+
+//        Map<String, Object> response = Map.of("statuses", statusMap);
+
+        Map<String, Object> combinedResponse = new HashMap<>();
+        combinedResponse.put("totalUser", totalUser);
+        combinedResponse.put("statuses", statusMap);
+
+
+        return ResponseEntity.ok(combinedResponse);
+    }
 
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
@@ -1449,35 +1593,6 @@ public class UserController {
         }
     }
 
-
-    private ResponseEntity<?> errorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-    }
-    private String extractAccessToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
-    private UserResponseDto mapToDTO(User user) {
-        return new UserResponseDto(user);
-    }
-    private void logActivity(String jwtToken, Long userId, String action, String description) {
-        try {
-            activityGrpcClient.createActivity(jwtToken, userId, action, description);
-        } catch (Exception e) {
-            // Log the failure, but do NOT block business logic
-            System.err.println("Failed to log activity: " + e.getMessage());
-        }
-    }
-
-     
     
     private Long countUserByStatus(String role,UserStatus status){
         try{
@@ -1699,6 +1814,33 @@ public class UserController {
             // return empty list if any error
         }
         return milestoneDTOs;
+    }
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+    private String extractAccessToken(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+    private UserResponseDto mapToDTO(User user) {
+        return new UserResponseDto(user);
+    }
+    private void logActivity(String jwtToken, Long userId, String action, String description) {
+        try {
+            activityGrpcClient.createActivity(jwtToken, userId, action, description);
+        } catch (Exception e) {
+            // Log the failure, but do NOT block business logic
+            System.err.println("Failed to log activity: " + e.getMessage());
+        }
     }
 
 
