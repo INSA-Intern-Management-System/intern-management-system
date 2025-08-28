@@ -54,6 +54,9 @@ public interface ProjectServiceInterface {
 
     Page<TeamDetailsResponse> getDetailedTeamsForHr(String jwtToken,Pageable pageable);
     Page<TeamDetailsResponse> getDetailedTeamsForPm(String jwtToken,Long managerId, Pageable pageable);
+    List<ProjectProgressDTO>  getProjectProgress(List<Long> project_ids);
+
+    
 
 
 }

@@ -8,15 +8,17 @@ public class ProjectDTO {
     private Long id;
     private String name;
     private String description;
+    private Double progress;
 
 
     public ProjectDTO() {
     }
 
-    public ProjectDTO(Long id, String name, String description) {
+    public ProjectDTO(Long id, String name, String description,Double progress) {
         this.id = id;
         this.name = name;
         this.description = description;
+        this.progress=progress;
     }
 
     // Getters and setters...
@@ -43,6 +45,14 @@ public class ProjectDTO {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Double getProgress(){
+        return progress;
+    }
+
+    public void setProgress(Double progress){
+        this.progress=progress;
     }
 
 }
