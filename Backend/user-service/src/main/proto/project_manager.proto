@@ -15,6 +15,8 @@ service ProjectManagerService {
   rpc getProjectStatsForPM(UserProjectRequest) returns (ProjectStatsResponse);
   rpc getProjectStatsForHR(google.protobuf.Empty) returns (ProjectStatsResponse);
   rpc getMilestoneStats(ProjectIds) returns (MilestoneStatsResponse);
+  rpc getMilestoneForUniversity(ProjectIds) returns (MilestoneStats);
+
 }
 
 
@@ -29,6 +31,11 @@ enum MilestoneStatusProto {
 
 message ProjectIds {
   repeated int64 project_ids = 1;
+}
+
+message MilestoneStats{
+  int64 total=1;
+  int64 completed=2;
 }
 
 message StatsResponse {

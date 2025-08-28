@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import com.example.project_service.gRPC.AllMilestones;
 import com.example.project_service.gRPC.AllProjectRequests;
 import com.example.project_service.gRPC.AllProjectResponses;
+import com.example.project_service.gRPC.MilestoneStats;
 import com.example.project_service.gRPC.MilestoneStatsResponse;
 import com.example.project_service.gRPC.ProjectIds;
 import com.example.project_service.gRPC.ProjectManagerServiceGrpc;
@@ -100,7 +101,20 @@ public class ProjectManagerGrpcClient {
         // Call gRPC method and return response
         return stubWithAuth.getMilestoneStats(request);
 
-}
+}       
+        public MilestoneStats getMilestoneStatsForUnivseristy(String jwtToken, List<Long> projectIds) {
+                // Attach JWT token for authentication
+                JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
+                ProjectManagerServiceGrpc.ProjectManagerServiceBlockingStub stubWithAuth = blockingStub.withInterceptors(authInterceptor);
+
+                // Build request
+                ProjectIds request = ProjectIds.newBuilder()
+                        .addAllProjectIds(projectIds)
+                        .build();
+
+                // Call gRPC method and return response
+                return stubWithAuth.getMilestoneForUniversity(request);
+        }
 
 
 

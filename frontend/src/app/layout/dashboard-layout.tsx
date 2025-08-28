@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { User } from "@/types/entities";
 import { Sidebar } from "@/components/sidebar";
 import { api } from "@/api/axios";
-import { University } from "lucide-react";
+import { Toaster } from "@/components/ui/toaster";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -38,15 +38,13 @@ export default async function DashboardLayout({
   const user = await getUser();
   let userRole = user.roles.name.toLowerCase();
   if (userRole === "admin") {
-    userRole = "admin";}
-  else if (userRole === "hr" || userRole === "project_manager") {
-    userRole="company"
-  }
-  else if (userRole === "supervisor") {
-    userRole="University"
-  }
-  else if (userRole === "student") {
-    userRole="student"
+    userRole = "admin";
+  } else if (userRole === "hr" || userRole === "project_manager") {
+    userRole = "company";
+  } else if (userRole === "supervisor") {
+    userRole = "University";
+  } else if (userRole === "student") {
+    userRole = "student";
   }
 
   if (requiredRole && userRole !== requiredRole.toLowerCase()) {
@@ -60,7 +58,10 @@ export default async function DashboardLayout({
         userName={`${user.firstName} ${user.lastName}`.trim()}
       />
       <div className="lg:ml-64 transition-all duration-300">
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          {children}
+          <Toaster />
+        </main>
       </div>
     </div>
   );

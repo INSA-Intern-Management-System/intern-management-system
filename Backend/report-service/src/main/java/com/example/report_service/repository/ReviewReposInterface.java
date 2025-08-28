@@ -14,7 +14,9 @@ public interface ReviewReposInterface {
     Double calculateAverageRatingByManagerId(Long managerId);
     Double calculateGlobalAverageRating();
     Review findByReportId(Long reportId);
-
     List<InternRatingProjection> getTopKthInterns(Pageable pageable);
+    Double calculateAverageRatingForUsers(List<Long> userIds);
+    List<InternRatingProjection> calculateAverageRatingsForUsers(List<Long> userIds);
+    List<Review> findLastReviewByUserIds(List<Long> userIds);
 
 }

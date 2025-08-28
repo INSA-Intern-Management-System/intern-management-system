@@ -104,10 +104,25 @@ public class ProjectController {
             String role = (String) httpRequest.getAttribute("role");
             Long userId = (Long) httpRequest.getAttribute("userId");
 
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
+
             if ("HR".equalsIgnoreCase(role)) {
-                return ResponseEntity.ok(projectService.getDetailedProjectsForHr(pageable));
+                return ResponseEntity.ok(projectService.getDetailedProjectsForHr(jwtToken,pageable));
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
-                return ResponseEntity.ok(projectService.getDetailedProjectsForPm(userId, pageable));
+                return ResponseEntity.ok(projectService.getDetailedProjectsForPm(jwtToken,userId, pageable));
             } else {
                 return errorResponse("Unauthorized: Only PM and HR can view projects");
             }
@@ -116,12 +131,44 @@ public class ProjectController {
         }
     }
 
+    @DeleteMapping("/del/{projectId}")
+    public ResponseEntity<?> deleteProject(@PathVariable Long projectId, HttpServletRequest httpRequest){
+        try{
+            String role = (String) httpRequest.getAttribute("role");
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)){
+                return errorResponse("Unauthorized: Only PM can delete projects");
+            }
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
+            projectService.deleteProject(jwtToken,userId,projectId);
+            return successResponse("Project deleted");
+        }catch(RuntimeException e){
+            return errorResponse(e.getMessage());
+
+        }
+    }
+
+
     @PatchMapping("/{projectId}/status")
     public ResponseEntity<?> updateProjectStatus(@PathVariable Long projectId,
                                                  @RequestParam ProjectStatus newStatus,
                                                  HttpServletRequest httpRequest) {
         try {
             String role = (String) httpRequest.getAttribute("role");
+            Long user_id =(Long)httpRequest.getAttribute("userId");
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: Only PM can change project status");
             }
@@ -140,8 +187,38 @@ public class ProjectController {
             if (jwtToken == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             } 
-            ProjectResponse updated = projectService.updateProjectStatus(jwtToken,projectId, newStatus);
+            ProjectResponse updated = projectService.updateProjectStatus(jwtToken,user_id,projectId, newStatus);
             return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return errorResponse(e.getMessage());
+        }
+    }
+
+    @PatchMapping("update/status")
+    public ResponseEntity<?> updateStatuses(UpdateRequestDTO request,HttpServletRequest httpRequest) {
+        try {
+            String role = (String) httpRequest.getAttribute("role");
+            Long user_id=(Long)httpRequest.getAttribute("userId");
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only PM can change project status");
+            }
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
+            projectService.updateStatus(jwtToken,user_id, request);
+            return ResponseEntity.ok("Statuses updated");
         } catch (RuntimeException e) {
             return errorResponse(e.getMessage());
         }
@@ -183,11 +260,25 @@ public class ProjectController {
         try {
             String role = (String) httpRequest.getAttribute("role");
             Long userId = (Long) httpRequest.getAttribute("userId");
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
             if ("HR".equalsIgnoreCase(role)) {
-                return ResponseEntity.ok(projectService.getDetailedTeamsForHr(pageable));
+                return ResponseEntity.ok(projectService.getDetailedTeamsForHr(jwtToken,pageable));
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
-                return ResponseEntity.ok(projectService.getDetailedTeamsForPm(userId, pageable));
+                return ResponseEntity.ok(projectService.getDetailedTeamsForPm(jwtToken,userId, pageable));
             } else {
                 return errorResponse("Unauthorized: Only PM and HR can view teams");
             }
@@ -196,6 +287,39 @@ public class ProjectController {
         }
     }
 
+    @DeleteMapping("/teams/{teamId}")
+    public ResponseEntity<?> deleteTeam(@PathVariable Long teamId, HttpServletRequest httpRequest){
+        try{
+            String role = (String) httpRequest.getAttribute("role");
+            Long userId = (Long) httpRequest.getAttribute("userId");
+
+            //only project manager can delete the project
+            if(!"PROJECT_MANAGER".equalsIgnoreCase(role)){
+                return errorResponse("Unauthorized: Only PM can delete teams");
+            }
+
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            } 
+            projectService.deleteTeam(jwtToken,userId, teamId);
+            return ResponseEntity.ok("successfully deleted the team");
+        }
+        catch (RuntimeException e) {
+            return errorResponse(e.getMessage());
+        }
+    }
+    
     // -------------------- TEAM MEMBERS --------------------
 
     @PostMapping("/teams/members")

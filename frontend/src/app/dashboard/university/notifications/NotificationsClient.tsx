@@ -32,17 +32,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-interface Notification {
-  id: number;
-  title: string;
-  description: string;
-  created_at: string;
-  is_read: boolean;
-  type: string;
-  priority: string;
-  role: string[];
-}
-
+import { type Notification } from "@/app/services/notificationService";
 interface NotificationsClientProps {
   initialNotifications: Notification[];
 }

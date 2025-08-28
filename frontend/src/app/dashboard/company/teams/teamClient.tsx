@@ -561,7 +561,11 @@ export default function CompanyTeamsClient({
         variant: "destructive",
       });
       if (error.message.includes("Unauthorized")) {
-        router.push("/login");
+        toast({
+          title: "Unauthorized",
+          description: "You do not have permission to delete this team.",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -1025,7 +1029,7 @@ export default function CompanyTeamsClient({
                       </Button>
                     )}
 
-                    {/* {confirmingAction?.teamId === team.id &&
+                    {confirmingAction?.teamId === team.id &&
                     confirmingAction.action === "removeTeam" ? (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
                         <p className="text-sm font-medium text-red-800">
@@ -1074,7 +1078,7 @@ export default function CompanyTeamsClient({
                         <Trash2 className="h-4 w-4 mr-2" />
                         Remove Team
                       </Button>
-                    )} */}
+                    )}
                   </div>
                 </div>
               </CardContent>

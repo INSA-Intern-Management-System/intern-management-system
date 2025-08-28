@@ -66,7 +66,7 @@ public class Applicant {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    ;
+
 
 
     public Long getId() {

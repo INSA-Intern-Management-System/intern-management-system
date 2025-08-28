@@ -98,12 +98,10 @@ export const fetchApplications = async (
     else if (status && status !== "all") {
       url = "/applications/filter/status";
       params.status = status;
-    }
-    else if (position && position !== "all") {
+    } else if (position && position !== "all") {
       url = "/applications/filter/position";
       params.position = position;
-    }
-    else if (university && university !== "all") {
+    } else if (university && university !== "all") {
       url = "/applications/filter/university";
       params.university = university;
     }
@@ -239,7 +237,10 @@ export const fetchApplicationById = async (
     );
     return formatApplication(response.data);
   } catch (error: any) {
-    console.error(`Failed to fetch application with id ${applicationId}:`, error);
+    console.error(
+      `Failed to fetch application with id ${applicationId}:`,
+      error
+    );
     if (error.response?.status === 404) {
       return null;
     }
@@ -273,16 +274,13 @@ export const fetchAllApplications = async (
         if (status && status !== "all") params.status = status;
         if (position && position !== "all") params.position = position;
         if (university && university !== "all") params.university = university;
-      }
-      else if (status && status !== "all") {
+      } else if (status && status !== "all") {
         url = "/applications/filter/status";
         params.status = status;
-      }
-      else if (position && position !== "all") {
+      } else if (position && position !== "all") {
         url = "/applications/filter/position";
         params.position = position;
-      }
-      else if (university && university !== "all") {
+      } else if (university && university !== "all") {
         url = "/applications/filter/university";
         params.university = university;
       }
@@ -296,16 +294,18 @@ export const fetchAllApplications = async (
       });
 
       let content: any[] = [];
-      
+
       if (Array.isArray(response.data)) {
         content = response.data;
         hasMore = false; // Filter endpoints return all data at once
       } else if (response.data && Array.isArray(response.data.content)) {
         content = response.data.content;
-        hasMore = !response.data.last && page < (response.data.totalPages || 1) - 1;
+        hasMore =
+          !response.data.last && page < (response.data.totalPages || 1) - 1;
       } else if (response.data && response.data.currentPage !== undefined) {
         content = response.data.content || [];
-        hasMore = !response.data.last && page < (response.data.totalPages || 1) - 1;
+        hasMore =
+          !response.data.last && page < (response.data.totalPages || 1) - 1;
       }
 
       allApps = [...allApps, ...content.map(formatApplication)];
@@ -338,22 +338,19 @@ export const searchApplications = async (
   const accessToken = await getAccessToken();
 
   try {
-    const response = await applicationApi.get(
-      "/applications/search",
-      {
-        params: { query, page, size },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await applicationApi.get("/applications/search", {
+      params: { query, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
 
     const data = response.data;
     return {
       content: (data.content || []).map(formatApplication),
       totalPages: data.totalPages || 1,
-      totalElements: data.totalElements || (data.content?.length || 0),
+      totalElements: data.totalElements || data.content?.length || 0,
       currentPage: data.currentPage || page,
     };
   } catch (error: any) {
@@ -375,19 +372,18 @@ export const filterApplicationsByStatus = async (
   const accessToken = await getAccessToken();
 
   try {
-    const response = await applicationApi.get(
-      "/applications/filter/status",
-      {
-        params: { status, page, size },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await applicationApi.get("/applications/filter/status", {
+      params: { status, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
 
     // Status filter returns array directly
-    return (Array.isArray(response.data) ? response.data : []).map(formatApplication);
+    return (Array.isArray(response.data) ? response.data : []).map(
+      formatApplication
+    );
   } catch (error: any) {
     console.error("Failed to filter applications by status:", error);
     if (error.response?.status === 403) {
@@ -407,26 +403,26 @@ export const filterApplicationsByPosition = async (
   const accessToken = await getAccessToken();
 
   try {
-    const response = await applicationApi.get(
-      "/applications/filter/position",
-      {
-        params: { position, page, size },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await applicationApi.get("/applications/filter/position", {
+      params: { position, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
 
     // Position filter returns array directly
-    return (Array.isArray(response.data) ? response.data : []).map(formatApplication);
+    return (Array.isArray(response.data) ? response.data : []).map(
+      formatApplication
+    );
   } catch (error: any) {
     console.error("Failed to filter applications by position:", error);
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
     throw new Error(
-      error.response?.data?.message || "Failed to filter applications by position"
+      error.response?.data?.message ||
+        "Failed to filter applications by position"
     );
   }
 };
@@ -451,14 +447,17 @@ export const filterApplicationsByUniversity = async (
     );
 
     // University filter returns array directly
-    return (Array.isArray(response.data) ? response.data : []).map(formatApplication);
+    return (Array.isArray(response.data) ? response.data : []).map(
+      formatApplication
+    );
   } catch (error: any) {
     console.error("Failed to filter applications by university:", error);
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
     throw new Error(
-      error.response?.data?.message || "Failed to filter applications by university"
+      error.response?.data?.message ||
+        "Failed to filter applications by university"
     );
   }
 };
