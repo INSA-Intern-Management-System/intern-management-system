@@ -11,8 +11,10 @@ import com.example.project_service.gRPC.MilestoneStatsResponse;
 import com.example.project_service.gRPC.ProjectResponse;
 import com.example.project_service.gRPC.ProjectStatsResponse;
 import com.example.project_service.gRPC.StatsResponse;
+import com.example.report_service.gRPC.ReportProgressResponse;
 import com.example.report_service.gRPC.ReportStatsRequest;
 import com.example.report_service.gRPC.ReportStatsResponse;
+import com.example.report_service.gRPC.SingleProgress;
 import com.example.report_service.gRPC.TopInterns;
 import com.example.report_service.gRPC.TopInternsResponse;
 import com.example.report_service.gRPC.TotalReportResponse;
@@ -42,6 +44,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.XsiNilLoader.Single;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties.Http;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -300,9 +303,9 @@ public class UserController {
 
             // 4. Collect project IDs
             List<Long> projectIds = internManagers.stream()
-                .map(im -> im.getProject() != null ? im.getProject().getId() : null)
-                .filter(Objects::nonNull) // remove nulls
-                .collect(Collectors.toList());
+                    .map(im -> im.getProject() != null ? im.getProject().getId() : null)
+                    .filter(Objects::nonNull) // remove nulls
+                    .collect(Collectors.toList());
 
             // 5. Call gRPC clients to fetch milestone stats & report stats
             MilestoneStats milestoneStats = projectManagerGrpcClient.getMilestoneStatsForUnivseristy(jwtToken,projectIds);
@@ -325,7 +328,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error computing dashboard stats: " + e.getMessage());
         }
-}
+    }
 
 
     @GetMapping("/performance")
@@ -418,6 +421,8 @@ public class UserController {
                     .body("Error computing performance: " + e.getMessage());
         }
     }
+
+
 
     @GetMapping
     public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "0") int page,
@@ -550,7 +555,7 @@ public class UserController {
             if (token == null) {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             }
-            Long userId= (Long) request.getAttribute("userId");
+            Long userId=(Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
 
 
@@ -603,6 +608,8 @@ public class UserController {
         }
     }
 
+
+
     @GetMapping("/interns")
     public ResponseEntity<?> getInterns(
             @RequestParam(defaultValue = "0") int page,
@@ -611,12 +618,12 @@ public class UserController {
 
         String token = extractAccessToken(request);
         if (token == null) {
-            return ResponseEntity.status(401).body("Missing access_token cookie");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Missing access_token cookie"));
         }
 
         String role = (String) request.getAttribute("role");
-
-        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
+        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only HR and PROJECT_MANAGER can access this resource"));
         }
@@ -624,52 +631,88 @@ public class UserController {
         try {
             Pageable pageable = PageRequest.of(page, size);
 
-            // Fetch the Roles entity for "STUDENT"
             Role studentRole = roleRepo.findByName("STUDENT");
-
             Page<User> interns = userService.getInterns(studentRole, pageable);
-            long totalInterns = userService.countInterns(); // total count
+            interns.getContent().forEach(user -> user.setPassword(null));
 
-            // Collect student IDs
+            long totalInterns = userService.countInterns();
+
             List<Long> studentIds = interns.getContent().stream()
                     .map(User::getId)
                     .toList();
 
-            // Get intern manager info
             List<InternManager> internInfos = internManagerService.getInfos(studentIds);
 
-            // Collect project IDs
             List<Long> projectIds = internInfos.stream()
                     .map(im -> im.getProject().getId())
                     .toList();
 
-            // Fetch projects from gRPC
-            AllProjectResponses projects = projectManagerGrpcClient.getProjects(token, projectIds);
+            List<Long> userIds = internInfos.stream()
+                    .map(im -> im.getUser().getId())
+                    .toList();
 
-            // Map projectId -> ProjectDTO
-            Map<Long, ProjectDTO> projectMap = projects.getProjectsList().stream()
-                    .collect(Collectors.toMap(
-                            ProjectResponse::getProjectId,
-                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription())
-                    ));
+            // ===== gRPC calls with fallback =====
+            Map<Long, ProjectDTO> tempProjectMap;
+            try {
+                AllProjectResponses projects = projectManagerGrpcClient.getProjects(token, projectIds);
+                tempProjectMap = projects.getProjectsList().stream()
+                        .collect(Collectors.toMap(
+                                ProjectResponse::getProjectId,
+                                p -> new ProjectDTO(
+                                        p.getProjectId(),
+                                        p.getProjectName(),
+                                        p.getProjectDescription(),
+                                        p.getProgress()
+                                )
+                        ));
+            } catch (Exception e) {
+                tempProjectMap = Collections.emptyMap();
+            }
+            final Map<Long, ProjectDTO> projectMap = tempProjectMap;
 
-            // Build intern-project mapping
+            Map<Long, ReportProgressDTO> tempProgressMap;
+            try {
+                ReportProgressResponse reportProgress = reportGrpcClient.getProgressResponse(token, userIds);
+                tempProgressMap = reportProgress.getProgressList().stream()
+                        .collect(Collectors.toMap(
+                                SingleProgress::getUserId,
+                                p -> new ReportProgressDTO(
+                                        p.getTotalReports(),
+                                        p.getProgress(),
+                                        p.getUserId()
+                                )
+                        ));
+            } catch (Exception e) {
+                tempProgressMap = Collections.emptyMap();
+            }
+            final Map<Long, ReportProgressDTO> progressMap = tempProgressMap;
+
+            // ===== Build intern-project mapping with report progress =====
             List<Map<String, Object>> internWithProjects = interns.getContent().stream().map(intern -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("intern", intern);
 
-                // Find projects assigned to this intern
-                List<ProjectDTO> assignedProjects = internInfos.stream()
+                // Assigned project (pick first if multiple, or default if none)
+                ProjectDTO project = internInfos.stream()
                         .filter(im -> im.getUser().getId().equals(intern.getId()))
                         .map(im -> projectMap.get(im.getProject().getId()))
                         .filter(Objects::nonNull)
-                        .toList();
+                        .findFirst() // instead of list
+                        .orElse(new ProjectDTO(0L, "N/A", "No project assigned", 0.0));
 
-                map.put("projects", assignedProjects);
+                map.put("project", project);
+
+                // Report progress
+                ReportProgressDTO progress = progressMap.getOrDefault(
+                        intern.getId(),
+                        new ReportProgressDTO(0L, 0.0, intern.getId()) // default if missing
+                );
+                map.put("reportProgress", progress);
+
                 return map;
             }).toList();
 
-            // Build final response
+            // ===== Final response =====
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Fetched interns successfully");
             response.put("interns", internWithProjects);
@@ -680,9 +723,12 @@ public class UserController {
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
+
+
 
 
     @PutMapping("/assign-supervisor")
@@ -759,9 +805,9 @@ public class UserController {
         String institution = (String) request.getAttribute("institution");
         String role = (String) request.getAttribute("role");
 
-        if (!"UNIVERSITY".equalsIgnoreCase(role)) {
+        if (!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Only University can get this resource!"));
+                    .body(Map.of("error", "Only University and Supervisor can get this resource!"));
         }
 
         try {
@@ -841,7 +887,7 @@ public class UserController {
         if (jwtToken == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
-        
+
         User user = userService.getUserById(userId);
         UserResponseDto fullUserDto = new UserResponseDto(user);
         UserSupervisorProjectManagerDTO userDto = new UserSupervisorProjectManagerDTO(fullUserDto);
@@ -875,7 +921,7 @@ public class UserController {
         if (jwtToken == null) {
             return ResponseEntity.status(401).body("Missing access_token cookie");
         }
-        
+
         // Fetch data (fail-safe)
         Map<String,Object> reportStatus=new HashMap<>();
         Map<String,Map<String,Object>> taskStatus=new HashMap<>();
@@ -892,7 +938,7 @@ public class UserController {
             taskStatus = fetchTasksForCompany(reportStatus,apps,projects);
         }
         List<ActivityDTO> recentActivities = fetchRecentActivities(jwtToken, userId, pageable);
-        
+
         // Combine response
         Map<String, Object> response = new HashMap<>();
         response.put("message", "dashboard informations");
@@ -1117,14 +1163,15 @@ public class UserController {
         }
 
         String role = (String) request.getAttribute("role");
+        String institution = (String) request.getAttribute("institution");
 
-        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
+        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Only HR and PM can  access this resource."));
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.searchInterns(query, pageable);
+        Page<User> pageResult = userService.searchInterns(query, institution, pageable);
 
         List<UserResponseDto> content = pageResult.getContent().stream()
                 .map(this::mapToDTO)
@@ -1266,13 +1313,20 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
 
-            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+            if (!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only University can access this resource"));
+                        .body(Map.of("error", "Only University and Supervisor can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);
-            Page<User> pageResult = userService.filterByInstitution(institution, pageable);
+            Page<User> pageResult;
+
+            if ("UNIVERSITY".equalsIgnoreCase(role)) {
+                pageResult = userService.filterByInstitution(institution, pageable);
+            } else {
+                Long supervisorId = (Long) request.getAttribute("userId");
+                pageResult = userService.filterBySupervisor(supervisorId, pageable);
+            }
 
             List<UserResponseDto> content = pageResult.getContent().stream()
                     .map(this::mapToDTO)
@@ -1298,35 +1352,35 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-       try{
-           String token = extractAccessToken(request);
-           if (token == null) {
-               return ResponseEntity.status(401).body("Missing access_token cookie");
-           }
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-           String role = (String) request.getAttribute("role");
+            String role = (String) request.getAttribute("role");
 
-           if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
-               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                       .body(Map.of("error", "Only HR and PM can access this resource"));
-           }
+            if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)  ){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR and PM can access this resource"));
+            }
 
-           Pageable pageable = PageRequest.of(page, size);
-           Page<User> pageResult = userService.filterUserByRole(query, pageable);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterUserByRole(query, pageable);
 
-           List<UserResponseDto> content = pageResult.getContent().stream()
-                   .map(this::mapToDTO)
-                   .toList();
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
 
-           return ResponseEntity.ok(Map.of(
-                   "content", content,
-                   "currentPage", pageResult.getNumber(),
-                   "totalPages", pageResult.getTotalPages(),
-                   "totalElements", pageResult.getTotalElements()
-           ));} catch (Exception e) {
-           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                   .body("An error occured while filtering user by role");
-       }
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));} catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while filtering user by role");
+        }
     }
 
     @GetMapping("/filter-interns-by-status")
@@ -1375,34 +1429,34 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-       try{
-           String token = extractAccessToken(request);
-           if (token == null) {
-               return ResponseEntity.status(401).body("Missing access_token cookie");
-           }
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-           String role = (String) request.getAttribute("role");
+            String role = (String) request.getAttribute("role");
 
-           if (!"UNIVERSITY".equalsIgnoreCase(role)){
-               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                       .body(Map.of("error", "Only HR and PM can access this resource"));
-           }
-           Pageable pageable = PageRequest.of(page, size);
-           Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
+            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR and PM can access this resource"));
+            }
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
 
-           List<UserResponseDto> content = pageResult.getContent().stream()
-                   .map(this::mapToDTO)
-                   .toList();
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
 
-           return ResponseEntity.ok(Map.of(
-                   "content", content,
-                   "currentPage", pageResult.getNumber(),
-                   "totalPages", pageResult.getTotalPages(),
-                   "totalElements", pageResult.getTotalElements()
-           ));} catch (Exception e) {
-           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                   .body("An error occured while filtering supervisor by status");
-       }
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));} catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while filtering supervisor by status");
+        }
     }
 
     @GetMapping("/filter-supervisor-by-field-of-study")
@@ -1491,36 +1545,36 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-       try{
-           String token = extractAccessToken(request);
-           if (token == null) {
-               return ResponseEntity.status(401).body("Missing access_token cookie");
-           }
+        try{
+            String token = extractAccessToken(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-           String role = (String) request.getAttribute("role");
+            String role = (String) request.getAttribute("role");
 
-           if (!"ADMIN".equalsIgnoreCase(role)){
-               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                       .body(Map.of("error", "Only Admin can access this resource"));
-           }
+            if (!"ADMIN".equalsIgnoreCase(role)){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only Admin can access this resource"));
+            }
 
-           Pageable pageable = PageRequest.of(page, size);
-           Page<User> pageResult = userService.filterAllUsersByStatus(query, pageable);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> pageResult = userService.filterAllUsersByStatus(query, pageable);
 
-           List<UserResponseDto> content = pageResult.getContent().stream()
-                   .map(this::mapToDTO)
-                   .toList();
+            List<UserResponseDto> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
 
-           return ResponseEntity.ok(Map.of(
-                   "content", content,
-                   "currentPage", pageResult.getNumber(),
-                   "totalPages", pageResult.getTotalPages(),
-                   "totalElements", pageResult.getTotalElements()
-           ));
-       } catch (Exception e) {
-           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                   .body("An error occured while filtering all users by status");
-       }
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occured while filtering all users by status");
+        }
     }
 
 
@@ -1593,7 +1647,36 @@ public class UserController {
         }
     }
 
-    
+
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+    private String extractAccessToken(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+    private UserResponseDto mapToDTO(User user) {
+        return new UserResponseDto(user);
+    }
+    private void logActivity(String jwtToken, Long userId, String action, String description) {
+        try {
+            activityGrpcClient.createActivity(jwtToken, userId, action, description);
+        } catch (Exception e) {
+            // Log the failure, but do NOT block business logic
+            System.err.println("Failed to log activity: " + e.getMessage());
+        }
+    }
+
+
+
     private Long countUserByStatus(String role,UserStatus status){
         try{
             return userService.countByRoleAndUserStatus(role,status);
@@ -1601,7 +1684,7 @@ public class UserController {
             return 0L;
         }
     }
-    
+
     // Helper to extract JWT token from cookies
     private String getJwtTokenFromRequest(HttpServletRequest request) {
         if (request.getCookies() != null) {
@@ -1628,7 +1711,7 @@ public class UserController {
         return status;
     }
 
-    // Fetch top stats 
+    // Fetch top stats
     private Map<Long, Double> fetchTopStats(String jwtToken, int page, int size) {
         Map<Long, Double> stats = new HashMap<>();
         try {
@@ -1644,7 +1727,7 @@ public class UserController {
             e.printStackTrace();
         }
         return stats;
-}
+    }
 
 
     private Map<String, Object> fetchReportStatusForCompany(String jwtToken, Long userId) {
@@ -1668,9 +1751,9 @@ public class UserController {
                 status.put("averageRating", 0.0);
             }
 
-        } 
+        }
         return status;
-    
+
     }
     private Map<String, Object> fetchProjectStatusForCompany(String jwtToken, Long userId) {
         Map<String, Object> status = new HashMap<>();
@@ -1698,12 +1781,12 @@ public class UserController {
                 status.put("totalActive", 0);
                 status.put("totalPanning", 0);
                 status.put("totalCompleted", 0);
-                status.put("total", 0);    
+                status.put("total", 0);
             }
 
-        } 
+        }
         return status;
-    
+
     }
 
     private Map<String, Object> fetchAppsStatusForCompany(String jwtToken) {
@@ -1714,7 +1797,7 @@ public class UserController {
             status.put("totalRejected", stats.getRejected());
             status.put("totalPending", stats.getPending());
             status.put("totalCount", stats.getCount());
-        
+
         } catch (Exception e) {
             status.put("totalAccepted", 0);
             status.put("totalRejected", 0);
@@ -1722,13 +1805,13 @@ public class UserController {
             status.put("totalCount", 0);
         }
         return status;
-    
+
     }
     private Map<String, Map<String, Object>> fetchTasksForCompany(
             Map<String, Object> status,
             Map<String, Object> apps,
             Map<String, Object> projects) {
-        
+
         Map<String, Map<String, Object>> response = new HashMap<>();
 
         // Reports
@@ -1762,7 +1845,7 @@ public class UserController {
         }
 
         return response;
-}
+    }
 
     // Fetch recent activities safely
     private List<ActivityDTO> fetchRecentActivities(String jwtToken, Long userId, Pageable pageable) {
@@ -1814,33 +1897,6 @@ public class UserController {
             // return empty list if any error
         }
         return milestoneDTOs;
-    }
-
-    private ResponseEntity<?> errorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-    }
-    private String extractAccessToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
-    private UserResponseDto mapToDTO(User user) {
-        return new UserResponseDto(user);
-    }
-    private void logActivity(String jwtToken, Long userId, String action, String description) {
-        try {
-            activityGrpcClient.createActivity(jwtToken, userId, action, description);
-        } catch (Exception e) {
-            // Log the failure, but do NOT block business logic
-            System.err.println("Failed to log activity: " + e.getMessage());
-        }
     }
 
 
