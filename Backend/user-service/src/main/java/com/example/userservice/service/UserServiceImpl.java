@@ -2,15 +2,14 @@ package com.example.userservice.service;
 
 import com.example.userservice.dto.*;
 import com.example.userservice.model.*;
-import com.example.userservice.repository.InternManagerReposInterface;
-import com.example.userservice.repository.RoleRepository;
-import com.example.userservice.repository.UserRepository;
+import com.example.userservice.repository.*;
 
-import com.example.userservice.repository.VerificationCodeRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,6 +24,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepo;
     private final RoleRepository roleRepo;
+    private final SystemSettingRepository systemSettingRepository;
     private final VerificationCodeRepository verificationCodeRepo;
     private final BCryptPasswordEncoder passwordEncoder;
     private final InternManagerService internManagerService;
@@ -35,6 +35,7 @@ public class UserServiceImpl implements UserService {
 
     public UserServiceImpl(UserRepository userRepo,
                            RoleRepository roleRepo,
+                           SystemSettingRepository systemSettingRepository,
                            InternManagerService internManagerService,
                            InternManagerReposInterface internManagerReposInterface,
                            BCryptPasswordEncoder passwordEncoder,
@@ -42,6 +43,7 @@ public class UserServiceImpl implements UserService {
                            ) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
+        this.systemSettingRepository = systemSettingRepository;
         this.internManagerService = internManagerService;
         this.internManagerReposInterface = internManagerReposInterface;
         this.verificationCodeRepo = verificationCodeRepo;
@@ -65,7 +67,9 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.lastName);
         user.setEmail(request.email);
 
-        String temporaryPassword = generateRandomPassword(10);
+        SystemSetting systemSetting = systemSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new RuntimeException("System settings not found"));
+        String temporaryPassword = generateRandomPassword(systemSetting.getMinimumPasswordLength());
 
         String hashedPassword = passwordEncoder.encode(temporaryPassword);
 
@@ -76,7 +80,7 @@ public class UserServiceImpl implements UserService {
         user.setFieldOfStudy(request.fieldOfStudy);
         user.setInstitution(request.institution);
         user.setRole(userRole);
-        user.setUserStatus(request.userStatus);
+//        user.setUserStatus(request.userStatus);
         user.setBio(request.bio);
         user.setNotifyEmail(request.notifyEmail);
         user.setVisibility(request.visibility);
@@ -121,10 +125,62 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User loginUser(LoginRequest request) {
-        User user = userRepo.findByEmail(request.email);
-        if (user == null || !passwordEncoder.matches(request.password, user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+        SystemSetting setting = systemSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new RuntimeException("System settings not found"));
+
+        User user = userRepo.findByEmail(request.getEmail());
+
+        if (user == null) {
+            throw new RuntimeException("User with this email not found!");
         }
+
+        // Maintenance mode check
+        if (setting.getMaintenanceMode() && !user.getRole().getName().contains("ADMIN")) {
+            throw new RuntimeException("Our System is under maintenance. Please try again later.");
+        }
+
+        // Automatic unlock if lock duration passed (e.g., 30 minutes)
+        if (user.getAccountLocked() && user.getAccountLockedAt() != null) {
+            LocalDateTime unlockTime = user.getAccountLockedAt().plusMinutes(31); // 30 min lock duration
+            if (LocalDateTime.now().isAfter(unlockTime)) {
+                user.setAccountLocked(false);
+                user.setFailedAttempts(0);
+                user.setAccountLockedAt(null);
+                userRepo.save(user);
+            } else {
+                throw new RuntimeException("Your account is locked. Try again after: "
+                        + java.time.Duration.between(LocalDateTime.now(), unlockTime).toMinutes() + " minutes.");
+            }
+        }
+
+        // Check password
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            user.setFailedAttempts(user.getFailedAttempts() + 1);
+
+            int maxAttempts = setting.getMaxLoginAttempts() != null ? setting.getMaxLoginAttempts() : 5;
+
+            if (user.getFailedAttempts() >= maxAttempts) {
+                user.setAccountLocked(true);
+                user.setAccountLockedAt(LocalDateTime.now()); // start lock timer
+            }
+
+            userRepo.save(user);
+            int attemptsLeft = Math.max(0, maxAttempts - user.getFailedAttempts());
+            throw new RuntimeException("Invalid password. Attempts left: " + attemptsLeft);
+        }
+
+        // Successful login
+        user.setFailedAttempts(0);
+        user.setAccountLocked(false);
+        user.setAccountLockedAt(null);
+        userRepo.save(user);
+
+        return user;
+    }
+
+    @Override
+    public User findByEmail(String email){
+        User user = userRepo.findByEmail(email);
         return user;
     }
 
@@ -151,7 +207,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public Long countInterns(){
         Role studentRole = roleRepo.findByName("STUDENT");
-
         return userRepo.countByRole(studentRole);
     }
 
@@ -282,9 +337,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User updateUser(Long id, User updatedUser) {
-        User existingUser = userRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    public User updateUser(Long userId, User updatedUser) {
+        User existingUser = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
         // Only update fields if they're not null
         if (updatedUser.getFirstName() != null) {
@@ -326,6 +381,14 @@ public class UserServiceImpl implements UserService {
         if (updatedUser.getLastLogin() != null) {
             existingUser.setLastLogin(updatedUser.getLastLogin());
         }
+
+        if (updatedUser.getNotifyEmail() != null) {
+            existingUser.setNotifyEmail(updatedUser.getNotifyEmail());
+        }
+        if (updatedUser.getVisibility() != null) {
+            existingUser.setVisibility(updatedUser.getVisibility());
+        }
+
 
         return userRepo.save(existingUser);
     }
@@ -384,6 +447,25 @@ public class UserServiceImpl implements UserService {
     public Page<User> filterSupervisorByInstitution(String institution, Pageable pageable) {
         Role supervisorRole = roleRepo.findByName("SUPERVISOR");
         return userRepo.findByRoleAndInstitution(supervisorRole, institution, pageable);
+    }
+
+    @Override
+    public Page<User> getInternsForUniveristy(String where, Pageable pageable){
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.findByRoleAndInstitution(studentRole, where, pageable);
+
+    }
+
+    @Override
+    public Page<User> searchByRoleInstitutionAndKeyword(String institution, String keyword, Pageable pageable){
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.searchByRoleInstitutionAndKeyword(studentRole,institution,keyword,pageable);
+    }
+
+    @Override
+    public Page<User> findByRoleAndInstitutionAndSupervisorName(String institution, String supervisorName, Pageable pageable){
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.findByRoleAndInstitutionAndSupervisorName(studentRole,institution,supervisorName,pageable);
     }
 
     @Override
@@ -446,6 +528,24 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserStatusCount> countUsersByStatus() {
         return userRepo.countUsersByStatus();
+    }
+
+    @Override
+    public long countActiveInterns() {
+        Role studentRole = roleRepo.findByName("STUDENT");
+        UserStatus activeInterns = UserStatus.valueOf("ACTIVE");
+        return userRepo.countByRoleIdAndUserStatus(studentRole.getId(), activeInterns);
+    }
+
+    @Override
+    public InternStatusesCount countInternStatuses() {
+        Role studentRole = roleRepo.findByName("STUDENT");
+        Long roleId = studentRole.getId();
+
+        long activeCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.ACTIVE);
+        long completedCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.COMPLETED);
+
+        return new InternStatusesCount(activeCount, completedCount);
     }
 
     @Override
@@ -574,15 +674,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<User> searchSupervisors(String query, Pageable pageable) {
+    public Page<User> searchSupervisors(String query, String institution, Pageable pageable) {
         Role supervisorRole = roleRepo.findByName("SUPERVISOR");
-
-        return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
-                supervisorRole, query, supervisorRole, query, pageable
+        return userRepo.findByRoleAndInstitutionAndFirstNameContainingIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyContainingIgnoreCase(
+                supervisorRole, institution, query,
+                supervisorRole, institution, query,
+                pageable
         );
     }
     @Override
-    public int countByRoleAndUserStatus(String role, UserStatus userStatus){
+    public Long countByRoleAndUserStatus(String role, UserStatus userStatus){
     
         Role studentRole = roleRepo.findByName("STUDENT");
         UserStatus activeStatus = UserStatus.valueOf("ACTIVE");
@@ -609,6 +710,64 @@ public class UserServiceImpl implements UserService {
             
 
     }
+
+    @Override
+    public long countSupervisor(){
+        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+        return userRepo.countByRole(supervisorRole);
+    }
+
+    @Override
+    public UserStatsResponse userStats() {
+        // 1. Total users
+        long allUsers = userRepo.count();
+
+        // 2. Status counts -> Map<String, Long>
+        List<UserStatusCount> statusList = userRepo.countUsersByStatus();
+        Map<String, Long> statusCounts = new HashMap<>();
+        for (UserStatusCount usc : statusList) {
+            // Handle possible nulls
+            if (usc.getUserStatus() != null && usc.getCount() != null) {
+                statusCounts.put(usc.getUserStatus().name(), usc.getCount());
+            }
+        }
+
+        // 3. Role counts -> Map<String, Long>
+        Map<String, Long> roleCounts = new HashMap<>();
+
+        // List all roles manually if you have enum or constant list
+        List<String> roles = List.of("STUDENT", "HR", "PROJECT_MANAGER", "UNIVERSITY", "ADMIN", "SUPERVISOR");
+
+        for (String roleName : roles) {
+            Role roleEntity = roleRepo.findByName(roleName); // inject roleRepo if not yet
+
+            if (roleEntity != null) {
+                long count = userRepo.countByRole(roleEntity);
+                // map your display name if needed
+                switch (roleName) {
+                    case "STUDENT" -> roleCounts.put("Student", count);
+                    case "HR" -> roleCounts.put("HR", count);
+                    case "PROJECT_MANAGER" -> roleCounts.put("Project_Manager", count);
+                    case "UNIVERSITY" -> roleCounts.put("University", count);
+                    case "ADMIN" -> roleCounts.put("Administrator", count);
+                    case "SUPERVISOR" -> roleCounts.put("Supervisor", count);
+                }
+            } else {
+                // If role not found, count = 0
+                switch (roleName) {
+                    case "STUDENT" -> roleCounts.put("Student", 0L);
+                    case "HR", "PROJECT_MANAGER" -> roleCounts.put("Company", 0L);
+                    case "UNIVERSITY" -> roleCounts.put("University", 0L);
+                    case "ADMIN" -> roleCounts.put("Administrator", 0L);
+                    case "SUPERVISOR" -> roleCounts.put("Supervisor", 0L);
+                }
+            }
+        }
+
+        // 4. Build response
+        return new UserStatsResponse(statusCounts, allUsers, roleCounts);
+    }
+
 
     // --- Helper Methods (no changes needed) ---
     private String generateRandomPassword(int length) {

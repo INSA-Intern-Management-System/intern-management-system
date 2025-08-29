@@ -66,8 +66,8 @@ services:
     build: ./message-service
     environment:
       <<: *common-env
-      GRPC_PORT: ${MESSAGE_SERVICE_GRPC_PORT:-9090}
-      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+      GRPC_PORT: ${MESSAGE_SERVICE_GRPC_PORT:-9093}
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9090}
     volumes:
       - "${USERPROFILE}/.m2:/root/.m2"
     depends_on:
@@ -80,8 +80,8 @@ services:
     build: ./notification-service
     environment:
       <<: *common-env
-      GRPC_PORT: ${NOTIFICATION_SERVICE_GRPC_PORT:-9094}
-      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+      GRPC_PORT: ${NOTIFICATION_SERVICE_GRPC_PORT:-9096}
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9090}
     volumes:
       - "${USERPROFILE}/.m2:/root/.m2"
     depends_on:
@@ -108,8 +108,8 @@ services:
     build: ./report-service
     environment:
       <<: *common-env
-      GRPC_PORT: ${REPORT_SERVICE_GRPC_PORT:-9090}
-      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+      GRPC_PORT: ${REPORT_SERVICE_GRPC_PORT:-9097}
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9090}
       PROJECT_SERVICE_GRPC_PORT: ${PROJECT_SERVICE_GRPC_PORT:-9092}
       ACTIVITY_SERVICE_GRPC_PORT: ${ACTIVITY_SERVICE_GRPC_PORT:-9091}
     volumes:
@@ -139,6 +139,7 @@ services:
     environment:
       <<: *common-env
       GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9090}
+      GRPC_SERVER_NOTIFICATION_ADDRESS: ${NOTIFICATION_SERVICE_GRPC_PORT:-9096}
     volumes:
       - "${USERPROFILE}/.m2:/root/.m2"
     depends_on:
