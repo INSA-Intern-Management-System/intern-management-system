@@ -862,7 +862,7 @@ public class UserController {
     public ResponseEntity<?> getStudentDashboard(HttpServletRequest request, Pageable pageable) {
         Long userId = (Long) request.getAttribute("userId");
         String role =(String) request.getAttribute("role");
-        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
+        if (!"STUDENT".equalsIgnoreCase(role)){
             return ResponseEntity.status(403).body("Access denied");
         }
 
