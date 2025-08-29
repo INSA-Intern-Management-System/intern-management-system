@@ -59,20 +59,20 @@ public class User implements UserDetails {
 
     @ManyToOne
     @JoinColumn(name = "supervisor_id")
-    @JsonBackReference
+    @JsonBackReference(value = "supervisor-ref")
     private User supervisor;
 
     @OneToMany(mappedBy = "supervisor")
-    @JsonManagedReference
+    @JsonManagedReference(value = "supervisor-ref")
     private List<User> supervisedInterns;
 
     @ManyToOne
     @JoinColumn(name = "project_manager_id")
-    @JsonBackReference
+    @JsonBackReference(value = "pm-ref")
     private User projectManager;
 
     @OneToMany(mappedBy = "projectManager")
-    @JsonManagedReference
+    @JsonManagedReference(value = "pm-ref")
     private List<User> projectManagerInterns;
 
 
