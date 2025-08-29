@@ -650,7 +650,7 @@ public class UserController {
             Map<Long, ProjectDTO> projectMap = projects.getProjectsList().stream()
                     .collect(Collectors.toMap(
                             ProjectResponse::getProjectId,
-                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription())
+                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription(),p.getProgress())
                     ));
 
             // Build intern-project mapping
@@ -832,7 +832,7 @@ public class UserController {
     public ResponseEntity<?> getStudentDashboard(HttpServletRequest request, Pageable pageable) {
         Long userId = (Long) request.getAttribute("userId");
         String role =(String) request.getAttribute("role");
-        if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)){
+        if (!"STUDENT".equalsIgnoreCase(role)){
             return ResponseEntity.status(403).body("Access denied");
         }
 

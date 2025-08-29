@@ -86,8 +86,8 @@ public class ReportController {
                 return ResponseEntity.status(401).body("Missing access_token cookie");
             } 
 
-            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
-                return ResponseEntity.status(403).body("Access denied: Only students OR pm can view their reports");
+            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Access denied: Only students OR pm or hr  can view their reports");
             }
             if ("STUDENT".equalsIgnoreCase(role)) {
                 Page<ReportResponseDTO> reports = reportService.getReportsWithReviews(jwtToken,userId, pageable);
@@ -114,14 +114,12 @@ public class ReportController {
     @GetMapping("/my/search")
     public ResponseEntity<?> searchMyReports(HttpServletRequest request,
                                              @RequestParam(required = false) String keyword,
-                                             @RequestParam(required = false) String status,
-                                             @RequestParam(required = false) String period,
                                              Pageable pageable) {
         try {
             Long userId = (Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
-            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
-                return ResponseEntity.status(403).body("Access denied: Only students OR pm can search their reports");
+            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Access denied: Only students OR pm or hr can search their reports");
             }
 
             // ✅ Get JWT from HttpOnly cookie
@@ -140,13 +138,13 @@ public class ReportController {
             } 
 
             if ("STUDENT".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.filterReports(jwtToken, userId,keyword, status, period, pageable);
+                Page<ReportResponseDTO> results = reportService.searchMyReports(jwtToken, userId,keyword, pageable);
                 return ResponseEntity.ok(results);
             } else if ("PROJECT_MANAGER".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.filterManagerReports(jwtToken, userId,keyword, status, period, pageable);
+                Page<ReportResponseDTO> results = reportService.searchManagersReports(jwtToken, userId,keyword, pageable);
                 return ResponseEntity.ok(results);
             } else if ("HR".equalsIgnoreCase(role)) {
-                Page<ReportResponseDTO> results = reportService.filterAllReports(jwtToken,keyword, status, period, pageable);
+                Page<ReportResponseDTO> results = reportService.searchHRReports(jwtToken,keyword, pageable);
                 return ResponseEntity.ok(results);
             } else {
                 return ResponseEntity.status(403).body("Access denied: Invalid role");
@@ -169,8 +167,8 @@ public class ReportController {
         try {
             Long userId = (Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
-            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
-                return ResponseEntity.status(403).body("Access denied: Only students OR pm can filter their reports");
+            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Access denied: Only students OR pm or hr can filter their reports");
             }
 
             // ✅ Get JWT from HttpOnly cookie
@@ -214,8 +212,8 @@ public class ReportController {
         try {
             Long userId = (Long) request.getAttribute("userId");
             String role = (String) request.getAttribute("role");
-            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && "HR".equalsIgnoreCase(role)) {
-                return ResponseEntity.status(403).body("Access denied: Only students OR pm  can view their report stats");
+            if (!"STUDENT".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Access denied: Only students OR pm Or hr can view their report stats");
             }
             if ("STUDENT".equalsIgnoreCase(role)) {
                  ReportStatsDTO stats = reportService.getUserReportStats(userId);

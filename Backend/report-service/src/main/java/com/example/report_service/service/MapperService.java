@@ -21,6 +21,7 @@ public class MapperService {
                 report.getTaskCompleted(),
                 report.getChallenges(),
                 report.getNextWeekGoals(),
+                report.getFeedbackStatus(),
                 report.getCreatedAt(),
                 reviewDto,
                 projectResponse

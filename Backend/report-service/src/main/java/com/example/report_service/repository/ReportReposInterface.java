@@ -58,4 +58,10 @@ public interface ReportReposInterface {
     //update feedbackstatus for report
     int updateFeedbackStatus(Long reportId,Status feedbackStatus);
 
+
+    //for searching 
+    Page<Report> findReportsByInternAndTitle(Long internId, String title,Pageable pageable);
+    Page<Report> findReportsByManagerAndTitle(Long managerId, String title,Pageable pageable);
+    Page<Report> findReportsByTitle(String title,Pageable pageable);
+
 }
