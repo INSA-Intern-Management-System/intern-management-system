@@ -138,7 +138,7 @@ services:
     build: ./user-service
     environment:
       <<: *common-env
-      GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9091}
+      GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9090}
     volumes:
       - "${USERPROFILE}/.m2:/root/.m2"
     depends_on:

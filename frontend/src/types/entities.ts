@@ -299,18 +299,17 @@ export interface UsersResponse {
 }
 
 export interface LeaveRequest {
-  id: number;
+  leaveId: number;
   userId: number;
-  receiverId: number;
-  startDate: string;
-  endDate: string;
-  description?: string;
-  type?: string;
-  status?: string;
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+  leaveStatus: string;
+  receiverID: number;
   createdAt: string;
   approvedBy?: string | null;
   rejectionReason?: string | null;
-  days?: number;
 }
 
 export interface LeaveResponse {
@@ -318,12 +317,35 @@ export interface LeaveResponse {
   totalPages: number;
   totalElements: number;
   number: number;
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  size: number;
+  sort: { sorted: boolean; empty: boolean; unsorted: boolean };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
 }
 
 export interface StatusCounts {
-  pending: number;
+  total: number;
   approved: number;
   rejected: number;
+  pending: number;
+}
+
+export interface CreateLeaveRequest {
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+  receiverID: number;
 }
 
 export interface Project {

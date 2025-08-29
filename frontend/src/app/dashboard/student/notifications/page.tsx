@@ -17,7 +17,7 @@ interface Notification {
   role: string[];
 }
 
-async function getUser(): Promise<User> {
+async function getUser() {
   const accessToken = (await cookies()).get("access_token")?.value;
   const userId = (await cookies()).get("userId")?.value;
 
@@ -25,17 +25,7 @@ async function getUser(): Promise<User> {
     redirect("/login");
   }
 
-  try {
-    const response = await api.get<User>(`/users/${userId}`, {
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error) {
-    redirect("/login");
-  }
+  return { userId: Number(userId) };
 }
 
 async function getNotifications(userId: string): Promise<Notification[]> {
@@ -69,10 +59,10 @@ async function getNotifications(userId: string): Promise<Notification[]> {
 
 export default async function NotificationsPage() {
   const user = await getUser();
-  const notifications = await getNotifications(user.id);
+  const notifications = await getNotifications(String(user.userId));
 
   return (
-    <DashboardLayout requiredRole="STUDENT">
+    <DashboardLayout requiredRole="student">
       <NotificationsClient initialNotifications={notifications} />
     </DashboardLayout>
   );

@@ -29,7 +29,7 @@ export const fetchReports = async (
       if (status) params.status = status;
       if (period) params.period = period;
     }
-
+    console.log(url, params);
     const response = await reportApi.get<ReportsResponse>(url, {
       params,
       headers: {

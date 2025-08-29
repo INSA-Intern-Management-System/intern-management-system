@@ -2,6 +2,8 @@ package com.example.project_service.config;
 import com.example.project_service.repository.MilestoneReposInterface;
 import com.example.project_service.repository.ProjectReposInterface;
 import com.example.project_service.security.JwtServerInterceptor;
+import com.example.project_service.service.ProjectServiceImp;
+
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
@@ -20,17 +22,20 @@ public class GrpcServerRunner {
     private final MilestoneReposInterface mileRepos;
     private final JwtServerInterceptor jwtInterceptor;
     private final GrpcProperties grpcProperties;
+    private final ProjectServiceImp projectService;
 
     private Server server;
 
     public GrpcServerRunner(ProjectReposInterface repository,
                             MilestoneReposInterface mileRepos,
                             JwtServerInterceptor jwtInterceptor,
-                            GrpcProperties grpcProperties) {
+                            GrpcProperties grpcProperties,
+                            ProjectServiceImp projectService) {
         this.repository = repository;
         this.mileRepos=mileRepos;
         this.jwtInterceptor = jwtInterceptor;
         this.grpcProperties = grpcProperties;
+        this.projectService=projectService;
     }
 
     @PostConstruct
@@ -40,7 +45,7 @@ public class GrpcServerRunner {
                 .maxInboundMessageSize(grpcProperties.getMaxMessageSize())
                 .permitKeepAliveTime(5, TimeUnit.SECONDS)
                 .addService(ServerInterceptors.intercept(
-                        new ProjectManagerGrpcService(repository,mileRepos),
+                        new ProjectManagerGrpcService(repository,mileRepos,projectService),
                         jwtInterceptor
                 ))
                 .build()

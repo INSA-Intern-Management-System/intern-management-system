@@ -34,7 +34,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "@/app/layout/dashboard-layout";
+import DashboardLayout from "@/app/layout/dashboard-layout";
 
 export default function SystemSettings() {
   const [user, setUser] = useState<any>(null);
