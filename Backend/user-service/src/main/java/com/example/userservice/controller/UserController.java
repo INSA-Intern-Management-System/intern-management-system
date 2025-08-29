@@ -650,7 +650,7 @@ public class UserController {
             Map<Long, ProjectDTO> projectMap = projects.getProjectsList().stream()
                     .collect(Collectors.toMap(
                             ProjectResponse::getProjectId,
-                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription())
+                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription(),p.getProgress())
                     ));
 
             // Build intern-project mapping

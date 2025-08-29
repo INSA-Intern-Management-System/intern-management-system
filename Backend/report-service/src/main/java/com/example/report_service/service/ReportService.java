@@ -128,7 +128,9 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
-                }
+                }else{
+                        projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
+            }
 
                 return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -168,6 +170,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -205,6 +209,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -242,6 +248,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -285,6 +293,7 @@ public class ReportService {
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
+        
             if (projectResponse == null) {
                 throw new RuntimeException("Project not found for report ID: " + report.getId());
             }
@@ -448,6 +457,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -484,6 +495,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -520,6 +533,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -555,6 +570,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -590,6 +607,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
