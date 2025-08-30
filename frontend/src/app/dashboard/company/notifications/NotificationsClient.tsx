@@ -61,7 +61,7 @@ interface StudentNotificationsClientProps {
   }>;
 }
 
-export default function StudentNotificationsClient({
+export default function CompanyNotificationsClient({
   userRole,
   initialNotifications,
   pagination,

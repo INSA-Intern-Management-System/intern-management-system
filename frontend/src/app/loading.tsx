@@ -1,14 +1,12 @@
 // components/Loader.tsx
 export default function Loader() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 z-50">
-      {/* Spinner */}
-      <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-
-      {/* Text with pulse animation */}
-      <p className="mt-6 text-xl font-semibold text-indigo-700 animate-pulse">
-        Loading...
-      </p>
+    <div className="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+      <div className="flex space-x-2">
+        <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+        <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+        <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></span>
+      </div>
     </div>
   );
 }

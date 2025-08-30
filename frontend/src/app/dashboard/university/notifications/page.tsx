@@ -1,13 +1,14 @@
-// app/dashboard/student/notifications/page.tsx
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
-import NotificationsClient from "./NotificationsClient";
+
 import {
-  notificationService,
-  type ApiNotification,
-  type Notification,
+  fetchNotifications,
+  markAsRead,
+  markAllAsRead,
+  Notification,
 } from "@/app/services/notificationService";
+import UniversityNotificationsClient from "./NotificationsClient";
 
 async function getUser() {
   const accessToken = (await cookies()).get("access_token")?.value;
@@ -17,47 +18,110 @@ async function getUser() {
     redirect("/login");
   }
 
-  return { userId: Number(userId) };
+  return { userId: Number(userId), accessToken };
 }
 
-async function getNotifications(userId: string): Promise<Notification[]> {
-  const accessToken = (await cookies()).get("access_token")?.value;
+export default async function CompanyNotificationsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
+  const { userId } = await getUser();
 
+  const searchParamsAwaited = await searchParams;
+  const page = parseInt(searchParamsAwaited.page || "0");
+
+  let notificationsData;
   try {
-    const response = await notificationService.getNotifications(0, 50);
-
-    // Transform API data to match the component's expected format
-    const transformedNotifications = response.content.map((apiNotif) =>
-      notificationService.transformApiNotification(apiNotif, "STUDENT")
-    );
-
-    return transformedNotifications;
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-
-    // Fallback to mock data if API fails
-    return [
-      {
-        id: 1,
-        title: "The backend is not responsing",
-        description: "No result from backend",
-        created_at: "2024-02-10T10:30:00Z",
-        is_read: false,
-        type: "feedback",
-        priority: "high",
-        role: ["student"],
-      },
-    ];
+    notificationsData = await fetchNotifications(page, 10);
+  } catch (error: any) {
+    console.error("Failed to fetch notifications:", error);
+    if (error.message === "Unauthorized access. Please log in again.") {
+      redirect("/login");
+    }
+    notificationsData = {
+      content: [],
+      number: 0,
+      totalPages: 0,
+      totalElements: 0,
+      size: 10,
+    };
   }
-}
 
-export default async function NotificationsPage() {
-  const user = await getUser();
-  const notifications = await getNotifications(String(user.userId));
+  const handleMarkAsRead = async (notificationId: number) => {
+    "use server";
+    try {
+      const updatedNotification = await markAsRead(notificationId);
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/dashboard/company/notifications");
+      return { success: true, notification: updatedNotification };
+    } catch (error: any) {
+      console.error("handleMarkAsRead error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to mark notification as read",
+      };
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    "use server";
+    try {
+      await markAllAsRead();
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/dashboard/company/notifications");
+      return { success: true };
+    } catch (error: any) {
+      console.error("handleMarkAllAsRead error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to mark all notifications as read",
+      };
+    }
+  };
+
+  const handleFetchData = async (page: number, size: number) => {
+    "use server";
+    try {
+      const data = await fetchNotifications(page, size);
+      return {
+        notifications: data.content,
+        pagination: {
+          currentPage: data.number,
+          totalPages: data.totalPages,
+          totalItems: data.totalElements,
+          pageSize: size,
+        },
+      };
+    } catch (error: any) {
+      console.error("handleFetchData error:", error);
+      return {
+        notifications: [],
+        pagination: {
+          currentPage: 0,
+          totalPages: 0,
+          totalItems: 0,
+          pageSize: size,
+        },
+        error: error.message || "Failed to fetch notifications",
+      };
+    }
+  };
 
   return (
-    <DashboardLayout requiredRole="student">
-      <NotificationsClient initialNotifications={notifications} />
+    <DashboardLayout requiredRole="university">
+      <UniversityNotificationsClient
+        initialNotifications={notificationsData.content}
+        pagination={{
+          currentPage: notificationsData.number,
+          totalPages: notificationsData.totalPages,
+          totalItems: notificationsData.totalElements,
+          pageSize: notificationsData.size,
+        }}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onFetchData={handleFetchData}
+      />
     </DashboardLayout>
   );
 }

@@ -4,7 +4,17 @@ import { cookies } from "next/headers";
 
 // Create a new project
 export const createProject = async (
-  projectData: Omit<Project, "id" | "createdBy" | "createdAt" | "updatedAt" | "teams" | "teamMembers" | "progress" |"milestone" >
+  projectData: Omit<
+    Project,
+    | "id"
+    | "createdBy"
+    | "createdAt"
+    | "updatedAt"
+    | "teams"
+    | "teamMembers"
+    | "progress"
+    | "milestone"
+  >
 ): Promise<Project> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
@@ -12,15 +22,19 @@ export const createProject = async (
   }
 
   try {
-    const response = await projectApi.post<Project>("/projects", {
-      ...projectData,
-      status: projectData.status.toUpperCase(),
-    }, {
-      headers: {
-        Cookie: `access_token=${accessToken}`,
+    const response = await projectApi.post<Project>(
+      "/projects",
+      {
+        ...projectData,
+        status: projectData.status.toUpperCase(),
       },
-      withCredentials: true,
-    });
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to create project:", error);
@@ -80,8 +94,13 @@ export const fetchProjectById = async (id: number): Promise<Project> => {
   }
 };
 
-// Update project status
-export const updateProjectStatus = async (id: number, newStatus: string): Promise<Project> => {
+// Update project status with milestones
+export const updateProjectStatus = async (
+  projectId: number,
+  projectStatus: string,
+  milestoneIds: number[] = [],
+  milestoneStatuses: string[] = []
+): Promise<Project> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
     throw new Error("Access token is missing");
@@ -89,10 +108,16 @@ export const updateProjectStatus = async (id: number, newStatus: string): Promis
 
   try {
     const response = await projectApi.put<Project>(
-      `/projects/${id}/status`,
-      {},
+      `/projects/update/status`,
       {
-        params: { newStatus: newStatus.toUpperCase() },
+        projectId,
+        projectStatus: projectStatus.toUpperCase(),
+        milestoneIds,
+        milestoneStatuses: milestoneStatuses.map((status) =>
+          status.toUpperCase()
+        ),
+      },
+      {
         headers: {
           Cookie: `access_token=${accessToken}`,
         },
@@ -101,27 +126,41 @@ export const updateProjectStatus = async (id: number, newStatus: string): Promis
     );
     return response.data;
   } catch (error) {
-    console.error(`Failed to update project status for id ${id}:`, error);
+    console.error(
+      `Failed to update project status for id ${projectId}:`,
+      error
+    );
     throw error;
   }
 };
 
 // Update project details
-export const updateProject = async (id: number, projectData: Partial<Project>): Promise<Project> => {
+export const updateProject = async (
+  id: number,
+  projectData: Partial<Project>
+): Promise<Project> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
     throw new Error("Access token is missing");
   }
 
   try {
+    // First update the project status if provided
+    if (projectData.status) {
+      await updateProjectStatus(id, projectData.status);
+    }
+
+    // Then update other project details using PATCH if available
     const response = await projectApi.patch<Project>(
-      `/projects/${id}/status`,
-      {}, 
+      `/projects/${id}`,
       {
-        params: { 
-          newStatus: projectData.status?.toUpperCase(),
-          description: projectData.description,
-        },
+        description: projectData.description,
+        budget: projectData.budget,
+        technologies: projectData.technologies,
+        startDate: projectData.startDate,
+        endDate: projectData.endDate,
+      },
+      {
         headers: {
           Cookie: `access_token=${accessToken}`,
         },
@@ -168,13 +207,16 @@ export const searchProjects = async (
   }
 
   try {
-    const response = await projectApi.get<PaginatedProjects>("/projects/search", {
-      params: { keyword, page, size },
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-      withCredentials: true,
-    });
+    const response = await projectApi.get<PaginatedProjects>(
+      "/projects/search",
+      {
+        params: { keyword, page, size },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to search projects:", error);
@@ -217,16 +259,13 @@ export const fetchProjectStats = async (): Promise<ProjectStats> => {
 };
 
 // Create a new milestone
-export const createMilestone = async (
-
-  milestoneData: {
-      projectId: number,
-    title: string;
-    description: string;
-    status: string;
-    dueDate: string;
-  }
-): Promise<any> => {
+export const createMilestone = async (milestoneData: {
+  projectId: number;
+  title: string;
+  description: string;
+  status: string;
+  dueDate: string;
+}): Promise<any> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
     throw new Error("Access token is missing");
@@ -236,7 +275,6 @@ export const createMilestone = async (
     const response = await projectApi.post(
       "/projects/milestones",
       {
-      
         ...milestoneData,
         status: milestoneData.status.toUpperCase(),
       },
@@ -270,7 +308,10 @@ export const fetchMilestones = async (projectId: number): Promise<any[]> => {
     });
     return response.data;
   } catch (error) {
-    console.error(`Failed to fetch milestones for project ${projectId}:`, error);
+    console.error(
+      `Failed to fetch milestones for project ${projectId}:`,
+      error
+    );
     throw error;
   }
 };
@@ -299,7 +340,10 @@ export const updateMilestoneStatus = async (
     );
     return response.data;
   } catch (error) {
-    console.error(`Failed to update milestone status for id ${milestoneId}:`, error);
+    console.error(
+      `Failed to update milestone status for id ${milestoneId}:`,
+      error
+    );
     throw error;
   }
 };
@@ -312,15 +356,63 @@ export const deleteMilestone = async (milestoneId: number): Promise<any> => {
   }
 
   try {
-    const response = await projectApi.delete(`/projects/milestones/${milestoneId}`, {
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-      withCredentials: true,
-    });
+    const response = await projectApi.delete(
+      `/projects/milestones/${milestoneId}`,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error(`Failed to delete milestone with id ${milestoneId}:`, error);
+    throw error;
+  }
+};
+
+// Update multiple milestones status along with project status
+export const updateProjectAndMilestonesStatus = async (
+  projectId: number,
+  projectStatus: string,
+  milestoneUpdates: Array<{
+    milestoneId: number;
+    status: string;
+  }>
+): Promise<Project> => {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  if (!accessToken) {
+    throw new Error("Access token is missing");
+  }
+
+  try {
+    const milestoneIds = milestoneUpdates.map((m) => m.milestoneId);
+    const milestoneStatuses = milestoneUpdates.map((m) =>
+      m.status.toUpperCase()
+    );
+
+    const response = await projectApi.put<Project>(
+      `/projects/update/status`,
+      {
+        projectId,
+        projectStatus: projectStatus.toUpperCase(),
+        milestoneIds,
+        milestoneStatuses,
+      },
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Failed to update project and milestones status for project ${projectId}:`,
+      error
+    );
     throw error;
   }
 };

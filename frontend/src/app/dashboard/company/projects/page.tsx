@@ -13,6 +13,7 @@ import {
   fetchMilestones,
   updateMilestoneStatus,
   deleteMilestone,
+  updateProjectAndMilestonesStatus,
 } from "@/app/services/projectService";
 import { revalidatePath } from "next/cache";
 import { Project } from "@/types/project";
@@ -52,7 +53,9 @@ export default async function CompanyProjectsPage({
       const projectData = {
         name: formData.get("name") as string,
         description: formData.get("description") as string,
-        status: (formData.get("status") as string).toUpperCase() as Project["status"],
+        status: (
+          formData.get("status") as string
+        ).toUpperCase() as Project["status"],
         startDate: formData.get("startDate") as string,
         endDate: formData.get("endDate") as string,
         budget: parseFloat(formData.get("budget") as string) || 0,
@@ -86,7 +89,15 @@ export default async function CompanyProjectsPage({
       );
 
       revalidatePath("/dashboard/company/projects");
-      return { project: { ...createdProject, milestones, teamMembers: [], teams: [], progress: 0 } };
+      return {
+        project: {
+          ...createdProject,
+          milestones,
+          teamMembers: [],
+          teams: [],
+          progress: 0,
+        },
+      };
     } catch (error) {
       console.error("Failed to create project:", error);
       return { error: "Failed to create project" };
@@ -97,21 +108,27 @@ export default async function CompanyProjectsPage({
   async function handleUpdateProject(id: number, data: Project) {
     "use server";
     try {
+      // Update project details
       const updatedProject = await updateProject(id, {
         description: data.description,
         status: data.status?.toUpperCase() as Project["status"],
+        budget: data.budget,
+        technologies: data.technologies,
+        startDate: data.startDate,
+        endDate: data.endDate,
       });
 
-      if (data.milestones) {
-        await Promise.all(
-          data.milestones.map(async (milestone) => {
-            if (milestone.id) {
-              await updateMilestoneStatus(
-                milestone.id,
-                milestone.completed ? "COMPLETED" : "IN_PROGRESS"
-              );
-            }
-          })
+      // Update milestones if provided
+      if (data.milestones && data.milestones.length > 0) {
+        const milestoneUpdates = data.milestones.map((milestone) => ({
+          milestoneId: milestone.id!,
+          status: milestone.completed ? "COMPLETED" : "IN_PROGRESS",
+        }));
+
+        await updateProjectAndMilestonesStatus(
+          id,
+          data.status || "ACTIVE",
+          milestoneUpdates
         );
       }
 
@@ -132,7 +149,8 @@ export default async function CompanyProjectsPage({
           teams: data.teams || [],
           progress: updatedMilestones.length
             ? Math.round(
-                (updatedMilestones.filter((m) => m.status === "COMPLETED").length /
+                (updatedMilestones.filter((m) => m.status === "COMPLETED")
+                  .length /
                   updatedMilestones.length) *
                   100
               )
@@ -188,7 +206,8 @@ export default async function CompanyProjectsPage({
           })),
           progress: updatedMilestones.length
             ? Math.round(
-                (updatedMilestones.filter((m) => m.status === "COMPLETED").length /
+                (updatedMilestones.filter((m) => m.status === "COMPLETED")
+                  .length /
                   updatedMilestones.length) *
                   100
               )
@@ -221,7 +240,8 @@ export default async function CompanyProjectsPage({
           })),
           progress: updatedMilestones.length
             ? Math.round(
-                (updatedMilestones.filter((m) => m.status === "COMPLETED").length /
+                (updatedMilestones.filter((m) => m.status === "COMPLETED")
+                  .length /
                   updatedMilestones.length) *
                   100
               )
@@ -235,7 +255,12 @@ export default async function CompanyProjectsPage({
   }
 
   // ✅ FETCH PROJECTS
-  async function handleFetchData(page: number, size: number, search: string, status: string) {
+  async function handleFetchData(
+    page: number,
+    size: number,
+    search: string,
+    status: string
+  ) {
     "use server";
     try {
       const projectsData = search.trim()
@@ -258,7 +283,8 @@ export default async function CompanyProjectsPage({
             })),
             progress: milestones.length
               ? Math.round(
-                  (milestones.filter((m) => m.status === "COMPLETED").length / milestones.length) *
+                  (milestones.filter((m) => m.status === "COMPLETED").length /
+                    milestones.length) *
                     100
                 )
               : 0,

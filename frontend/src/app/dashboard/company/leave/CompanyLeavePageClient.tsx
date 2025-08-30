@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,15 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeaveRequest, StatusCounts } from "@/types/entities";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Define types
 type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -225,7 +235,71 @@ export default function CompanyLeavePageClient({
 
   return (
     <div className="space-y-6">
-      {/* Header and Stats Cards (same as before) */}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
+          <p className="text-gray-600">
+            Review and manage intern leave requests
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Requests
+                </p>
+                <p className="text-2xl font-bold">{statusCounts.total}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {statusCounts.pending}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Approved</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {statusCounts.approved}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Rejected</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {statusCounts.rejected}
+                </p>
+              </div>
+              <X className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Search and Filter */}
       <Card>
@@ -285,7 +359,205 @@ export default function CompanyLeavePageClient({
         </CardContent>
       </Card>
 
-      {/* Leave Requests List (similar to before but using leaveId instead of id) */}
+      {/* Leave Requests List */}
+      <div className="space-y-4">
+        {leaveRequests.map((request) => (
+          <Card
+            key={request.leaveId}
+            className="hover:shadow-md transition-shadow"
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    {getStatusIcon(request.leaveStatus as LeaveStatus)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        User #{request.userId}
+                      </h3>
+                      {getStatusBadge(request.leaveStatus as LeaveStatus)}
+                      <Badge variant="outline">{request.leaveType}</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-600">
+                          <strong>Start Date:</strong> {request.fromDate}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>End Date:</strong> {request.toDate}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>Applied:</strong> {request.createdAt}
+                        </p>
+                      </div>
+                      <div>
+                        {request.leaveStatus === "APPROVED" &&
+                          request.approvedBy && (
+                            <p className="text-sm text-gray-600">
+                              <strong>Approved by:</strong> {request.approvedBy}
+                            </p>
+                          )}
+                      </div>
+                      <div>
+                        {request.leaveStatus === "REJECTED" &&
+                          request.rejectionReason && (
+                            <p className="text-sm text-gray-600">
+                              <strong>Rejection Reason:</strong>{" "}
+                              {request.rejectionReason}
+                            </p>
+                          )}
+                      </div>
+                    </div>
+
+                    <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm">
+                        <strong>Reason:</strong> {request.reason}
+                      </p>
+                    </div>
+
+                    {request.leaveStatus === "REJECTED" &&
+                      request.rejectionReason && (
+                        <div className="p-3 bg-red-50 rounded-lg">
+                          <p className="text-sm text-red-800">
+                            <strong>Rejection Reason:</strong>{" "}
+                            {request.rejectionReason}
+                          </p>
+                        </div>
+                      )}
+                  </div>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  {request.leaveStatus === "PENDING" && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() =>
+                          setShowConfirmation({
+                            id: request.leaveId,
+                            action: "approve",
+                          })
+                        }
+                        disabled={isLoading}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                        onClick={() =>
+                          setShowConfirmation({
+                            id: request.leaveId,
+                            action: "reject",
+                          })
+                        }
+                        disabled={isLoading}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setShowConfirmation({
+                        id: request.leaveId,
+                        action: "message",
+                      })
+                    }
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Message
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={!!showConfirmation}
+        onOpenChange={() => setShowConfirmation(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {showConfirmation?.action === "approve" &&
+                "Approve Leave Request"}
+              {showConfirmation?.action === "reject" && "Reject Leave Request"}
+              {showConfirmation?.action === "message" && "Send Message"}
+            </DialogTitle>
+            <DialogDescription>
+              {showConfirmation?.action === "approve" &&
+                "Are you sure you want to approve this leave request?"}
+              {showConfirmation?.action === "reject" &&
+                "Please provide a reason for rejecting this leave request:"}
+              {showConfirmation?.action === "message" &&
+                "Send a message to the intern about their leave request:"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {(showConfirmation?.action === "reject" ||
+            showConfirmation?.action === "message") && (
+            <Textarea
+              placeholder={
+                showConfirmation?.action === "reject"
+                  ? "Enter rejection reason..."
+                  : "Enter your message..."
+              }
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+            />
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmation(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!showConfirmation) return;
+
+                if (showConfirmation.action === "approve") {
+                  handleApprove(showConfirmation.id);
+                } else if (showConfirmation.action === "reject") {
+                  handleReject(showConfirmation.id);
+                } else if (showConfirmation.action === "message") {
+                  handleMessage(showConfirmation.id);
+                }
+              }}
+              disabled={
+                isLoading || (showConfirmation?.action === "reject" && !message)
+              }
+              className={
+                showConfirmation?.action === "reject"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : showConfirmation?.action === "approve"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : ""
+              }
+            >
+              {isLoading
+                ? "Processing..."
+                : showConfirmation?.action === "approve"
+                ? "Approve"
+                : showConfirmation?.action === "reject"
+                ? "Reject"
+                : "Send Message"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -298,6 +570,7 @@ export default function CompanyLeavePageClient({
                   e.preventDefault();
                   if (page > 1) handlePageChange(page - 1);
                 }}
+                className={page <= 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
@@ -321,11 +594,62 @@ export default function CompanyLeavePageClient({
                   e.preventDefault();
                   if (page < totalPages) handlePageChange(page + 1);
                 }}
+                className={
+                  page >= totalPages ? "pointer-events-none opacity-50" : ""
+                }
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Leave Policy */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Leave Management Policy</CardTitle>
+          <CardDescription>
+            Guidelines for reviewing and approving leave requests
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-3">Approval Guidelines:</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>
+                  • <strong>Sick Leave:</strong> Approve immediately, may
+                  require medical certificate for &gt;3 days
+                </li>
+                <li>
+                  • <strong>Personal Leave:</strong> Consider urgency and
+                  project impact
+                </li>
+                <li>
+                  • <strong>Vacation:</strong> Require 1-week advance notice
+                  minimum
+                </li>
+                <li>
+                  • <strong>Study Leave:</strong> Coordinate with university
+                  requirements
+                </li>
+                <li>• Consider project deadlines and team availability</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3">Review Process:</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Review requests within 24 hours of submission</li>
+                <li>• Consult with project mentors for impact assessment</li>
+                <li>• Provide clear reasons for any rejections</li>
+                <li>
+                  • Suggest alternative dates if original request conflicts
+                </li>
+                <li>• Update project timelines if necessary</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

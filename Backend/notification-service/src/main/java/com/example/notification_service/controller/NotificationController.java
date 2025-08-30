@@ -63,7 +63,6 @@ public class NotificationController {
         String roleStr = (String) request.getAttribute("role");
 
         try {
-<<<<<<< HEAD
             String enumRole;
 
             // if ("HR".equalsIgnoreCase(roleStr)) {
@@ -78,9 +77,6 @@ public class NotificationController {
 
             RecipientRole role = RecipientRole.valueOf(roleStr);
 
-=======
-            RecipientRole role = RecipientRole.valueOf(roleStr);
->>>>>>> e3c9dcef5b729e120a8a72f3a7bf223445125284
             Pageable pageable = PageRequest.of(page, size);
             Page<Notification> notifications = notificationService.getNotificationsByRole(role, pageable);
             return ResponseEntity.ok(notifications);
