@@ -20,21 +20,19 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { toast } from "@/components/ui/use-toast";
+import { Notification } from "@/app/services/notificationService";
 
-interface Notification {
-  id: number;
-  title: string;
-  description: string;
-  created_at: string;
-  is_read: boolean;
-  type: string;
-  priority: string;
-  role: string[];
-}
-
-interface NotificationsClientProps {
+interface StudentNotificationsClientProps {
+  userRole: string;
   initialNotifications: Notification[];
   pagination: {
     currentPage: number;
@@ -63,13 +61,14 @@ interface NotificationsClientProps {
   }>;
 }
 
-export default function UniversityNotificationsClient({
+export default function CompanyNotificationsClient({
+  userRole,
   initialNotifications,
   pagination,
   onMarkAsRead,
   onMarkAllAsRead,
   onFetchData,
-}: UniversityNotificationsClientProps) {
+}: StudentNotificationsClientProps) {
   const [notifications, setNotifications] =
     useState<Notification[]>(initialNotifications);
   const [page, setPage] = useState<number>(pagination.currentPage + 1);
@@ -140,7 +139,6 @@ export default function UniversityNotificationsClient({
   };
 
   const isNotificationRead = (notification: Notification): boolean => {
-    const userRole = "COMPANY"; // This should come from user context
     const recipient = notification.recipients.find((r) => r.role === userRole);
     return recipient?.read || false;
   };
@@ -179,7 +177,16 @@ export default function UniversityNotificationsClient({
         throw new Error(response.error);
       }
 
-      await loadAllNotifications();
+      // 👇 Instead of re-fetching, update local state
+      setNotifications((prev) =>
+        prev.map((n) => ({
+          ...n,
+          recipients: n.recipients.map((r) =>
+            r.role === userRole ? { ...r, read: true } : r
+          ),
+        }))
+      );
+
       toast({
         title: "Success",
         description: "All notifications marked as read",

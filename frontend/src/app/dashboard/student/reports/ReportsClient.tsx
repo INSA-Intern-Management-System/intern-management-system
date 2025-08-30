@@ -66,6 +66,10 @@ interface ReportsClientProps {
   initialStatus?: "PENDING" | "GIVEN";
   initialPeriod?: "week" | "month";
   totalSubmittedReports: number;
+  reportStats: {
+    totalReports: number;
+    averageRating: number;
+  };
 }
 
 export default function ReportsClient({
@@ -76,6 +80,7 @@ export default function ReportsClient({
   initialStatus,
   initialPeriod,
   totalSubmittedReports,
+  reportStats,
 }: ReportsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -187,19 +192,11 @@ export default function ReportsClient({
     router.push(`/dashboard/student/reports?${params.toString()}`);
   };
 
-  const submittedReports = reports.filter((r) => r.createdAt);
-  const submittedReportsCount = totalSubmittedReports;
+  const submittedReportsCount = reportStats.totalReports;
 
   const ratedReports = reports.filter(
     (report) => report.review?.rating != null
   );
-  const avgRating =
-    ratedReports.length > 0
-      ? ratedReports.reduce(
-          (sum, report) => sum + (report.review?.rating ?? 0),
-          0
-        ) / ratedReports.length
-      : 0;
 
   // Professional pagination rendering
   const renderPaginationItems = () => {
@@ -385,7 +382,7 @@ export default function ReportsClient({
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg. Rating</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {avgRating.toFixed(1)}/5
+                  {reportStats.averageRating}/5
                 </p>
               </div>
               <Star className="h-8 w-8 text-purple-600" />

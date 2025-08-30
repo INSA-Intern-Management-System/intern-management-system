@@ -1,235 +1,322 @@
-// app/dashboard/student/notifications/NotificationsClient.tsx
 "use client";
 
-import React, { useRef, useState } from "react";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Bell,
   CheckCircle,
-  Clock,
   MessageSquare,
   FileText,
   Calendar,
   Settings,
-  Mail,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { toast } from "@/components/ui/use-toast";
+import { Notification } from "@/app/services/notificationService";
 
-interface Notification {
-  id: number;
-  title: string;
-  description: string;
-  created_at: string;
-  is_read: boolean;
-  type: string;
-  priority: string;
-  role: string[];
-}
-
-interface NotificationsClientProps {
+interface StudentNotificationsClientProps {
+  userRole: string;
   initialNotifications: Notification[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    pageSize: number;
+  };
+  onMarkAsRead: (notificationId: number) => Promise<{
+    success: boolean;
+    notification?: Notification;
+    error?: string;
+  }>;
+  onMarkAllAsRead: () => Promise<{ success: boolean; error?: string }>;
+  onFetchData: (
+    page: number,
+    size: number
+  ) => Promise<{
+    notifications: Notification[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      pageSize: number;
+    };
+    error?: string;
+  }>;
 }
 
-export default function NotificationsClient({
+export default function StudentNotificationsClient({
+  userRole,
   initialNotifications,
-}: NotificationsClientProps) {
-  const preferencesRef = useRef<HTMLDivElement>(null);
+  pagination,
+  onMarkAsRead,
+  onMarkAllAsRead,
+  onFetchData,
+}: StudentNotificationsClientProps) {
   const [notifications, setNotifications] =
     useState<Notification[]>(initialNotifications);
-  const [page, setPage] = useState(1);
-  const [emailPrefs, setEmailPrefs] = useState({
-    reportDeadlines: true,
-    feedbackReceived: true,
-    meetingReminders: true,
-    weeklyDigest: true,
-  });
-  const [pushPrefs, setPushPrefs] = useState({
-    urgentMessages: true,
-    applicationUpdates: true,
-  });
+  const [page, setPage] = useState<number>(pagination.currentPage + 1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMarkingRead, setIsMarkingRead] = useState<number | null>(null);
 
   const pageSize = 3;
-  const totalPages = Math.ceil(notifications.length / pageSize);
-  const paginatedNotifications = notifications.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
+  const totalPages = Math.max(1, Math.ceil(pagination.totalItems / pageSize));
+
+  const currentNotifications = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    return notifications.slice(start, end);
+  }, [notifications, page, pageSize]);
+
+  useEffect(() => {
+    setNotifications(initialNotifications);
+  }, [initialNotifications]);
+
+  const loadAllNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const data = await onFetchData(0, 10000);
+      if (data.error) {
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
+      } else {
+        setNotifications(data.notifications);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load notifications",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "feedback":
-        return <MessageSquare className="h-5 w-5 text-blue-600" />;
-      case "deadline":
-        return <Clock className="h-5 w-5 text-red-600" />;
-      case "meeting":
-        return <Calendar className="h-5 w-5 text-purple-600" />;
-      case "application":
-        return <FileText className="h-5 w-5 text-green-600" />;
-      case "system":
-        return <Settings className="h-5 w-5 text-gray-600" />;
+      case "ALERT":
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      case "SUCCESS":
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case "INFO":
+        return <Bell className="h-5 w-5 text-blue-600" />;
       default:
         return <Bell className="h-5 w-5 text-gray-600" />;
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return <Badge className="bg-red-100 text-red-800">High</Badge>;
-      case "medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-      case "low":
-        return <Badge className="bg-green-100 text-green-800">Low</Badge>;
+  const getTypeBadge = (type: string) => {
+    switch (type) {
+      case "ALERT":
+        return <Badge className="bg-red-100 text-red-800">Alert</Badge>;
+      case "SUCCESS":
+        return <Badge className="bg-green-100 text-green-800">Success</Badge>;
+      case "INFO":
+        return <Badge className="bg-blue-100 text-blue-800">Info</Badge>;
       default:
-        return <Badge variant="secondary">{priority}</Badge>;
+        return <Badge variant="secondary">{type}</Badge>;
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
+  const isNotificationRead = (notification: Notification): boolean => {
+    const recipient = notification.recipients.find((r) => r.role === userRole);
+    return recipient?.read || false;
+  };
+
+  const handleMarkAsRead = async (notificationId: number) => {
+    setIsMarkingRead(notificationId);
+    try {
+      const response = await onMarkAsRead(notificationId);
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? response.notification! : n))
+      );
+
+      toast({
+        title: "Success",
+        description: "Notification marked as read",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to mark notification as read",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMarkingRead(null);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const response = await onMarkAllAsRead();
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      // 👇 Instead of re-fetching, update local state
+      setNotifications((prev) =>
+        prev.map((n) => ({
+          ...n,
+          recipients: n.recipients.map((r) =>
+            r.role === userRole ? { ...r, read: true } : r
+          ),
+        }))
+      );
+
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error.message || "Failed to mark all notifications as read",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffTime / (1000 * 60));
 
-    if (diffInSeconds < 60) return "Just now";
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 604800)
-      return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    return date.toLocaleDateString();
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
+    } else {
+      return "Just now";
+    }
   };
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const markAsRead = (id: number) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      </div>
     );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, is_read: true })));
-  };
-
-  const handleSettingsClick = () => {
-    preferencesRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }
 
   return (
-    <div className="space-y-6 px-2 sm:px-4 md:px-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
-        <div className="w-full md:w-auto">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
           <p className="text-gray-600">
-            {unreadCount > 0
-              ? `${unreadCount} unread notification${
-                  unreadCount !== 1 ? "s" : ""
-                }`
-              : "All caught up!"}
+            Stay updated with intern activities and important events
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full md:w-auto md:justify-end">
-          <Button
-            variant="outline"
-            onClick={markAllAsRead}
-            disabled={unreadCount === 0}
-            className="w-full sm:w-auto"
-          >
+        <div className="flex items-center space-x-3">
+          <Button variant="outline" onClick={handleMarkAllAsRead}>
             Mark All Read
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleSettingsClick}
-            className="w-full sm:w-auto"
-          >
-            Notification Settings
           </Button>
         </div>
       </div>
 
       {/* Notifications List */}
       <div className="space-y-4">
-        {paginatedNotifications.length > 0 ? (
-          paginatedNotifications.map((notification) => (
-            <Card
-              key={notification.id}
-              className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow ${
-                !notification.is_read
-                  ? "border-l-4 border-l-blue-500 bg-blue-50/30"
-                  : ""
-              }`}
-            >
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex flex-row items-start gap-4 w-full">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                        <h3
-                          className={`font-semibold truncate ${
-                            !notification.is_read
-                              ? "text-gray-900"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {notification.title}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {!notification.is_read && (
-                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                          )}
-                          {getPriorityBadge(notification.priority)}
-                        </div>
-                      </div>
-                      <p className="text-gray-600 mb-2 break-words">
-                        {notification.description}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {formatTimeAgo(notification.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                  {!notification.is_read && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-300 w-full sm:w-auto mt-2 sm:mt-0"
-                      onClick={() => markAsRead(notification.id)}
-                    >
-                      Mark Read
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card className="bg-white border border-gray-200 rounded-lg">
-            <CardContent className="p-6 text-center text-gray-500">
-              No notifications to display
+        {notifications.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No notifications
+              </h3>
+              <p className="text-gray-600">You're all caught up!</p>
             </CardContent>
           </Card>
+        ) : (
+          currentNotifications.map((notification) => {
+            const isRead = isNotificationRead(notification);
+
+            return (
+              <Card
+                key={notification.id}
+                className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow ${
+                  !isRead ? "border-l-4 border-l-blue-500 bg-blue-50/30" : ""
+                }`}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between relative">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3
+                            className={`font-semibold ${
+                              !isRead ? "text-gray-900" : "text-gray-700"
+                            }`}
+                          >
+                            {notification.title}
+                          </h3>
+                          {!isRead && (
+                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                          )}
+                          {getTypeBadge(notification.type)}
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          {notification.description}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(notification.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {!isRead && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-300"
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          disabled={isMarkingRead === notification.id}
+                        >
+                          {isMarkingRead === notification.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Mark Read
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
@@ -244,6 +331,7 @@ export default function NotificationsClient({
                   e.preventDefault();
                   setPage((p) => Math.max(1, p - 1));
                 }}
+                className={page === 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
@@ -267,89 +355,84 @@ export default function NotificationsClient({
                   e.preventDefault();
                   setPage((p) => Math.min(totalPages, p + 1));
                 }}
+                className={
+                  page === totalPages ? "pointer-events-none opacity-50" : ""
+                }
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       )}
 
-      {/* Notification Settings */}
-      <div ref={preferencesRef} className="pt-8">
-        <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <CardHeader>
-            <CardTitle>Notification Preferences</CardTitle>
-            <CardDescription>
-              Customize how you receive notifications
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <Mail className="h-5 w-5 text-blue-600" />
-                Email Notifications
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="report-deadlines">Report Deadlines</Label>
-                  <Switch
-                    id="report-deadlines"
-                    checked={emailPrefs.reportDeadlines}
-                    onCheckedChange={(checked) =>
-                      setEmailPrefs({ ...emailPrefs, reportDeadlines: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="feedback-received">Feedback Received</Label>
-                  <Switch
-                    id="feedback-received"
-                    checked={emailPrefs.feedbackReceived}
-                    onCheckedChange={(checked) =>
-                      setEmailPrefs({
-                        ...emailPrefs,
-                        feedbackReceived: checked,
-                      })
-                    }
-                  />
-                </div>
-                {/* Add more email preference switches */}
-              </div>
-            </div>
+      {/* Quick Actions */}
+      <Card className="bg-white border border-gray-200 rounded-lg">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>
+            Common actions based on your notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Button
+              variant="outline"
+              className="h-20 flex-col space-y-2 bg-transparent"
+            >
+              <FileText className="h-6 w-6" />
+              <span>Review Applications</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex-col space-y-2 bg-transparent"
+            >
+              <CheckCircle className="h-6 w-6" />
+              <span>Evaluate Reports</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex-col space-y-2 bg-transparent"
+            >
+              <Calendar className="h-6 w-6" />
+              <span>Approve Leave</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex-col space-y-2 bg-transparent"
+            >
+              <MessageSquare className="h-6 w-6" />
+              <span>Send Messages</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Notification Preferences */}
+      <Card className="bg-white border border-gray-200 rounded-lg">
+        <CardHeader>
+          <CardTitle>Notification Preferences</CardTitle>
+          <CardDescription>Choose how you want to be notified</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <Bell className="h-5 w-5 text-purple-600" />
-                Push Notifications
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="urgent-messages">Urgent Messages</Label>
-                  <Switch
-                    id="urgent-messages"
-                    checked={pushPrefs.urgentMessages}
-                    onCheckedChange={(checked) =>
-                      setPushPrefs({ ...pushPrefs, urgentMessages: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="app-updates">Application Updates</Label>
-                  <Switch
-                    id="app-updates"
-                    checked={pushPrefs.applicationUpdates}
-                    onCheckedChange={(checked) =>
-                      setPushPrefs({
-                        ...pushPrefs,
-                        applicationUpdates: checked,
-                      })
-                    }
-                  />
-                </div>
-              </div>
+              <h4 className="font-semibold mb-3">Email Notifications</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Report Deadlines</li>
+                <li>• Feedback Received</li>
+                <li>• Meeting Reminders</li>
+                <li>• Weekly Digest</li>
+              </ul>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <h4 className="font-semibold mb-3">Push Notifications</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Urgent Messages</li>
+                <li>• Application Updates</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

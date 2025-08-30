@@ -1,4 +1,3 @@
-// app/dashboard/student/notifications/page.tsx
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { User } from "@/types/entities";
@@ -25,7 +24,7 @@ async function getUser() {
     redirect("/login");
   }
 
-  return { userId: Number(userId) };
+  return { userId: Number(userId), accessToken };
 }
 
 async function getNotifications(userId: string): Promise<Notification[]> {
@@ -63,7 +62,19 @@ export default async function NotificationsPage() {
 
   return (
     <DashboardLayout requiredRole="student">
-      <NotificationsClient initialNotifications={notifications} />
+      <StudentNotificationsClient
+        userRole="STUDENT"
+        initialNotifications={notificationsData.content}
+        pagination={{
+          currentPage: notificationsData.number,
+          totalPages: notificationsData.totalPages,
+          totalItems: notificationsData.totalElements,
+          pageSize: notificationsData.size,
+        }}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onFetchData={handleFetchData}
+      />
     </DashboardLayout>
   );
 }

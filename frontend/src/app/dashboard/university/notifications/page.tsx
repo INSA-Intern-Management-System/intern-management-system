@@ -1,4 +1,3 @@
-// app/dashboard/student/notifications/page.tsx
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { User } from "@/types/entities";
@@ -25,7 +24,7 @@ async function getUser() {
     redirect("/login");
   }
 
-  return { userId: Number(userId) };
+  return { userId: Number(userId), accessToken };
 }
 
 async function getNotifications(userId: string): Promise<Notification[]> {
