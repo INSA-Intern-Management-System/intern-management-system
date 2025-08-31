@@ -1,10 +1,15 @@
 package com.example.userservice.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -45,18 +50,29 @@ public class User implements UserDetails {
     private Date createdAt;
     private Date updatedAt;
 
+    @Column(name = "failed_attempts")
+    private Integer failedAttempts = 0;
+    @Column(name = "account_locked")
+    private Boolean isAccountLocked = false;
+    @Column(name = "account_locked_at")
+    private LocalDateTime accountLockedAt;
+
     @ManyToOne
     @JoinColumn(name = "supervisor_id")
+    @JsonBackReference(value = "supervisor-ref")
     private User supervisor;
 
     @OneToMany(mappedBy = "supervisor")
+    @JsonManagedReference(value = "supervisor-ref")
     private List<User> supervisedInterns;
 
     @ManyToOne
     @JoinColumn(name = "project_manager_id")
+    @JsonBackReference(value = "pm-ref")
     private User projectManager;
 
     @OneToMany(mappedBy = "projectManager")
+    @JsonManagedReference(value = "pm-ref")
     private List<User> projectManagerInterns;
 
 
@@ -94,13 +110,16 @@ public class User implements UserDetails {
     }
 
 
+
+    public User() {
+    }
+
     public User(Long id) {
         this.id = id;
         this.status = Status.OFFLINE;
     }
 
-    public User() {
-    }
+
 
     public User(
     Long id, 
@@ -132,7 +151,10 @@ public class User implements UserDetails {
     User supervisor,
     List<User> supervisedInterns,
     User projectManager,
-    List<User> projectManagerInterns
+    List<User> projectManagerInterns,
+    Integer failedAttempts,
+    Boolean isAccountLocked,
+    LocalDateTime accountLockedAt
 
       ) {
         this.id = id;
@@ -165,6 +187,9 @@ public class User implements UserDetails {
         this.supervisedInterns = supervisedInterns;
         this.projectManager = projectManager;
         this.projectManagerInterns = projectManagerInterns;
+        this.failedAttempts = failedAttempts;
+        this.isAccountLocked = isAccountLocked;
+        this.accountLockedAt = accountLockedAt;
     }
 
      @Override
@@ -432,4 +457,21 @@ public class User implements UserDetails {
     public void setStatus(Status status) {
         this.status = status;
     }
+
+    public Integer getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(Integer failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    public Boolean getAccountLocked() {
+        return isAccountLocked;
+    }
+    public void setAccountLocked(Boolean isAccountLocked){
+        this.isAccountLocked = isAccountLocked;
+    }
+    public LocalDateTime getAccountLockedAt() { return accountLockedAt; }
+    public void setAccountLockedAt(LocalDateTime accountLockedAt) { this.accountLockedAt = accountLockedAt; }
 }

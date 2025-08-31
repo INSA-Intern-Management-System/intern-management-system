@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import com.example.project_service.dto.ProjectMilestoneStatsDTO;
+import com.example.project_service.dto.ProjectProgressDTO;
+import com.example.project_service.dto.UniveristyMilestoneStatsDTO;
 import com.example.project_service.models.Milestone;
 import com.example.project_service.models.MilestoneStatus;
 import com.example.project_service.models.Project;
@@ -49,11 +51,16 @@ public class ProjectManagerGrpcService extends ProjectManagerServiceGrpc.Project
     @Override
     public void getProjects(AllProjectRequests request, StreamObserver<AllProjectResponses> responseObserver) {
         AllProjectResponses.Builder responseBuilder = AllProjectResponses.newBuilder();
-        for (Project project : repository.findByProjectIds(request.getProjectIdsList())) {
+        if (request.getProjectIdsList() == null || request.getProjectIdsList().isEmpty()) {
+            responseObserver.onError(new RuntimeException("Project info not found"));
+            return;
+        }
+        for (ProjectProgressDTO project : projectService.getProjectProgress(request.getProjectIdsList())) {
             ProjectResponse response = ProjectResponse.newBuilder()
-                    .setProjectId(project.getId())
-                    .setProjectName(project.getName())
-                    .setProjectDescription(project.getDescription())
+                    .setProjectId(project.getProjectID())
+                    .setProjectName(project.getProjectName())
+                    .setProjectDescription(project.getProjectDescription())
+                    .setProgress(project.getProgress())
                     .build();
             responseBuilder.addProjects(response);
         }
@@ -143,6 +150,25 @@ public class ProjectManagerGrpcService extends ProjectManagerServiceGrpc.Project
                 .setCompleted(projectStats.get("completed"))
                 .setPlanning(projectStats.get("planning"))
                 .setTotal(projectStats.get("total"))
+                .build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+
+
+    }
+
+    @Override
+    public void getMilestoneForUniversity(ProjectIds request, StreamObserver<MilestoneStats> responseObserver){
+        
+        UniveristyMilestoneStatsDTO stats = projectService.getStats(request.getProjectIdsList());
+        if (stats == null) {
+            responseObserver.onError(new RuntimeException("Project stats info not found"));
+            return;
+        }
+
+        MilestoneStats response = MilestoneStats.newBuilder()
+                .setCompleted(stats.getStatusCount())
+                .setTotal(stats.getTotalMilestones())
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();

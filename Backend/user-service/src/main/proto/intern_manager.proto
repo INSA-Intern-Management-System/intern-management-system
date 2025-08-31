@@ -8,6 +8,7 @@ option java_outer_classname = "InternManagerProto";
 
 service InternManagerService {
   rpc getInternManagerInfo (InternManagerRequest) returns (InternManagerResponse);
+  rpc createInternManager (CreateRequest) returns (CreateResponse);
 }
 
 
@@ -23,4 +24,16 @@ message InternManagerResponse {
   int64 mentor_id = 5;
   int64 team_id = 6;
 }
+
+message CreateRequest{
+  repeated int64 user_ids = 1;
+  int64 manager_id = 2;
+  int64 project_id = 3;
+  int64 team_id = 4 ;
+}
+
+message CreateResponse{
+  bool message = 1;
+}
+
 

@@ -2,11 +2,27 @@ package com.example.project_service.service;
 
 import com.example.project_service.dto.*;
 import com.example.project_service.models.*;
+import com.example.userservice.gRPC.UserResponse;
 
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProjectMapper {
+    
+    public TeamMemberResponse mapToDto(TeamMember member, UserResponse userResponse) {
+        if (member == null) return null;
+        if (userResponse == null) return null;
+        TeamMemberResponse dto = new TeamMemberResponse();
+        dto.setId(member.getId());
+        dto.setTeamId(member.getTeam() != null ? member.getTeam().getId() : null);
+        dto.setMemberId(member.getMemberId());
+        dto.setFirstName(userResponse.getFirstName());
+        dto.setLastName(userResponse.getLastName());
+        dto.setRole(member.getRole());
+        dto.setJoinedAt(member.getJoinedAt());
+        return dto;
+    }
+
 
     public ProjectResponse mapToDto(Project project) {
         if (project == null) return null;
@@ -34,17 +50,6 @@ public class ProjectMapper {
         dto.setManagerId(team.getManagerId());
         dto.setCreatedAt(team.getCreatedAt());
         dto.setUpdatedAt(team.getUpdatedAt());
-        return dto;
-    }
-
-    public TeamMemberResponse mapToDto(TeamMember member) {
-        if (member == null) return null;
-        TeamMemberResponse dto = new TeamMemberResponse();
-        dto.setId(member.getId());
-        dto.setTeamId(member.getTeam() != null ? member.getTeam().getId() : null);
-        dto.setMemberId(member.getMemberId());
-        dto.setRole(member.getRole());
-        dto.setJoinedAt(member.getJoinedAt());
         return dto;
     }
 

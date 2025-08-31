@@ -58,7 +58,6 @@ public class UserResponseDto {
         this.linkedInUrl = user.getLinkedInUrl();
         this.lastReadNotificationAt = user.getLastReadNotificationAt();
         this.githubUrl = user.getGithubUrl();
-        this.cvUrl = user.getCvUrl();
         this.profilePicUrl = user.getProfilePicUrl();
         this.fieldOfStudy = user.getFieldOfStudy();
         this.institution = user.getInstitution();

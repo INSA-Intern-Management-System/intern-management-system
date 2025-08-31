@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -35,6 +36,7 @@ import {
   Linkedin,
   Github,
   FileText,
+  Bell,
   Calendar,
   Shield,
   BadgeCheck,
@@ -66,6 +68,10 @@ export default function ProfileClient({
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
+   const handleSwitchChange = (name: string, checked: boolean) => {
+    setProfile((prev) => ({ ...prev, [name]: checked }));
+  };
+
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
@@ -81,6 +87,7 @@ export default function ProfileClient({
         linkedInUrl: profile.linkedInUrl || undefined,
         githubUrl: profile.githubUrl || undefined,
         cvUrl: profile.cvUrl || undefined,
+        notifyEmail: profile.notifyEmail !== null ? profile.notifyEmail : undefined,
       };
 
       const response = await onUpdateProfile(updateData);
@@ -231,6 +238,38 @@ export default function ProfileClient({
               </CardContent>
             </Card>
           )}
+
+                    {/* Notification Settings */}
+                    <Card className="border border-gray-200 rounded-lg bg-white">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Bell className="h-5 w-5" />
+                          Notification Settings
+                        </CardTitle>
+                        <CardDescription>
+                          Manage your email notification preferences
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="notifyEmail" className="text-base">
+                              Email Notifications
+                            </Label>
+                            <p className="text-sm text-gray-500">
+                              Receive important updates via email
+                            </p>
+                          </div>
+          <Switch
+            id="notifyEmail"
+            checked={profile.notifyEmail === true}
+            onCheckedChange={(checked) => handleSwitchChange("notifyEmail", checked)}
+            disabled={!isEditing}
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:hover:bg-blue-600"
+          />
+                        </div>
+                      </CardContent>
+                    </Card>
         </div>
 
         {/* Main Profile Content */}

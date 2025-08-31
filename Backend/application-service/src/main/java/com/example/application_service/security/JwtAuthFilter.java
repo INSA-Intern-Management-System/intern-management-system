@@ -20,7 +20,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Autowired
-    private Security security; // your JWT util class
+    private Security security;
 
    @Override
 protected void doFilterInternal(HttpServletRequest request,

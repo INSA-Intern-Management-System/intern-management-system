@@ -34,7 +34,7 @@ public class SecurityConfig {
                                 "/api/universities/login",
                                 "/api/universities/register",
                                 "/api/users",
-                                "/api/users/\\d+",
+                                "/api/users/{id}",
                                 "/api/users/filter-interns-by-university",
                                 "/api/users/filter-all-users-by-status",
                                 "/api/users/filter-supervisor-by-status",
@@ -47,7 +47,7 @@ public class SecurityConfig {
                                 "/api/users/filter-by-institution",
                                 "/api/auth/request-password-change-otp",
                                 "/api/auth/confirm-password-change-otp",
-                                "/actuator/health"
+                                "/actuator/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
