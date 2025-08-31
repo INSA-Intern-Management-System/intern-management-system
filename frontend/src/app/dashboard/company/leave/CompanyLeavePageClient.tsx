@@ -1,4 +1,4 @@
-// app/company/leave/CompanyLeavePageClient.tsx
+// app/dashboard/company/leave/CompanyLeavePageClient.tsx
 "use client";
 
 import {
@@ -35,7 +35,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeaveRequest, StatusCounts } from "@/types/entities";
 import { Textarea } from "@/components/ui/textarea";
@@ -116,6 +116,19 @@ export default function CompanyLeavePageClient({
   const [message, setMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Update state when URL params change
+  useEffect(() => {
+    const search = params.get("search") || "";
+    const status = params.get("status") || "all";
+    const type = params.get("type") || "all";
+    const pageParam = params.get("page") || "1";
+
+    setSearchTerm(search);
+    setStatusFilter(status);
+    setTypeFilter(type);
+    setPage(parseInt(pageParam));
+  }, [params]);
+
   // Update state when props change (for navigation)
   useEffect(() => {
     setLeaveRequests(initialLeaveRequests);
@@ -156,13 +169,17 @@ export default function CompanyLeavePageClient({
     if (typeFilter !== "all") newParams.set("type", typeFilter);
     newParams.set("page", "1");
 
-    router.push(`/company/leave?${newParams.toString()}`);
+    router.push(`/dashboard/company/leave?${newParams.toString()}`);
   };
 
   const handlePageChange = (newPage: number) => {
-    const newParams = new URLSearchParams(params);
+    const newParams = new URLSearchParams();
+    if (searchTerm) newParams.set("search", searchTerm);
+    if (statusFilter !== "all") newParams.set("status", statusFilter);
+    if (typeFilter !== "all") newParams.set("type", typeFilter);
     newParams.set("page", newPage.toString());
-    router.push(`/company/leave?${newParams.toString()}`);
+
+    router.push(`/dashboard/company/leave?${newParams.toString()}`);
   };
 
   const handleApprove = async (id: number) => {
@@ -321,7 +338,6 @@ export default function CompanyLeavePageClient({
               value={statusFilter}
               onValueChange={(value) => {
                 setStatusFilter(value);
-                handleSearch();
               }}
             >
               <SelectTrigger className="w-48">
@@ -338,7 +354,6 @@ export default function CompanyLeavePageClient({
               value={typeFilter}
               onValueChange={(value) => {
                 setTypeFilter(value);
-                handleSearch();
               }}
             >
               <SelectTrigger className="w-48">
@@ -346,6 +361,7 @@ export default function CompanyLeavePageClient({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Annual">Annual Leave</SelectItem>
                 <SelectItem value="Sick">Sick Leave</SelectItem>
                 <SelectItem value="Personal">Personal Leave</SelectItem>
                 <SelectItem value="Vacation">Vacation</SelectItem>
@@ -359,129 +375,144 @@ export default function CompanyLeavePageClient({
         </CardContent>
       </Card>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+
       {/* Leave Requests List */}
-      <div className="space-y-4">
-        {leaveRequests.map((request) => (
-          <Card
-            key={request.leaveId}
-            className="hover:shadow-md transition-shadow"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                    {getStatusIcon(request.leaveStatus as LeaveStatus)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        User #{request.userId}
-                      </h3>
-                      {getStatusBadge(request.leaveStatus as LeaveStatus)}
-                      <Badge variant="outline">{request.leaveType}</Badge>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-600">
-                          <strong>Start Date:</strong> {request.fromDate}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <strong>End Date:</strong> {request.toDate}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <strong>Applied:</strong> {request.createdAt}
-                        </p>
+      {!isLoading && (
+        <div className="space-y-4">
+          {leaveRequests.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">No leave requests found</p>
+              </CardContent>
+            </Card>
+          ) : (
+            leaveRequests.map((request) => (
+              <Card
+                key={request.leaveId}
+                className="hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        {getStatusIcon(request.leaveStatus as LeaveStatus)}
                       </div>
-                      <div>
-                        {request.leaveStatus === "APPROVED" &&
-                          request.approvedBy && (
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {request.fristName} {request.lastName}
+                          </h3>
+                          {getStatusBadge(request.leaveStatus as LeaveStatus)}
+                          <Badge variant="outline">{request.leaveType}</Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div>
                             <p className="text-sm text-gray-600">
-                              <strong>Approved by:</strong> {request.approvedBy}
+                              <strong>Start Date:</strong> {request.fromDate}
                             </p>
-                          )}
-                      </div>
-                      <div>
-                        {request.leaveStatus === "REJECTED" &&
-                          request.rejectionReason && (
                             <p className="text-sm text-gray-600">
-                              <strong>Rejection Reason:</strong>{" "}
-                              {request.rejectionReason}
+                              <strong>End Date:</strong> {request.toDate}
                             </p>
-                          )}
-                      </div>
-                    </div>
+                            <p className="text-sm text-gray-600">
+                              <strong>Applied:</strong>{" "}
+                              {new Date(request.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">
+                              <strong>University:</strong> {request.university}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <strong>Field:</strong> {request.feildOfStudy}
+                            </p>
+                          </div>
+                          <div>
+                            {request.leaveStatus === "APPROVED" &&
+                              request.approvedBy && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>Approved by:</strong>{" "}
+                                  {request.approvedBy}
+                                </p>
+                              )}
+                            {request.leaveStatus === "REJECTED" &&
+                              request.rejectionReason && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>Rejection Reason:</strong>{" "}
+                                  {request.rejectionReason}
+                                </p>
+                              )}
+                          </div>
+                        </div>
 
-                    <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">
-                        <strong>Reason:</strong> {request.reason}
-                      </p>
-                    </div>
-
-                    {request.leaveStatus === "REJECTED" &&
-                      request.rejectionReason && (
-                        <div className="p-3 bg-red-50 rounded-lg">
-                          <p className="text-sm text-red-800">
-                            <strong>Rejection Reason:</strong>{" "}
-                            {request.rejectionReason}
+                        <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm">
+                            <strong>Reason:</strong> {request.reason}
                           </p>
                         </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col space-y-2">
+                      {request.leaveStatus === "PENDING" && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() =>
+                              setShowConfirmation({
+                                id: request.leaveId,
+                                action: "approve",
+                              })
+                            }
+                            disabled={isLoading}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                            onClick={() =>
+                              setShowConfirmation({
+                                id: request.leaveId,
+                                action: "reject",
+                              })
+                            }
+                            disabled={isLoading}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Reject
+                          </Button>
+                        </>
                       )}
-                  </div>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  {request.leaveStatus === "PENDING" && (
-                    <>
                       <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() =>
-                          setShowConfirmation({
-                            id: request.leaveId,
-                            action: "approve",
-                          })
-                        }
-                        disabled={isLoading}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="outline"
-                        className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                        size="sm"
                         onClick={() =>
                           setShowConfirmation({
                             id: request.leaveId,
-                            action: "reject",
+                            action: "message",
                           })
                         }
-                        disabled={isLoading}
                       >
-                        <X className="h-4 w-4 mr-2" />
-                        Reject
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Message
                       </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setShowConfirmation({
-                        id: request.leaveId,
-                        action: "message",
-                      })
-                    }
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Message
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog
@@ -560,7 +591,7 @@ export default function CompanyLeavePageClient({
       </Dialog>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <Pagination className="mt-6">
           <PaginationContent>
             <PaginationItem>
@@ -604,52 +635,54 @@ export default function CompanyLeavePageClient({
       )}
 
       {/* Leave Policy */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Leave Management Policy</CardTitle>
-          <CardDescription>
-            Guidelines for reviewing and approving leave requests
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-semibold mb-3">Approval Guidelines:</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  • <strong>Sick Leave:</strong> Approve immediately, may
-                  require medical certificate for &gt;3 days
-                </li>
-                <li>
-                  • <strong>Personal Leave:</strong> Consider urgency and
-                  project impact
-                </li>
-                <li>
-                  • <strong>Vacation:</strong> Require 1-week advance notice
-                  minimum
-                </li>
-                <li>
-                  • <strong>Study Leave:</strong> Coordinate with university
-                  requirements
-                </li>
-                <li>• Consider project deadlines and team availability</li>
-              </ul>
+      {!isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Leave Management Policy</CardTitle>
+            <CardDescription>
+              Guidelines for reviewing and approving leave requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold mb-3">Approval Guidelines:</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>
+                    • <strong>Sick Leave:</strong> Approve immediately, may
+                    require medical certificate for &gt;3 days
+                  </li>
+                  <li>
+                    • <strong>Personal Leave:</strong> Consider urgency and
+                    project impact
+                  </li>
+                  <li>
+                    • <strong>Vacation:</strong> Require 1-week advance notice
+                    minimum
+                  </li>
+                  <li>
+                    • <strong>Study Leave:</strong> Coordinate with university
+                    requirements
+                  </li>
+                  <li>• Consider project deadlines and team availability</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-3">Review Process:</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>• Review requests within 24 hours of submission</li>
+                  <li>• Consult with project mentors for impact assessment</li>
+                  <li>• Provide clear reasons for any rejections</li>
+                  <li>
+                    • Suggest alternative dates if original request conflicts
+                  </li>
+                  <li>• Update project timelines if necessary</li>
+                </ul>
+              </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-3">Review Process:</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Review requests within 24 hours of submission</li>
-                <li>• Consult with project mentors for impact assessment</li>
-                <li>• Provide clear reasons for any rejections</li>
-                <li>
-                  • Suggest alternative dates if original request conflicts
-                </li>
-                <li>• Update project timelines if necessary</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

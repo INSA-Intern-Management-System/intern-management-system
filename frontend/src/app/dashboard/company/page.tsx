@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { User } from "@/types/entities";
 import { api } from "@/api/axios";
 import DashboardLayout from "@/app/layout/dashboard-layout";
-import CompanyDashboardClient from "./CompanyDashboardClient";
+import CompanyDashboardClient from "./DashboardClient";
 import {
   fetchCompanyDashboardV1,
   fetchCompanyDashboardV2,

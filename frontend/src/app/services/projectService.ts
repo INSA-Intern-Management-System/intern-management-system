@@ -134,47 +134,6 @@ export const updateProjectStatus = async (
   }
 };
 
-// Update project details
-export const updateProject = async (
-  id: number,
-  projectData: Partial<Project>
-): Promise<Project> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
-
-  try {
-    // First update the project status if provided
-    if (projectData.status) {
-      await updateProjectStatus(id, projectData.status);
-    }
-
-    // Then update other project details using PATCH if available
-    const response = await projectApi.patch<Project>(
-      `/projects/${id}`,
-      {
-        description: projectData.description,
-        budget: projectData.budget,
-        technologies: projectData.technologies,
-        startDate: projectData.startDate,
-        endDate: projectData.endDate,
-      },
-      {
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error(`Failed to update project with id ${id}:`, error);
-    throw error;
-  }
-};
-
 // Delete project
 export const deleteProject = async (id: number): Promise<void> => {
   const accessToken = (await cookies()).get("access_token")?.value;
@@ -316,38 +275,6 @@ export const fetchMilestones = async (projectId: number): Promise<any[]> => {
   }
 };
 
-// Update milestone status
-export const updateMilestoneStatus = async (
-  milestoneId: number,
-  newStatus: string
-): Promise<any> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
-
-  try {
-    const response = await projectApi.patch(
-      `/projects/milestones/${milestoneId}/status`,
-      {},
-      {
-        params: { newStatus: newStatus.toUpperCase() },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error(
-      `Failed to update milestone status for id ${milestoneId}:`,
-      error
-    );
-    throw error;
-  }
-};
-
 // Delete milestone
 export const deleteMilestone = async (milestoneId: number): Promise<any> => {
   const accessToken = (await cookies()).get("access_token")?.value;
@@ -411,6 +338,132 @@ export const updateProjectAndMilestonesStatus = async (
   } catch (error) {
     console.error(
       `Failed to update project and milestones status for project ${projectId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+export const updateProject = async (
+  id: number,
+  projectData: Partial<Project>
+): Promise<Project> => {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  if (!accessToken) {
+    throw new Error("Access token is missing");
+  }
+
+  try {
+    // Prepare the update data
+    const updatePayload: any = {};
+
+    if (projectData.description !== undefined) {
+      updatePayload.description = projectData.description;
+    }
+    if (projectData.budget !== undefined) {
+      updatePayload.budget = projectData.budget;
+    }
+    if (projectData.technologies !== undefined) {
+      updatePayload.technologies = projectData.technologies;
+    }
+    if (projectData.startDate !== undefined) {
+      updatePayload.startDate = projectData.startDate;
+    }
+    if (projectData.endDate !== undefined) {
+      updatePayload.endDate = projectData.endDate;
+    }
+    if (projectData.name !== undefined) {
+      updatePayload.name = projectData.name;
+    }
+    if (projectData.status !== undefined) {
+      updatePayload.status = projectData.status.toUpperCase();
+    }
+
+    // Use PUT or PATCH depending on your API
+    const response = await projectApi.put<Project>(
+      `/projects/${id}`,
+      updatePayload,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to update project with id ${id}:`, error);
+    throw error;
+  }
+};
+
+// Update project status with milestones - SEPARATE FUNCTION
+export const updateProjectStatusWithMilestones = async (
+  projectId: number,
+  projectStatus: string,
+  milestoneIds: number[] = [],
+  milestoneStatuses: string[] = []
+): Promise<{ message: string }> => {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  if (!accessToken) {
+    throw new Error("Access token is missing");
+  }
+
+  try {
+    const response = await projectApi.patch<{ message: string }>(
+      `/projects/update/status`,
+      {
+        projectId,
+        projectStatus: projectStatus.toUpperCase(),
+        milestoneIds,
+        milestoneStatuses: milestoneStatuses.map((status) =>
+          status.toUpperCase()
+        ),
+      },
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Failed to update project status for id ${projectId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Update milestone status - SEPARATE FUNCTION
+export const updateMilestoneStatus = async (
+  milestoneId: number,
+  newStatus: string
+): Promise<any> => {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  if (!accessToken) {
+    throw new Error("Access token is missing");
+  }
+
+  try {
+    const response = await projectApi.patch(
+      `/projects/milestones/${milestoneId}/status`,
+      {},
+      {
+        params: { newStatus: newStatus.toUpperCase() },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Failed to update milestone status for id ${milestoneId}:`,
       error
     );
     throw error;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // Import Label component
 import { Plus, Search, Users, Trash2, Download, Loader2 } from "lucide-react";
 import {
   Pagination,
@@ -27,6 +28,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -218,10 +226,11 @@ export default function CompanyTeamsClient({
     teamMemberId?: number;
   } | null>(null);
 
-  const loadAllTeams = async () => {
+  // Memoized function to load teams
+  const loadAllTeams = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await onFetchData(0, 10000, "", "all");
+      const data = await onFetchData(0, 10000, searchValue, hasProjectFilter);
       if (data.error) {
         toast({
           title: "Error",
@@ -244,8 +253,18 @@ export default function CompanyTeamsClient({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchValue, hasProjectFilter, onFetchData, router]);
 
+  // Load teams only when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadAllTeams();
+    }, 500); // Debounce search
+
+    return () => clearTimeout(timer);
+  }, [searchValue, hasProjectFilter, loadAllTeams]);
+
+  // Initialize with provided data
   useEffect(() => {
     const isValidData =
       Array.isArray(initialTeams) &&
@@ -271,12 +290,11 @@ export default function CompanyTeamsClient({
     }
   }, [initialTeams, pagination, availableProjects]);
 
-  useEffect(() => {
-    loadAllTeams();
-  }, []);
-
+  // Memoized filtered teams
   const filteredTeams = useMemo(() => {
     let filtered = allTeams;
+
+    // Server already filters by search and project status, but we do a final client-side pass
     if (searchValue.trim()) {
       const s = searchValue.toLowerCase();
       filtered = filtered.filter(
@@ -286,24 +304,27 @@ export default function CompanyTeamsClient({
           t.members.some((m) => m.name.toLowerCase().includes(s))
       );
     }
+
     if (hasProjectFilter !== "all") {
       filtered = filtered.filter((t) =>
         hasProjectFilter === "with-project" ? t.project : !t.project
       );
     }
+
     return filtered;
   }, [allTeams, hasProjectFilter, searchValue]);
 
+  // Memoized pagination
   const totalItems = filteredTeams.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-
   const currentTeams = useMemo(() => {
     if (totalItems === 0) return [];
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return filteredTeams.slice(start, end);
-  }, [filteredTeams, page, pageSize]);
+  }, [filteredTeams, page, pageSize, totalItems]);
 
+  // Handle page changes
   useEffect(() => {
     if (page > totalPages && totalPages > 0) {
       setPage(totalPages);
@@ -312,58 +333,67 @@ export default function CompanyTeamsClient({
     }
   }, [page, totalPages]);
 
-  const handleSearchUsers = async (query: string) => {
-    if (query.length < 2) {
-      setUserSearchResults([]);
-      return;
-    }
+  // Debounced user search
+  const handleSearchUsers = useCallback(
+    async (query: string) => {
+      if (query.length < 2) {
+        setUserSearchResults([]);
+        return;
+      }
 
-    try {
-      const response = await onSearchUsers(query);
-      if (response.success) {
-        setUserSearchResults(response.users);
-      } else {
+      try {
+        const response = await onSearchUsers(query);
+        if (response.success) {
+          setUserSearchResults(response.users);
+        } else {
+          toast({
+            title: "Search failed",
+            description: response.error,
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
         toast({
           title: "Search failed",
-          description: response.error,
+          description: error.message,
           variant: "destructive",
         });
       }
-    } catch (error: any) {
-      toast({
-        title: "Search failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
+    },
+    [onSearchUsers]
+  );
 
-  const handleSearchProjects = async (query: string) => {
-    if (query.length < 2) {
-      setProjectSearchResults([]);
-      return;
-    }
+  // Debounced project search
+  const handleSearchProjects = useCallback(
+    async (query: string) => {
+      if (query.length < 2) {
+        setProjectSearchResults([]);
+        return;
+      }
 
-    try {
-      const response = await onSearchProjects(query);
-      if (response.success) {
-        setProjectSearchResults(response.projects);
-      } else {
+      try {
+        const response = await onSearchProjects(query);
+        if (response.success) {
+          setProjectSearchResults(response.projects);
+        } else {
+          toast({
+            title: "Search failed",
+            description: response.error,
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
         toast({
           title: "Search failed",
-          description: response.error,
+          description: error.message,
           variant: "destructive",
         });
       }
-    } catch (error: any) {
-      toast({
-        title: "Search failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
+    },
+    [onSearchProjects]
+  );
 
+  // Create team handler
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeam.name) {
@@ -404,7 +434,6 @@ export default function CompanyTeamsClient({
         description: "Team created successfully",
       });
       await loadAllTeams();
-      router.refresh();
     } catch (error: any) {
       console.error("handleCreateTeam error:", error);
       toast({
@@ -420,6 +449,7 @@ export default function CompanyTeamsClient({
     }
   };
 
+  // Add member handler
   const handleAddMember = async (
     teamId: number,
     userId: number,
@@ -444,7 +474,6 @@ export default function CompanyTeamsClient({
         description: `${userName} added to team successfully`,
       });
       await loadAllTeams();
-      router.refresh();
     } catch (error: any) {
       console.error("handleAddMember error:", error);
       toast({
@@ -460,6 +489,7 @@ export default function CompanyTeamsClient({
     }
   };
 
+  // Remove member handler
   const handleRemoveMember = async (teamMemberId: number, teamId: number) => {
     setIsSubmitting(true);
     try {
@@ -469,7 +499,6 @@ export default function CompanyTeamsClient({
       setConfirmingAction(null);
       toast({ title: "Success", description: "Member removed successfully" });
       await loadAllTeams();
-      router.refresh();
     } catch (error: any) {
       console.error("handleRemoveMember error:", error);
       toast({
@@ -485,6 +514,7 @@ export default function CompanyTeamsClient({
     }
   };
 
+  // Assign project handler
   const handleAssignProject = async (
     teamId: number,
     projectId: number,
@@ -503,7 +533,6 @@ export default function CompanyTeamsClient({
         description: `Project "${projectName}" assigned successfully`,
       });
       await loadAllTeams();
-      router.refresh();
     } catch (error: any) {
       console.error("handleAssignProject error:", error);
       toast({
@@ -519,6 +548,7 @@ export default function CompanyTeamsClient({
     }
   };
 
+  // Remove project handler
   const handleRemoveProject = async (teamId: number) => {
     setIsSubmitting(true);
     try {
@@ -527,7 +557,6 @@ export default function CompanyTeamsClient({
         throw new Error(response.error || "Failed to remove project");
       toast({ title: "Success", description: "Project removed from team" });
       await loadAllTeams();
-      router.refresh();
     } catch (error: any) {
       console.error("handleRemoveProject error:", error);
       toast({
@@ -543,16 +572,19 @@ export default function CompanyTeamsClient({
     }
   };
 
+  // Delete team handler
   const handleDeleteTeam = async (teamId: number) => {
     setIsSubmitting(true);
     try {
+      console.log("Deleting team with IDn:", teamId);
       const response = await onDeleteTeam(teamId);
-      if (!response.success)
-        throw new Error(response.error || "Failed to delete team");
+      console.log("Delete team response:", response);
+      if (!response.success) {
+        throw new Error("jsdnfsjbdf");
+      }
       setConfirmingAction(null);
       toast({ title: "Success", description: "Team deleted successfully" });
       await loadAllTeams();
-      router.refresh();
     } catch (error: any) {
       console.error("handleDeleteTeam error:", error);
       toast({
@@ -568,6 +600,7 @@ export default function CompanyTeamsClient({
     }
   };
 
+  // Export handler
   const handleExport = () => {
     const headers = ["Team Name", "Project", "Members", "Member Roles"];
     const escapeCell = (text: string) =>
@@ -596,18 +629,24 @@ export default function CompanyTeamsClient({
     document.body.removeChild(link);
   };
 
+  // Search change handler with debouncing
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
     setPage(1);
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setHasProjectFilter(e.target.value);
+  // Filter change handler
+  const handleFilterChange = (value: string) => {
+    setHasProjectFilter(value);
     setPage(1);
   };
 
-  const availableProjectsNames =
-    availableProjects.length > 0 ? availableProjects.map((p) => p.name) : [];
+  // Available project names
+  const availableProjectsNames = useMemo(
+    () =>
+      availableProjects.length > 0 ? availableProjects.map((p) => p.name) : [],
+    [availableProjects]
+  );
 
   if (isLoading) {
     return (
@@ -777,15 +816,16 @@ export default function CompanyTeamsClient({
                 onChange={handleSearchChange}
               />
             </div>
-            <select
-              className="border border-gray-200 rounded px-2 py-1"
-              value={hasProjectFilter}
-              onChange={handleFilterChange}
-            >
-              <option value="all">All Teams</option>
-              <option value="with-project">With Project</option>
-              <option value="no-project">No Project</option>
-            </select>
+            <Select value={hasProjectFilter} onValueChange={handleFilterChange}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by project status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Teams</SelectItem>
+                <SelectItem value="with-project">With Project</SelectItem>
+                <SelectItem value="no-project">No Project</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -1155,19 +1195,3 @@ export default function CompanyTeamsClient({
     </div>
   );
 }
-
-// Add the missing Label component
-const Label = ({
-  children,
-  htmlFor,
-}: {
-  children: React.ReactNode;
-  htmlFor?: string;
-}) => (
-  <label
-    htmlFor={htmlFor}
-    className="block text-sm font-medium text-gray-700 mb-1"
-  >
-    {children}
-  </label>
-);

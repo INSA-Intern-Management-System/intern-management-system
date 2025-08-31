@@ -1,4 +1,4 @@
-// app/company/leave/page.tsx
+// app/dashboard/company/leave/page.tsx
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
@@ -48,7 +48,7 @@ export default async function CompanyLeavePage({
       leaveResponse = await searchLeaves(search, page, pageSize);
     } else if (status !== "all" || type !== "all") {
       // Only pass non-"all" values to the filter
-      const filterStatus = status !== "all" ? status.toUpperCase() : undefined;
+      const filterStatus = status !== "all" ? status : undefined;
       const filterType = type !== "all" ? type : undefined;
       leaveResponse = await filterLeaves(
         filterStatus,
@@ -111,7 +111,7 @@ export default async function CompanyLeavePage({
 
       // Revalidate the page to show updated data
       const { revalidatePath } = await import("next/cache");
-      revalidatePath("/company/leave");
+      revalidatePath("/dashboard/company/leave");
 
       return { success: true };
     } catch (error: any) {
@@ -138,8 +138,7 @@ export default async function CompanyLeavePage({
       if (search) {
         data = await searchLeaves(search, page, size);
       } else if (status !== "all" || type !== "all") {
-        const filterStatus =
-          status !== "all" ? status.toUpperCase() : undefined;
+        const filterStatus = status !== "all" ? status : undefined;
         const filterType = type !== "all" ? type : undefined;
         data = await filterLeaves(filterStatus, filterType, page, size);
       } else {
@@ -157,16 +156,7 @@ export default async function CompanyLeavePage({
       };
     } catch (error: any) {
       console.error("handleFetchData error:", error);
-      return {
-        leaves: [],
-        pagination: {
-          currentPage: 0,
-          totalPages: 0,
-          totalItems: 0,
-          pageSize: size,
-        },
-        error: error.message || "Failed to fetch leaves",
-      };
+      throw error;
     }
   };
 

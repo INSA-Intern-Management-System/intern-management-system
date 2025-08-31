@@ -79,6 +79,7 @@ export const filterLeaves = async (
   const accessToken = await getAccessToken();
 
   try {
+    console.log("huh", { leaveStatus, leaveType, page, size });
     const response = await leaveApi.get<LeaveResponse>("/leaves/filter", {
       params: { leaveStatus, leaveType, page, size },
       headers: {

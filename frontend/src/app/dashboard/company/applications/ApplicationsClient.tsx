@@ -122,7 +122,8 @@ export default function ApplicationsClient({
 }: ApplicationsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [applications, setApplications] = useState<Application[]>(initialApplications);
+  const [applications, setApplications] =
+    useState<Application[]>(initialApplications);
   const [stats, setStats] = useState(initialStats);
   const [institutionFilter, setInstitutionFilter] = useState(initialUniversity);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
@@ -143,25 +144,27 @@ export default function ApplicationsClient({
   const pageSize = pagination.pageSize;
 
   // Extract unique institutions and fields from all applications (for filter dropdowns)
-  const institutions = useMemo(() => 
-    Array.from(
-      new Set(
-        applications
-          .map((app) => app.applicant.institution)
-          .filter((inst): inst is string => Boolean(inst))
-      )
-    ).sort(),
+  const institutions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          applications
+            .map((app) => app.applicant.institution)
+            .filter((inst): inst is string => Boolean(inst))
+        )
+      ).sort(),
     [applications]
   );
 
-  const fieldsOfStudy = useMemo(() =>
-    Array.from(
-      new Set(
-        applications
-          .map((app) => app.applicant.fieldOfStudy)
-          .filter((field): field is string => Boolean(field))
-      )
-    ).sort(),
+  const fieldsOfStudy = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          applications
+            .map((app) => app.applicant.fieldOfStudy)
+            .filter((field): field is string => Boolean(field))
+        )
+      ).sort(),
     [applications]
   );
 
@@ -190,10 +193,13 @@ export default function ApplicationsClient({
       if (searchTerm) params.set("search", searchTerm);
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (fieldFilter !== "all") params.set("position", fieldFilter);
-      if (institutionFilter !== "all") params.set("university", institutionFilter);
-      
+      if (institutionFilter !== "all")
+        params.set("university", institutionFilter);
+
       // Update URL without scrolling
-      router.push(`/dashboard/company/applications?${params.toString()}`, { scroll: false });
+      router.push(`/dashboard/company/applications?${params.toString()}`, {
+        scroll: false,
+      });
 
       // Fetch new data from server
       const response = await onFetchData(
@@ -229,7 +235,8 @@ export default function ApplicationsClient({
     setCurrentPage(0); // Reset to first page on search
   };
 
-  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => 
+  const handleFilterChange =
+    (setter: React.Dispatch<React.SetStateAction<string>>) =>
     (value: string) => {
       setter(value);
       setCurrentPage(0); // Reset to first page on filter change
@@ -260,7 +267,9 @@ export default function ApplicationsClient({
       );
 
       if (!response.success || !response.data) {
-        throw new Error(response.error || "Failed to fetch applications for export");
+        throw new Error(
+          response.error || "Failed to fetch applications for export"
+        );
       }
 
       const exportApps = response.data;
@@ -352,39 +361,38 @@ export default function ApplicationsClient({
             app.id === applicationId ? { ...app, status } : app
           )
         );
-        
+
         // Update stats
-type Status = "Pending" | "Accepted" | "Rejected";
+        type Status = "Pending" | "Accepted" | "Rejected";
 
-interface Stats {
-  totalItems: number;
-  pendingCount: number;
-  acceptedCount: number;
-  rejectedCount: number;
-}
+        interface Stats {
+          totalItems: number;
+          pendingCount: number;
+          acceptedCount: number;
+          rejectedCount: number;
+        }
 
-setStats((prev) => {
-  let newStats: Stats = { ...prev };
+        setStats((prev) => {
+          let newStats: Stats = { ...prev };
 
-  if (status === "Accepted") {
-    newStats.acceptedCount += 1;
-    newStats.pendingCount -= 1;
-  } else if (status === "Rejected") {
-    newStats.rejectedCount += 1;
-    newStats.pendingCount -= 1;
-  }
+          if (status === "Accepted") {
+            newStats.acceptedCount += 1;
+            newStats.pendingCount -= 1;
+          } else if (status === "Rejected") {
+            newStats.rejectedCount += 1;
+            newStats.pendingCount -= 1;
+          }
 
-  return newStats;
-});
+          return newStats;
+        });
 
-        
         setConfirmingAction(null);
         toast({
           title: "Success",
           description: `Application ${status.toLowerCase()} successfully`,
         });
       } else {
-        throw new Error(response.error || 'Unknown error');
+        throw new Error(response.error || "Unknown error");
       }
     } catch (error: any) {
       console.error("Failed to update status:", error);
@@ -441,9 +449,9 @@ setStats((prev) => {
             Review and manage student applications
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={exportApplicationsToCSV} 
+        <Button
+          variant="outline"
+          onClick={exportApplicationsToCSV}
           disabled={isSubmitting || isRefetching}
         >
           <Download className="h-4 w-4 mr-2" />
@@ -750,7 +758,9 @@ setStats((prev) => {
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
-                            <span>Applied: {formatDate(application.createdAt)}</span>
+                            <span>
+                              Applied: {formatDate(application.createdAt)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -800,7 +810,7 @@ setStats((prev) => {
                               setConfirmingAction({
                                 applicationId: application.id,
                                 action: "accept",
-                                name: `${application.applicant.firstName} ${application.applicant.lastName}`
+                                name: `${application.applicant.firstName} ${application.applicant.lastName}`,
                               })
                             }
                             disabled={isSubmitting || isRefetching}
@@ -850,7 +860,7 @@ setStats((prev) => {
                               setConfirmingAction({
                                 applicationId: application.id,
                                 action: "reject",
-                                name: `${application.applicant.firstName} ${application.applicant.lastName}`
+                                name: `${application.applicant.firstName} ${application.applicant.lastName}`,
                               })
                             }
                             disabled={isSubmitting || isRefetching}
@@ -880,7 +890,9 @@ setStats((prev) => {
                   e.preventDefault();
                   handlePageChange(Math.max(0, currentPage - 1));
                 }}
-                className={currentPage === 0 ? "pointer-events-none opacity-50" : ""}
+                className={
+                  currentPage === 0 ? "pointer-events-none opacity-50" : ""
+                }
               />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
@@ -905,7 +917,9 @@ setStats((prev) => {
                   handlePageChange(Math.min(totalPages - 1, currentPage + 1));
                 }}
                 className={
-                  currentPage === totalPages - 1 ? "pointer-events-none opacity-50" : ""
+                  currentPage === totalPages - 1
+                    ? "pointer-events-none opacity-50"
+                    : ""
                 }
               />
             </PaginationItem>
