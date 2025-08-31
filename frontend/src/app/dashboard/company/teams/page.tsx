@@ -74,13 +74,21 @@ export default async function CompanyTeamsPage({
     if (error.message === "Unauthorized access. Please log in again.") {
       redirect("/login");
     }
-    teamsData = {
-      content: [],
-      number: 0,
-      totalPages: 0,
-      totalElements: 0,
-      size: 20,
-    };
+    // Return error component instead of empty data
+    return (
+      <DashboardLayout requiredRole="company">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-red-600 mb-2">
+              Failed to load teams
+            </h2>
+            <p className="text-gray-600">
+              {error.message || "Please try again later"}
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   // Get initial projects for dropdown
@@ -90,6 +98,7 @@ export default async function CompanyTeamsPage({
     initialProjects = projectsData.content;
   } catch (error) {
     console.error("Failed to fetch initial projects:", error);
+    // Continue with empty projects array
   }
 
   const availableProjects: AvailableProject[] = initialProjects
@@ -101,6 +110,7 @@ export default async function CompanyTeamsPage({
 
   const initialTeams = mapTeams(teamsData.content);
 
+  // Server actions with proper error handling
   const handleCreateTeam = async (data: {
     name: string;
     projectId: number | null;
@@ -148,7 +158,26 @@ export default async function CompanyTeamsPage({
       return { success: true };
     } catch (error: any) {
       console.error("handleAddMember error:", error);
-      return { success: false, error: error.message || "Failed to add member" };
+      return {
+        success: false,
+        error: error.message || "Failed to add member",
+      };
+    }
+  };
+
+  const handleRemoveMember = async (teamMemberId: number) => {
+    "use server";
+    try {
+      await removeMember(teamMemberId);
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/dashboard/company/teams");
+      return { success: true };
+    } catch (error: any) {
+      console.error("handleRemoveMember error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to remove member",
+      };
     }
   };
 
@@ -196,22 +225,6 @@ export default async function CompanyTeamsPage({
     }
   };
 
-  const handleRemoveMember = async (teamMemberId: number) => {
-    "use server";
-    try {
-      await removeMember(teamMemberId);
-      const { revalidatePath } = await import("next/cache");
-      revalidatePath("/dashboard/company/teams");
-      return { success: true };
-    } catch (error: any) {
-      console.error("handleRemoveMember error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to remove member",
-      };
-    }
-  };
-
   const handleAssignProject = async (teamId: number, projectId: number) => {
     "use server";
     try {
@@ -246,13 +259,15 @@ export default async function CompanyTeamsPage({
 
   const handleDeleteTeam = async (teamId: number) => {
     "use server";
+    console.log("handleDeleteTeam called with teamId:", teamId);
     try {
+      console.log("Deleting team with IDDDD:");
       await deleteTeam(teamId);
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/teams");
       return { success: true };
     } catch (error: any) {
-      console.error("handleDeleteTeam error:", error);
+      console.error("handleDeleteTeam error:", `teamId ${teamId}`, error);
       return {
         success: false,
         error: error.message || "Failed to delete team",

@@ -106,11 +106,11 @@ const sidebarItems = {
       label: "Performance",
       href: "/dashboard/university/performance",
     },
-    {
-      icon: CheckCircle,
-      label: "Evaluations",
-      href: "/dashboard/university/evaluations",
-    },
+    // {
+    //   icon: CheckCircle,
+    //   label: "Evaluations",
+    //   href: "/dashboard/university/evaluations",
+    // },
     {
       icon: MessageSquare,
       label: "Messages",

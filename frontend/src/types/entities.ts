@@ -308,6 +308,10 @@ export interface LeaveRequest {
   leaveStatus: string;
   receiverID: number;
   createdAt: string;
+  fristName?: string | null;
+  lastName?: string | null;
+  university: string | null;
+  feildOfStudy: string | null;
   approvedBy?: string | null;
   rejectionReason?: string | null;
 }

@@ -335,7 +335,7 @@ export const deleteTeam = async (
 
   try {
     const response = await projectApi.delete<{ message: string }>(
-      `/teams/${teamId}`,
+      `/projects/teams/${teamId}`,
       {
         headers: {
           Cookie: `access_token=${accessToken}`,

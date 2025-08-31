@@ -611,17 +611,47 @@ public class UserController {
                     .map(im -> im.getProject().getId())
                     .toList();
 
-            // Fetch projects from gRPC
-            AllProjectResponses projects = projectManagerGrpcClient.getProjects(token, projectIds);
+            List<Long> userIds = internInfos.stream()
+                    .map(im -> im.getUser().getId())
+                    .toList();
 
-            // Map projectId -> ProjectDTO
-            Map<Long, ProjectDTO> projectMap = projects.getProjectsList().stream()
-                    .collect(Collectors.toMap(
-                            ProjectResponse::getProjectId,
-                            p -> new ProjectDTO(p.getProjectId(), p.getProjectName(), p.getProjectDescription(),p.getProgress())
-                    ));
+            // ===== gRPC calls with fallback =====
+            Map<Long, ProjectDTO> tempProjectMap;
+            try {
+                AllProjectResponses projects = projectManagerGrpcClient.getProjects(token, projectIds);
+                tempProjectMap = projects.getProjectsList().stream()
+                        .collect(Collectors.toMap(
+                                ProjectResponse::getProjectId,
+                                p -> new ProjectDTO(
+                                        p.getProjectId(),
+                                        p.getProjectName(),
+                                        p.getProjectDescription(),
+                                        p.getProgress()
+                                )
+                        ));
+            } catch (Exception e) {
+                tempProjectMap = Collections.emptyMap();
+            }
+            final Map<Long, ProjectDTO> projectMap = tempProjectMap;
 
-            // Build intern-project mapping
+            Map<Long, ReportProgressDTO> tempProgressMap;
+            try {
+                ReportProgressResponse reportProgress = reportGrpcClient.getProgressResponse(token, userIds);
+                tempProgressMap = reportProgress.getProgressList().stream()
+                        .collect(Collectors.toMap(
+                                SingleProgress::getUserId,
+                                p -> new ReportProgressDTO(
+                                        p.getTotalReports(),
+                                        p.getProgress(),
+                                        p.getUserId()
+                                )
+                        ));
+            } catch (Exception e) {
+                tempProgressMap = Collections.emptyMap();
+            }
+            final Map<Long, ReportProgressDTO> progressMap = tempProgressMap;
+
+            // ===== Build intern-project mapping with report progress =====
             List<Map<String, Object>> internWithProjects = interns.getContent().stream().map(intern -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("intern", intern);

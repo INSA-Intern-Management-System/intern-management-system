@@ -6,7 +6,7 @@ import {
   fetchApplications,
   fetchAllApplications,
   updateApplicationStatus,
-  ApplicationsResponse
+  ApplicationsResponse,
 } from "@/app/services/applicationService";
 
 async function getUser() {
@@ -44,9 +44,18 @@ export default async function ApplicationsPage({
   const searchParamsAwaited = await searchParams;
   const page = Math.max(0, parseInt(searchParamsAwaited.page || "0", 10));
   const search = searchParamsAwaited.search || "";
-  const status = searchParamsAwaited.status === "all" ? undefined : searchParamsAwaited.status;
-  const position = searchParamsAwaited.position === "all" ? undefined : searchParamsAwaited.position;
-  const university = searchParamsAwaited.university === "all" ? undefined : searchParamsAwaited.university;
+  const status =
+    searchParamsAwaited.status === "all"
+      ? undefined
+      : searchParamsAwaited.status;
+  const position =
+    searchParamsAwaited.position === "all"
+      ? undefined
+      : searchParamsAwaited.position;
+  const university =
+    searchParamsAwaited.university === "all"
+      ? undefined
+      : searchParamsAwaited.university;
 
   // Fetch all applications when any filter is applied, otherwise use paginated fetch
   let applicationsData: ApplicationsResponse;
@@ -82,7 +91,6 @@ export default async function ApplicationsPage({
     );
   }
 
-
   // Calculate stats manually since getApplicationStats doesn't exist in your service
   let statsData: ApplicationStats;
   try {
@@ -90,9 +98,12 @@ export default async function ApplicationsPage({
     const allApplications = await fetchAllApplications();
     statsData = {
       totalItems: allApplications.length,
-      pendingCount: allApplications.filter(app => app.status === "Pending").length,
-      acceptedCount: allApplications.filter(app => app.status === "Accepted").length,
-      rejectedCount: allApplications.filter(app => app.status === "Rejected").length,
+      pendingCount: allApplications.filter((app) => app.status === "Pending")
+        .length,
+      acceptedCount: allApplications.filter((app) => app.status === "Accepted")
+        .length,
+      rejectedCount: allApplications.filter((app) => app.status === "Rejected")
+        .length,
     };
   } catch (error: any) {
     console.error("Failed to calculate application stats:", error);
@@ -110,7 +121,10 @@ export default async function ApplicationsPage({
   ) => {
     "use server";
     try {
-      const updatedApplication = await updateApplicationStatus(applicationId, status);
+      const updatedApplication = await updateApplicationStatus(
+        applicationId,
+        status
+      );
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/applications");
       return { success: true, data: updatedApplication };

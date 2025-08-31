@@ -53,14 +53,38 @@ interface ProjectClientProps {
   initialSearch: string;
   initialStatus: string;
   userId: number;
-  onCreateProject: (formData: FormData) => Promise<{ project?: Project; error?: string }>;
-  onUpdateProject: (id: number, data: Project) => Promise<{ project?: Project; error?: string }>;
-  onDeleteProject: (id: number) => Promise<{ success?: boolean; error?: string }>;
+  onCreateProject: (
+    formData: FormData
+  ) => Promise<{ project?: Project; error?: string }>;
+  onUpdateProject: (
+    id: number,
+    data: Project
+  ) => Promise<{ project?: Project; error?: string }>;
+  onDeleteProject: (
+    id: number
+  ) => Promise<{ success?: boolean; error?: string }>;
   onCreateMilestone: (
     projectId: number,
     milestoneData: { title: string; description: string; dueDate: string }
-  ) => Promise<{ project?: { id: number; milestones: Project['milestones']; progress: number }; error?: string }>;
-  onDeleteMilestone: (projectId: number, milestoneId: number) => Promise<{ project?: { id: number; milestones: Project['milestones']; progress: number }; error?: string }>;
+  ) => Promise<{
+    project?: {
+      id: number;
+      milestones: Project["milestones"];
+      progress: number;
+    };
+    error?: string;
+  }>;
+  onDeleteMilestone: (
+    projectId: number,
+    milestoneId: number
+  ) => Promise<{
+    project?: {
+      id: number;
+      milestones: Project["milestones"];
+      progress: number;
+    };
+    error?: string;
+  }>;
   onFetchData: (
     page: number,
     size: number,
@@ -382,7 +406,10 @@ export default function ProjectClient({
     }
   };
 
-  const handleDeleteMilestoneAction = async (projectId: number, milestoneId: number) => {
+  const handleDeleteMilestoneAction = async (
+    projectId: number,
+    milestoneId: number
+  ) => {
     setIsSubmitting(true);
     try {
       const result = await onDeleteMilestone(projectId, milestoneId);
@@ -454,12 +481,16 @@ export default function ProjectClient({
       "Total Milestones",
     ];
 
-    const escapeCell = (text: string) => `"${text.toString().replace(/"/g, '""')}"`;
+    const escapeCell = (text: string) =>
+      `"${text.toString().replace(/"/g, '""')}"`;
 
     const rows = filteredProjects.map((project) => {
-      const completedMilestones = project.milestones?.filter((m) => m.completed).length || 0;
+      const completedMilestones =
+        project.milestones?.filter((m) => m.completed).length || 0;
       const technologies = project.technologies.join(", ");
-      const teamMembers = project.teamMembers?.map((m) => `${m.name} (${m.role})`).join(", ") || "";
+      const teamMembers =
+        project.teamMembers?.map((m) => `${m.name} (${m.role})`).join(", ") ||
+        "";
       return [
         escapeCell(project.name),
         escapeCell(project.description),
@@ -476,7 +507,9 @@ export default function ProjectClient({
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([`\uFEFF${csvContent}`], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([`\uFEFF${csvContent}`], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
@@ -496,7 +529,9 @@ export default function ProjectClient({
       case "completed":
         return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
       case "planning":
-        return <Badge className="bg-yellow-100 text-yellow-800">Planning</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">Planning</Badge>
+        );
       case "onhold":
         return <Badge className="bg-gray-100 text-gray-800">On Hold</Badge>;
       default:
@@ -565,7 +600,10 @@ export default function ProjectClient({
                   className="border border-gray-200 rounded px-2 py-2 w-full"
                   value={newProject.status}
                   onChange={(e) =>
-                    setNewProject({ ...newProject, status: e.target.value as Project["status"] })
+                    setNewProject({
+                      ...newProject,
+                      status: e.target.value as Project["status"],
+                    })
                   }
                 >
                   <option value="PLANNING">Planning</option>
@@ -600,7 +638,10 @@ export default function ProjectClient({
                 placeholder="Budget"
                 value={newProject.budget || ""}
                 onChange={(e) =>
-                  setNewProject({ ...newProject, budget: parseFloat(e.target.value) || 0 })
+                  setNewProject({
+                    ...newProject,
+                    budget: parseFloat(e.target.value) || 0,
+                  })
                 }
               />
               <Input
@@ -651,7 +692,9 @@ export default function ProjectClient({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Projects</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Projects
+                </p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
               <Building2 className="h-8 w-8 text-blue-600" />
@@ -662,8 +705,12 @@ export default function ProjectClient({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Projects</p>
-                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Projects
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.active}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -674,7 +721,9 @@ export default function ProjectClient({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.completed}</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {stats.completed}
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-purple-600" />
             </div>
@@ -685,7 +734,9 @@ export default function ProjectClient({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Planning</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.planning}</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {stats.planning}
+                </p>
               </div>
               <Clock className="h-8 w-8 text-orange-600" />
             </div>
@@ -730,8 +781,12 @@ export default function ProjectClient({
         {currentProjects.length === 0 ? (
           <div className="text-center py-12">
             <Building2 className="h-12 w-12 mx-auto text-gray-300" />
-            <h3 className="mt-4 text-lg font-medium text-gray-500">No projects found</h3>
-            <p className="text-gray-400">Try adjusting your search or filter criteria.</p>
+            <h3 className="mt-4 text-lg font-medium text-gray-500">
+              No projects found
+            </h3>
+            <p className="text-gray-400">
+              Try adjusting your search or filter criteria.
+            </p>
           </div>
         ) : (
           currentProjects.map((project) => (
@@ -744,10 +799,14 @@ export default function ProjectClient({
                     </div>
                     <div>
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-semibold text-gray-900">{project.name}</h3>
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {project.name}
+                        </h3>
                         {getStatusBadge(project.status)}
                       </div>
-                      <p className="text-gray-600 mb-3">{project.description}</p>
+                      <p className="text-gray-600 mb-3">
+                        {project.description}
+                      </p>
                     </div>
                   </div>
 
@@ -781,12 +840,17 @@ export default function ProjectClient({
                             }}
                           >
                             <div>
-                              <label className="block text-sm font-medium mb-1">Project Status</label>
+                              <label className="block text-sm font-medium mb-1">
+                                Project Status
+                              </label>
                               <select
                                 className="border border-gray-200 rounded w-full px-2 py-2"
                                 value={editProject.status}
                                 onChange={(e) =>
-                                  setEditProject({ ...editProject, status: e.target.value as Project["status"] })
+                                  setEditProject({
+                                    ...editProject,
+                                    status: e.target.value as Project["status"],
+                                  })
                                 }
                               >
                                 <option value="PLANNING">Planning</option>
@@ -796,32 +860,45 @@ export default function ProjectClient({
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">New Milestone</label>
+                              <label className="block text-sm font-medium mb-1">
+                                New Milestone
+                              </label>
                               <div className="space-y-2">
                                 <Input
                                   placeholder="Milestone Title"
                                   value={newMilestone.title}
                                   onChange={(e) =>
-                                    setNewMilestone({ ...newMilestone, title: e.target.value })
+                                    setNewMilestone({
+                                      ...newMilestone,
+                                      title: e.target.value,
+                                    })
                                   }
                                 />
                                 <Input
                                   placeholder="Description"
                                   value={newMilestone.description}
                                   onChange={(e) =>
-                                    setNewMilestone({ ...newMilestone, description: e.target.value })
+                                    setNewMilestone({
+                                      ...newMilestone,
+                                      description: e.target.value,
+                                    })
                                   }
                                 />
                                 <Input
                                   type="date"
                                   value={newMilestone.dueDate}
                                   onChange={(e) =>
-                                    setNewMilestone({ ...newMilestone, dueDate: e.target.value })
+                                    setNewMilestone({
+                                      ...newMilestone,
+                                      dueDate: e.target.value,
+                                    })
                                   }
                                 />
                                 <Button
                                   type="button"
-                                  onClick={() => handleCreateMilestoneAction(editProject.id!)}
+                                  onClick={() =>
+                                    handleCreateMilestoneAction(editProject.id!)
+                                  }
                                   className="bg-blue-600 text-white hover:bg-blue-700"
                                   disabled={isSubmitting}
                                 >
@@ -834,22 +911,36 @@ export default function ProjectClient({
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">Milestones</label>
+                              <label className="block text-sm font-medium mb-1">
+                                Milestones
+                              </label>
                               <div className="space-y-2">
                                 {editProject.milestones?.map((m, idx) => (
-                                  <div key={m.id || idx} className="flex items-center space-x-2">
+                                  <div
+                                    key={m.id || idx}
+                                    className="flex items-center space-x-2"
+                                  >
                                     <input
                                       type="checkbox"
                                       checked={m.completed}
                                       onChange={(e) => {
-                                        const newMilestones = [...(editProject.milestones || [])];
-                                        newMilestones[idx] = { ...m, completed: e.target.checked };
+                                        const newMilestones = [
+                                          ...(editProject.milestones || []),
+                                        ];
+                                        newMilestones[idx] = {
+                                          ...m,
+                                          completed: e.target.checked,
+                                        };
                                         setEditProject({
                                           ...editProject,
                                           milestones: newMilestones,
                                           progress: newMilestones.length
                                             ? Math.round(
-                                                (newMilestones.filter((m) => m.completed).length / newMilestones.length) * 100
+                                                (newMilestones.filter(
+                                                  (m) => m.completed
+                                                ).length /
+                                                  newMilestones.length) *
+                                                  100
                                               )
                                             : 0,
                                         });
@@ -857,7 +948,11 @@ export default function ProjectClient({
                                       className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
                                     />
                                     <label
-                                      className={`${m.completed ? "line-through text-gray-500" : ""} cursor-pointer flex-1`}
+                                      className={`${
+                                        m.completed
+                                          ? "line-through text-gray-500"
+                                          : ""
+                                      } cursor-pointer flex-1`}
                                     >
                                       {m.name}
                                     </label>
@@ -881,12 +976,17 @@ export default function ProjectClient({
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">Description</label>
+                              <label className="block text-sm font-medium mb-1">
+                                Description
+                              </label>
                               <textarea
                                 className="border border-gray-200 rounded w-full px-2 py-2"
                                 value={editProject.description}
                                 onChange={(e) =>
-                                  setEditProject({ ...editProject, description: e.target.value })
+                                  setEditProject({
+                                    ...editProject,
+                                    description: e.target.value,
+                                  })
                                 }
                                 rows={3}
                               />
@@ -920,9 +1020,12 @@ export default function ProjectClient({
                     {confirmingAction?.projectId === project.id &&
                     confirmingAction.action === "remove" ? (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-red-800">Remove Project?</p>
+                        <p className="text-sm font-medium text-red-800">
+                          Remove Project?
+                        </p>
                         <p className="text-xs text-red-600">
-                          Are you sure you want to remove "{project.name}"? This action cannot be undone.
+                          Are you sure you want to remove "{project.name}"? This
+                          action cannot be undone.
                         </p>
                         <div className="flex space-x-2">
                           <Button
@@ -945,9 +1048,13 @@ export default function ProjectClient({
                     ) : confirmingAction?.projectId === project.id &&
                       confirmingAction.action === "removeMilestone" ? (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-red-800">Remove Milestone?</p>
+                        <p className="text-sm font-medium text-red-800">
+                          Remove Milestone?
+                        </p>
                         <p className="text-xs text-red-600">
-                          Are you sure you want to remove "{confirmingAction.name}"? This action cannot be undone.
+                          Are you sure you want to remove "
+                          {confirmingAction.name}"? This action cannot be
+                          undone.
                         </p>
                         <div className="flex space-x-2">
                           <Button
@@ -962,7 +1069,10 @@ export default function ProjectClient({
                             size="sm"
                             className="bg-red-600 hover:bg-red-700 text-xs h-7"
                             onClick={() =>
-                              handleDeleteMilestoneAction(project.id!, confirmingAction.milestoneId!)
+                              handleDeleteMilestoneAction(
+                                project.id!,
+                                confirmingAction.milestoneId!
+                              )
                             }
                           >
                             Yes, Remove
@@ -994,9 +1104,16 @@ export default function ProjectClient({
                   <div>
                     <h4 className="font-semibold mb-2">Project Details</h4>
                     <div className="space-y-1 text-sm text-gray-600">
-                      <p><strong>Start Date:</strong> {project.startDate}</p>
-                      <p><strong>End Date:</strong> {project.endDate}</p>
-                      <p><strong>Budget:</strong> €{project.budget.toLocaleString()}</p>
+                      <p>
+                        <strong>Start Date:</strong> {project.startDate}
+                      </p>
+                      <p>
+                        <strong>End Date:</strong> {project.endDate}
+                      </p>
+                      <p>
+                        <strong>Budget:</strong> €
+                        {project.budget.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -1004,22 +1121,31 @@ export default function ProjectClient({
                     {project.teamMembers?.length ? (
                       <div className="space-y-1">
                         {project.teamMembers.map((member, idx) => (
-                          <div key={idx} className="flex items-center space-x-2 text-sm">
+                          <div
+                            key={idx}
+                            className="flex items-center space-x-2 text-sm"
+                          >
                             <Users className="h-4 w-4 text-gray-400" />
                             <span>{member.name}</span>
-                            <Badge variant="outline" className="text-xs">{member.role}</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {member.role}
+                            </Badge>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No team members assigned</p>
+                      <p className="text-sm text-gray-500">
+                        No team members assigned
+                      </p>
                     )}
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">Technologies</h4>
                     <div className="flex flex-wrap gap-1">
                       {project.technologies.map((tech, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">{tech}</Badge>
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {tech}
+                        </Badge>
                       ))}
                     </div>
                   </div>
@@ -1029,7 +1155,9 @@ export default function ProjectClient({
                 <div className="mb-4 mt-6">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-black">Progress</span>
-                    <span className="font-semibold text-black">{project.progress || 0}%</span>
+                    <span className="font-semibold text-black">
+                      {project.progress || 0}%
+                    </span>
                   </div>
                   <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div
@@ -1038,8 +1166,8 @@ export default function ProjectClient({
                     ></div>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    {project.milestones?.filter((m) => m.completed).length || 0} of{" "}
-                    {project.milestones?.length || 0} milestones completed
+                    {project.milestones?.filter((m) => m.completed).length || 0}{" "}
+                    of {project.milestones?.length || 0} milestones completed
                   </p>
                 </div>
 
@@ -1057,7 +1185,11 @@ export default function ProjectClient({
                         }`}
                       >
                         <div className="flex items-center justify-center mb-1">
-                          {m.completed ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                          {m.completed ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <Clock className="h-3 w-3" />
+                          )}
                         </div>
                         {m.name}
                       </div>
@@ -1114,7 +1246,9 @@ export default function ProjectClient({
       <Card>
         <CardHeader>
           <CardTitle>Project Management Best Practices</CardTitle>
-          <CardDescription>Tips for successful project execution with interns</CardDescription>
+          <CardDescription>
+            Tips for successful project execution with interns
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-6">
@@ -1123,7 +1257,9 @@ export default function ProjectClient({
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>• Define clear project objectives and deliverables</li>
                 <li>• Break down tasks into manageable milestones</li>
-                <li>• Assign appropriate skill levels to intern capabilities</li>
+                <li>
+                  • Assign appropriate skill levels to intern capabilities
+                </li>
                 <li>• Set realistic timelines with buffer for learning</li>
               </ul>
             </div>
@@ -1142,4 +1278,3 @@ export default function ProjectClient({
     </div>
   );
 }
-
