@@ -1,26 +1,24 @@
 "use client";
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   User,
   MessageSquare,
-  Calendar,
-  Star,
-  MapPin,
-  GraduationCap,
   Phone,
   Mail,
+  Star,
   Github,
   Linkedin,
   FileText,
   ArrowLeft,
-  Edit,
-  Loader2,
+  MapPin,
+  GraduationCap,
+  Calendar,
+  TrendingUp,
+  FileCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/use-toast";
 
 interface Intern {
   id: number;
@@ -41,79 +39,29 @@ interface Intern {
   userStatus: string;
   createdAt: string;
   updatedAt: string;
-  supervisor?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  } | null;
-  projectManager?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  } | null;
+
+}
+
+interface AdditionalData {
+  progress: number;
+  reportsSubmitted: number;
+  totalReports: number;
+  rating: number;
 }
 
 interface InternProfileClientProps {
   initialIntern: Intern | null;
+  additionalData: AdditionalData | null;
   internId: number;
 }
 
 export default function InternProfileClient({
   initialIntern,
+  additionalData,
   internId,
 }: InternProfileClientProps) {
   const router = useRouter();
-  const [intern, setIntern] = useState<Intern | null>(initialIntern);
-  const [isLoading, setIsLoading] = useState(!initialIntern);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  useEffect(() => {
-    // If no initial data was provided, fetch it
-    if (!initialIntern) {
-      fetchInternData();
-    }
-  }, [initialIntern]);
-
-  const fetchInternData = async () => {
-    try {
-      setIsLoading(true);
-      
-      const response = await fetch(`/api/users/interns/${internId}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Unauthorized access. Please log in again.");
-        }
-        if (response.status === 404) {
-          throw new Error("Intern not found.");
-        }
-        throw new Error(`Failed to fetch intern: ${response.statusText}`);
-      }
-
-      const internData = await response.json();
-      setIntern(internData);
-    } catch (error: any) {
-      console.error("Failed to fetch intern:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load intern profile",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchInternData();
-  };
+  const intern = initialIntern;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -152,30 +100,39 @@ export default function InternProfileClient({
     });
   };
 
-  const calculateProgress = (createdAt: string, duration: string | null): number => {
+  const calculateEndDate = (startDate: string, duration: string | null) => {
+    if (!duration) return "Not specified";
+    
+    const monthsMatch = duration.match(/(\d+)\s*month/i);
+    if (!monthsMatch) return "Not specified";
+    
+    const months = parseInt(monthsMatch[1]);
+    const start = new Date(startDate);
+    const endDate = new Date(start);
+    endDate.setMonth(start.getMonth() + months);
+    
+    return formatDate(endDate.toISOString());
+  };
+
+  const calculateWeeksCompleted = (startDate: string, duration: string | null) => {
     if (!duration) return 0;
     
     const monthsMatch = duration.match(/(\d+)\s*month/i);
     if (!monthsMatch) return 0;
     
     const totalMonths = parseInt(monthsMatch[1]);
-    const startDate = new Date(createdAt);
+    const start = new Date(startDate);
     const currentDate = new Date();
     
-    const elapsedMonths = (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
-                         (currentDate.getMonth() - startDate.getMonth());
+    const elapsedMonths = (currentDate.getFullYear() - start.getFullYear()) * 12 +
+                         (currentDate.getMonth() - start.getMonth());
     
     const progress = Math.min(100, Math.max(0, (elapsedMonths / totalMonths) * 100));
-    return Math.round(progress);
+    const totalWeeks = totalMonths * 4; // Approximate weeks
+    const completedWeeks = Math.floor((progress / 100) * totalWeeks);
+    
+    return completedWeeks;
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-      </div>
-    );
-  }
 
   if (!intern) {
     return (
@@ -193,9 +150,11 @@ export default function InternProfileClient({
     );
   }
 
-  const progress = calculateProgress(intern.createdAt, intern.duration);
-  const reportsSubmitted = Math.floor((progress / 100) * 12);
-  const totalReports = 12;
+  const progress = additionalData?.progress || 0;
+  const reportsSubmitted = additionalData?.reportsSubmitted || 0;
+  const totalReports = additionalData?.totalReports || 12;
+  const rating = additionalData?.rating || 0;
+  const weeksCompleted = calculateWeeksCompleted(intern.createdAt, intern.duration);
 
   return (
     <div className="space-y-6">
@@ -219,26 +178,12 @@ export default function InternProfileClient({
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <Loader2 className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Profile
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Overview */}
+        {/* Left Column - Profile Overview */}
         <div className="lg:col-span-1 space-y-6">
+          {/* Profile Card */}
           <Card>
             <CardContent className="p-6 text-center">
               <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -250,9 +195,20 @@ export default function InternProfileClient({
               <p className="text-gray-600 mb-3">{intern.fieldOfStudy}</p>
               {getStatusBadge(intern.userStatus)}
               <div className="flex items-center justify-center mt-3">
-                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <svg
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
                 <span className="text-sm text-gray-600 ml-1">
-                  4.5 Rating
+                  {rating.toFixed(1)}
                 </span>
               </div>
             </CardContent>
@@ -330,11 +286,15 @@ export default function InternProfileClient({
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Send Message
               </Button>
+              <Button variant="outline" className="w-full">
+                <FileCheck className="h-4 w-4 mr-2" />
+                View Reports
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Detailed Information */}
+        {/* Right Column - Detailed Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* About */}
           <Card>
@@ -348,6 +308,62 @@ export default function InternProfileClient({
             </CardContent>
           </Card>
 
+          {/* Progress Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Internship Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Overall Progress</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-32 h-2 bg-gray-200 rounded-full">
+                          <div
+                            className="h-2 bg-blue-600 rounded-full"
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium">{Math.round(progress)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <FileCheck className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Reports Submitted</p>
+                      <p className="text-lg font-semibold">
+                        {reportsSubmitted} / {totalReports}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Weeks Completed</p>
+                      <p className="text-lg font-semibold">{weeksCompleted} weeks</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Average Rating</p>
+                      <p className="text-lg font-semibold">{rating.toFixed(1)} / 5</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Internship Details */}
           <Card>
             <CardHeader>
@@ -357,92 +373,33 @@ export default function InternProfileClient({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Field of Study
-                    </label>
+                    <label className="text-sm font-medium text-gray-600">Field of Study</label>
                     <p className="text-gray-900">{intern.fieldOfStudy}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Duration
-                    </label>
+                    <label className="text-sm font-medium text-gray-600">Duration</label>
                     <p className="text-gray-900">{intern.duration || "Not specified"}</p>
                   </div>
-                  {intern.supervisor && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">
-                        Supervisor
-                      </label>
-                      <p className="text-gray-900">
-                        {intern.supervisor.firstName} {intern.supervisor.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">{intern.supervisor.email}</p>
-                    </div>
-                  )}
-                  {intern.projectManager && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">
-                        Project Manager
-                      </label>
-                      <p className="text-gray-900">
-                        {intern.projectManager.firstName} {intern.projectManager.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">{intern.projectManager.email}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Start Date
-                    </label>
-                    <p className="text-gray-900">
-                      {formatDate(intern.createdAt)}
-                    </p>
+                    <label className="text-sm font-medium text-gray-600">Start Date</label>
+                    <p className="text-gray-900">{formatDate(intern.createdAt)}</p>
                   </div>
+                </div>
+                
+                <div className="space-y-4">
                   {intern.duration && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">
-                        Estimated End Date
-                      </label>
-                      <p className="text-gray-900">
-                        {(() => {
-                          const startDate = new Date(intern.createdAt);
-                          const monthsMatch = intern.duration.match(/(\d+)\s*month/i);
-                          if (monthsMatch) {
-                            const months = parseInt(monthsMatch[1]);
-                            const endDate = new Date(startDate);
-                            endDate.setMonth(startDate.getMonth() + months);
-                            return formatDate(endDate.toISOString());
-                          }
-                          return "Not specified";
-                        })()}
-                      </p>
+                      <label className="text-sm font-medium text-gray-600">Estimated End Date</label>
+                      <p className="text-gray-900">{calculateEndDate(intern.createdAt, intern.duration)}</p>
                     </div>
                   )}
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Reports Submitted
-                    </label>
-                    <p className="text-gray-900">
-                      {reportsSubmitted} / {totalReports}
-                    </p>
+                    <label className="text-sm font-medium text-gray-600">Status</label>
+                    <div className="mt-1">{getStatusBadge(intern.userStatus)}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Progress
-                    </label>
-                    <div className="flex items-center space-x-3 mt-1">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium">
-                        {progress}%
-                      </span>
-                    </div>
+                    <label className="text-sm font-medium text-gray-600">Last Updated</label>
+                    <p className="text-gray-900">{formatDate(intern.updatedAt)}</p>
                   </div>
                 </div>
               </div>
@@ -456,26 +413,22 @@ export default function InternProfileClient({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Institution
-                  </label>
-                  <p className="text-gray-900 flex items-center">
-                    <GraduationCap className="h-4 w-4 mr-2 text-gray-400" />
-                    {intern.institution}
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <GraduationCap className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Institution</label>
+                    <p className="text-gray-900">{intern.institution}</p>
+                  </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Field of Study
-                  </label>
+                  <label className="text-sm font-medium text-gray-600">Field of Study</label>
                   <p className="text-gray-900">{intern.fieldOfStudy}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Skills */}
+          {/* Skills & Technologies */}
           <Card>
             <CardHeader>
               <CardTitle>Skills & Technologies</CardTitle>
@@ -488,6 +441,8 @@ export default function InternProfileClient({
                     <Badge variant="outline" className="text-sm">Python</Badge>
                     <Badge variant="outline" className="text-sm">SQL</Badge>
                     <Badge variant="outline" className="text-sm">Algorithms</Badge>
+                    <Badge variant="outline" className="text-sm">Data Structures</Badge>
+                    <Badge variant="outline" className="text-sm">OOP</Badge>
                   </>
                 )}
                 {intern.fieldOfStudy.includes("Software Engineering") && (
@@ -496,6 +451,8 @@ export default function InternProfileClient({
                     <Badge variant="outline" className="text-sm">Node.js</Badge>
                     <Badge variant="outline" className="text-sm">Git</Badge>
                     <Badge variant="outline" className="text-sm">Agile</Badge>
+                    <Badge variant="outline" className="text-sm">TypeScript</Badge>
+                    <Badge variant="outline" className="text-sm">API Design</Badge>
                   </>
                 )}
                 {intern.fieldOfStudy.includes("Data Science") && (
@@ -504,60 +461,14 @@ export default function InternProfileClient({
                     <Badge variant="outline" className="text-sm">R</Badge>
                     <Badge variant="outline" className="text-sm">Machine Learning</Badge>
                     <Badge variant="outline" className="text-sm">Statistics</Badge>
+                    <Badge variant="outline" className="text-sm">Data Visualization</Badge>
+                    <Badge variant="outline" className="text-sm">Pandas</Badge>
                   </>
                 )}
                 <Badge variant="outline" className="text-sm">Problem Solving</Badge>
                 <Badge variant="outline" className="text-sm">Teamwork</Badge>
                 <Badge variant="outline" className="text-sm">Communication</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Internship Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="font-semibold">Started Internship</p>
-                    <p className="text-sm text-gray-600">{formatDate(intern.createdAt)}</p>
-                    <p className="text-sm">Joined the internship program</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="font-semibold">Current Progress</p>
-                    <p className="text-sm text-gray-600">{progress}% Complete</p>
-                    <p className="text-sm">{reportsSubmitted} reports submitted</p>
-                  </div>
-                </div>
-                {intern.duration && (
-                  <div className="flex items-start space-x-4">
-                    <div className="w-3 h-3 bg-gray-300 rounded-full mt-2"></div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Expected Completion</p>
-                      <p className="text-sm text-gray-600">
-                        {(() => {
-                          const startDate = new Date(intern.createdAt);
-                          const monthsMatch = intern.duration.match(/(\d+)\s*month/i);
-                          if (monthsMatch) {
-                            const months = parseInt(monthsMatch[1]);
-                            const endDate = new Date(startDate);
-                            endDate.setMonth(startDate.getMonth() + months);
-                            return formatDate(endDate.toISOString());
-                          }
-                          return "Not specified";
-                        })()}
-                      </p>
-                      <p className="text-sm">Estimated end date</p>
-                    </div>
-                  </div>
-                )}
+                <Badge variant="outline" className="text-sm">Time Management</Badge>
               </div>
             </CardContent>
           </Card>
