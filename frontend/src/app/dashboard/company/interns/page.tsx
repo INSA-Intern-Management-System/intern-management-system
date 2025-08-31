@@ -7,7 +7,8 @@ import {
   searchInterns,
   filterInternsByUniversity,
   filterInternsByStatus,
-  Intern,
+  InternsResponse,
+  PagedInternResponse,
 } from "@/app/services/internService";
 
 async function getUser() {
@@ -41,41 +42,51 @@ export default async function CompanyInternsPage({
   const institution = searchParamsAwaited.institution || "all";
   const fieldOfStudy = searchParamsAwaited.fieldOfStudy || "all";
 
-  let internsData: { intern: Intern; projects: any[] }[] = [];
+  let internsData: any[] = [];
   let totalInterns = 0;
   let totalPages = 0;
+  let currentPage = 0;
 
   try {
+    console.log("Fetching interns with params:", { page, search, status, institution, fieldOfStudy });
+    
     if (search) {
-      const response = await searchInterns(search, page, 10);
-      internsData = response.content.map(intern => ({
-        intern: intern,
-        projects: []
-      }));
-      totalInterns = response.totalElements;
-      totalPages = response.totalPages;
+      const response: PagedInternResponse = await searchInterns(search, page, 10);
+      console.log("Search response:", response);
+      internsData = response.content || [];
+      totalInterns = response.totalElements || 0;
+      totalPages = response.totalPages || 0;
+      currentPage = response.number || 0;
     } else if (status !== "all") {
-      const response = await filterInternsByStatus(status, page, 10);
-      internsData = response.content.map(intern => ({
-        intern: intern,
-        projects: []
-      }));
-      totalInterns = response.totalElements;
-      totalPages = response.totalPages;
+      const response: PagedInternResponse = await filterInternsByStatus(status, page, 10);
+      console.log("Status filter response:", response);
+      internsData = response.content || [];
+      totalInterns = response.totalElements || 0;
+      totalPages = response.totalPages || 0;
+      currentPage = response.number || 0;
     } else if (institution !== "all") {
-      const response = await filterInternsByUniversity(institution, page, 10);
-      internsData = response.content.map(intern => ({
-        intern: intern,
-        projects: []
-      }));
-      totalInterns = response.totalElements;
-      totalPages = response.totalPages;
+      const response: PagedInternResponse = await filterInternsByUniversity(institution, page, 10);
+      console.log("Institution filter response:", response);
+      internsData = response.content || [];
+      totalInterns = response.totalElements || 0;
+      totalPages = response.totalPages || 0;
+      currentPage = response.number || 0;
     } else {
-      const response = await fetchInterns(page, 10);
-      internsData = response.interns;
-      totalInterns = response.totalInterns;
-      totalPages = response.totalPages;
+      const response: InternsResponse = await fetchInterns(page, 10);
+      console.log("Fetch interns response:", response);
+      internsData = response.interns || [];
+      totalInterns = response.totalInterns || 0;
+      totalPages = response.totalPages || 0;
+      currentPage = response.currentPage || 0;
     }
+
+    console.log("Processed data:", { 
+      internsCount: internsData.length, 
+      totalInterns, 
+      totalPages,
+      currentPage
+    });
+
   } catch (error: any) {
     console.error("Failed to fetch interns:", error);
     if (error.message === "Unauthorized access. Please log in again.") {
@@ -84,87 +95,18 @@ export default async function CompanyInternsPage({
     internsData = [];
     totalInterns = 0;
     totalPages = 0;
+    currentPage = 0;
   }
-
- 
-  const handleFetchData = async (
-    page: number,
-    size: number,
-    search: string,
-    status: string,
-    institution: string,
-    fieldOfStudy: string
-  ) => {
-    "use server";
-    try {
-      let data;
-      let totalElements = 0;
-      let totalPages = 0;
-
-      if (search) {
-        const response = await searchInterns(search, page, size);
-        data = response.content.map(intern => ({
-          intern: intern,
-          projects: []
-        }));
-        totalElements = response.totalElements;
-        totalPages = response.totalPages;
-      } else if (status !== "all") {
-        const response = await filterInternsByStatus(status, page, size);
-        data = response.content.map(intern => ({
-          intern: intern,
-          projects: []
-        }));
-        totalElements = response.totalElements;
-        totalPages = response.totalPages;
-      } else if (institution !== "all") {
-        const response = await filterInternsByUniversity(institution, page, size);
-        data = response.content.map(intern => ({
-          intern: intern,
-          projects: []
-        }));
-        totalElements = response.totalElements;
-        totalPages = response.totalPages;
-      } else {
-        const response = await fetchInterns(page, size);
-        data = response.interns;
-        totalElements = response.totalInterns;
-        totalPages = response.totalPages;
-      }
-
-      return {
-        interns: data,
-        pagination: {
-          currentPage: page,
-          totalPages: totalPages,
-          totalItems: totalElements,
-          pageSize: size,
-        },
-      };
-    } catch (error: any) {
-      console.error("handleFetchData error:", error);
-      return {
-        interns: [],
-        pagination: {
-          currentPage: 0,
-          totalPages: 0,
-          totalItems: 0,
-          pageSize: size,
-        },
-        error: error.message || "Failed to fetch interns",
-      };
-    }
-  };
 
   return (
     <DashboardLayout requiredRole="company">
       <InternClient
         initialInterns={internsData}
         pagination={{
-          currentPage: page,
+          currentPage: currentPage,
           totalPages: totalPages,
           totalItems: totalInterns,
-          pageSize: 10,
+          pageSize: 3,
         }}
       />
     </DashboardLayout>

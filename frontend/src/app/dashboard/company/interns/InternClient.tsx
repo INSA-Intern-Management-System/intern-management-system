@@ -6,7 +6,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,32 +56,21 @@ interface Intern {
   userStatus: string;
   createdAt: string;
   updatedAt: string;
-  supervisor?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  } | null;
-  projectManager?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  } | null;
-  projects?: Array<{
-    id: number;
-    name: string;
-    description: string;
-  }>;
 }
 
 interface InternResponse {
   intern: Intern;
-  projects: Array<{
+  project: {
     id: number;
     name: string;
     description: string;
-  }>;
+    progress: number;
+  };
+  reportProgress: {
+    internId: number;
+    totalReports: number;
+    averageRating: number;
+  };
 }
 
 interface CompanyInternsClientProps {
@@ -99,6 +87,7 @@ export default function CompanyInternsClient({
   initialInterns,
   pagination,
 }: CompanyInternsClientProps) {
+  const router = useRouter();
   const [interns, setInterns] = useState<InternResponse[]>(initialInterns);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState<number>(pagination.currentPage + 1);
@@ -107,48 +96,26 @@ export default function CompanyInternsClient({
   const [institutionFilter, setInstitutionFilter] = useState("all");
   const [fieldOfStudyFilter, setFieldOfStudyFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const router = useRouter();
 
-  const pageSize = 3;
+  const pageSize = pagination.pageSize;
 
   useEffect(() => {
+    console.log("Initial interns received:", initialInterns);
     setInterns(initialInterns);
   }, [initialInterns]);
 
-  // Calculate stats based on filtered data
-  const calculateStats = useMemo(() => {
+  // Calculate stats based on ALL data (not filtered)
+  const stats = useMemo(() => {
     const totalInterns = interns.length;
     const activeInterns = interns.filter(item => item.intern.userStatus === "ACTIVE").length;
     
-    // Calculate average rating (mock data for now)
-    const averageRating = 4.5;
+    // Calculate average rating from API data
+    const totalRating = interns.reduce((sum, item) => sum + (item.reportProgress?.averageRating || 0), 0);
+    const averageRating = interns.length > 0 ? totalRating / interns.length : 0;
     
-    // Calculate average progress based on duration and creation date
-    const calculateProgress = (createdAt: string, duration: string | null): number => {
-      if (!duration) return 0;
-      
-      const monthsMatch = duration.match(/(\d+)\s*month/i);
-      if (!monthsMatch) return 0;
-      
-      const totalMonths = parseInt(monthsMatch[1]);
-      const startDate = new Date(createdAt);
-      const currentDate = new Date();
-      
-      const elapsedMonths = (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
-                           (currentDate.getMonth() - startDate.getMonth());
-      
-      const progress = Math.min(100, Math.max(0, (elapsedMonths / totalMonths) * 100));
-      return Math.round(progress);
-    };
-
-    const activeInternsData = interns.filter(item => item.intern.userStatus === "ACTIVE");
-    const totalProgress = activeInternsData.reduce((sum, item) => {
-      return sum + calculateProgress(item.intern.createdAt, item.intern.duration);
-    }, 0);
-    
-    const averageProgress = activeInternsData.length > 0 
-      ? Math.round(totalProgress / activeInternsData.length) 
-      : 0;
+    // Calculate average progress from API data
+    const totalProgress = interns.reduce((sum, item) => sum + (item.project?.progress || 0), 0);
+    const averageProgress = interns.length > 0 ? totalProgress / interns.length : 0;
 
     return {
       totalInterns,
@@ -158,7 +125,7 @@ export default function CompanyInternsClient({
     };
   }, [interns]);
 
-  // Extract unique filter options
+  // Extract unique filter options from ALL data
   const institutions = Array.from(
     new Set(interns.map((item) => item.intern.institution))
   );
@@ -188,46 +155,6 @@ export default function CompanyInternsClient({
       return statusMatch && institutionMatch && fieldMatch && searchMatch;
     });
   }, [interns, statusFilter, institutionFilter, fieldOfStudyFilter, searchQuery]);
-
-  // Calculate stats for the filtered results
-  const filteredStats = useMemo(() => {
-    const totalInterns = filteredAndSearchedInterns.length;
-    const activeInterns = filteredAndSearchedInterns.filter(item => item.intern.userStatus === "ACTIVE").length;
-    
-    // Calculate average progress for filtered active interns
-    const calculateProgress = (createdAt: string, duration: string | null): number => {
-      if (!duration) return 0;
-      
-      const monthsMatch = duration.match(/(\d+)\s*month/i);
-      if (!monthsMatch) return 0;
-      
-      const totalMonths = parseInt(monthsMatch[1]);
-      const startDate = new Date(createdAt);
-      const currentDate = new Date();
-      
-      const elapsedMonths = (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
-                           (currentDate.getMonth() - startDate.getMonth());
-      
-      const progress = Math.min(100, Math.max(0, (elapsedMonths / totalMonths) * 100));
-      return Math.round(progress);
-    };
-
-    const activeInternsData = filteredAndSearchedInterns.filter(item => item.intern.userStatus === "ACTIVE");
-    const totalProgress = activeInternsData.reduce((sum, item) => {
-      return sum + calculateProgress(item.intern.createdAt, item.intern.duration);
-    }, 0);
-    
-    const averageProgress = activeInternsData.length > 0 
-      ? Math.round(totalProgress / activeInternsData.length) 
-      : 0;
-
-    return {
-      totalInterns,
-      activeInterns,
-      averageRating: 4.5, // Mock data
-      averageProgress
-    };
-  }, [filteredAndSearchedInterns]);
 
   const totalItems = filteredAndSearchedInterns.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -276,6 +203,8 @@ export default function CompanyInternsClient({
       "Phone",
       "Address",
       "Duration",
+      "Progress",
+      "Rating"
     ];
 
     const csvContent = [
@@ -293,6 +222,8 @@ export default function CompanyInternsClient({
           `"${user.phoneNumber}"`,
           `"${user.address || ""}"`,
           `"${user.duration || ""}"`,
+          item.project?.progress || 0,
+          item.reportProgress?.averageRating || 0
         ].join(",");
       }),
     ].join("\n");
@@ -313,6 +244,10 @@ export default function CompanyInternsClient({
 
   const handleMessageUser = () => {
     router.push("/dashboard/company/messages");
+  };
+
+  const handleViewProfile = (internId: number) => {
+    router.push(`/dashboard/company/interns/${internId}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -356,14 +291,14 @@ export default function CompanyInternsClient({
         <p className="text-gray-600">Manage and track your intern team</p>
       </div>
 
-      {/* Stats Cards - Now showing filtered stats */}
+      {/* Stats Cards - Show stats for ALL interns, not filtered ones */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Interns</p>
-                <p className="text-2xl font-bold">{filteredStats.totalInterns}</p>
+                <p className="text-2xl font-bold">{stats.totalInterns}</p>
               </div>
               <User className="h-8 w-8 text-blue-600" />
             </div>
@@ -374,7 +309,7 @@ export default function CompanyInternsClient({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Interns</p>
-                <p className="text-2xl font-bold text-green-600">{filteredStats.activeInterns}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.activeInterns}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600" />
             </div>
@@ -386,7 +321,7 @@ export default function CompanyInternsClient({
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg. Rating</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {filteredStats.averageRating.toFixed(1)}
+                  {stats.averageRating.toFixed(1)}
                 </p>
               </div>
               <Star className="h-8 w-8 text-purple-600" />
@@ -399,7 +334,7 @@ export default function CompanyInternsClient({
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg. Progress</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {Math.round(filteredStats.averageProgress)}%
+                  {Math.round(stats.averageProgress)}%
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange-600" />
@@ -536,26 +471,8 @@ export default function CompanyInternsClient({
         ) : (
           paginatedInterns.map((item) => {
             const user = item.intern;
-            
-            // Calculate progress for each intern
-            const calculateProgress = (createdAt: string, duration: string | null): number => {
-              if (!duration) return 75; // Default if no duration
-              
-              const monthsMatch = duration.match(/(\d+)\s*month/i);
-              if (!monthsMatch) return 75;
-              
-              const totalMonths = parseInt(monthsMatch[1]);
-              const startDate = new Date(createdAt);
-              const currentDate = new Date();
-              
-              const elapsedMonths = (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
-                                  (currentDate.getMonth() - startDate.getMonth());
-              
-              const progress = Math.min(100, Math.max(0, (elapsedMonths / totalMonths) * 100));
-              return Math.round(progress);
-            };
-
-            const progress = calculateProgress(user.createdAt, user.duration);
+            const progress = item.project?.progress || 0;
+            const rating = item.reportProgress?.averageRating || 0;
 
             return (
               <Card key={user.id} className="hover:shadow-md transition-shadow">
@@ -574,7 +491,7 @@ export default function CompanyInternsClient({
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
                             <span className="text-sm text-gray-600 ml-1">
-                              4.5
+                              {rating.toFixed(1)}
                             </span>
                           </div>
                         </div>
@@ -591,7 +508,7 @@ export default function CompanyInternsClient({
                           </div>
                           <div className="w-1/4">
                             <div className="font-semibold mb-1">Project:</div>
-                            <div>{item.projects?.[0]?.name || "Not assigned"}</div>
+                            <div>{item.project?.name || "Not assigned"}</div>
                           </div>
                           <div className="w-1/4">
                             <div className="font-semibold mb-1">Progress:</div>
@@ -602,7 +519,7 @@ export default function CompanyInternsClient({
                                   style={{ width: `${progress}%` }}
                                 ></div>
                               </div>
-                              <span>{progress}%</span>
+                              <span>{Math.round(progress)}%</span>
                             </div>
                           </div>
                         </div>
@@ -612,9 +529,7 @@ export default function CompanyInternsClient({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          router.push(`/dashboard/company/interns/${user.id}`)
-                        }
+                        onClick={() => handleViewProfile(user.id)}
                       >
                         View Profile
                       </Button>
@@ -634,7 +549,7 @@ export default function CompanyInternsClient({
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - Fixed to show correct page numbers */}
       {totalPages > 1 && (
         <Pagination className="mt-6">
           <PaginationContent>
@@ -682,7 +597,6 @@ export default function CompanyInternsClient({
       <Card>
         <CardHeader>
           <CardTitle>Intern Management Best Practices</CardTitle>
-          <CardDescription>Tips for successful intern supervision</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-6">
