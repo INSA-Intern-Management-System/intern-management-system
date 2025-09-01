@@ -74,6 +74,18 @@ export default async function NotificationsPage() {
         onMarkAllAsRead={handleMarkAllAsRead}
         onFetchData={handleFetchData}
       />
+      <StudentNotificationsClient
+        initialNotifications={notificationsData.content}
+        pagination={{
+          currentPage: notificationsData.number,
+          totalPages: notificationsData.totalPages,
+          totalItems: notificationsData.totalElements,
+          pageSize: notificationsData.size,
+        }}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onFetchData={handleFetchData}
+      />
     </DashboardLayout>
   );
 }

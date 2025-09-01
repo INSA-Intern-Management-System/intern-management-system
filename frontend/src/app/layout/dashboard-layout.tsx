@@ -16,8 +16,20 @@ async function getUser(): Promise<User> {
 
   if (!accessToken || !userId) {
     redirect("/login");
+    redirect("/login");
   }
 
+  try {
+    const response = await api.get<User>(`/users/me`, {
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    redirect("/login");
+  }
   try {
     const response = await api.get<User>(`/users/me`, {
       headers: {
@@ -32,9 +44,24 @@ async function getUser(): Promise<User> {
 }
 
 export default async function DashboardLayout({
+export default async function DashboardLayout({
   children,
   requiredRole,
 }: DashboardLayoutProps) {
+  const user = await getUser();
+  let userRole = user.roles.name.toLowerCase();
+  if (userRole === "admin") {
+    userRole = "admin";
+  } else if (userRole === "hr" || userRole === "project_manager") {
+    userRole = "company";
+  } else if (userRole === "supervisor") {
+    userRole = "university";
+  } else if (userRole === "student") {
+    userRole = "student";
+  }
+
+  if (requiredRole && userRole !== requiredRole.toLowerCase()) {
+    redirect(`/dashboard/${userRole}`);
   const user = await getUser();
   let userRole = user.roles.name.toLowerCase();
   if (userRole === "admin") {
@@ -56,9 +83,14 @@ export default async function DashboardLayout({
       <Sidebar
         userRole={userRole}
         userName={`${user.firstName} ${user.lastName}`.trim()}
+        userRole={userRole}
+        userName={`${user.firstName} ${user.lastName}`.trim()}
       />
       <div className="lg:ml-64 transition-all duration-300">
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          {children}
+          <Toaster />
+        </main>
       </div>
     </div>
   );

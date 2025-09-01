@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
 import StudentsClient from "./StudentClient";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import DashboardLayout from "@/app/layout/dashboard-layout";
+import StudentsClient from "./StudentClient";
 import {
   Card,
   CardContent,

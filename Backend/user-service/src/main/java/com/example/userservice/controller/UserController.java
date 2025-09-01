@@ -12,10 +12,8 @@ import com.example.project_service.gRPC.ProjectResponse;
 import com.example.project_service.gRPC.ProjectStatsResponse;
 import com.example.project_service.gRPC.StatsResponse;
 import com.example.report_service.gRPC.ReportProgressResponse;
-import com.example.report_service.gRPC.ReportProgressResponse;
 import com.example.report_service.gRPC.ReportStatsRequest;
 import com.example.report_service.gRPC.ReportStatsResponse;
-import com.example.report_service.gRPC.SingleProgress;
 import com.example.report_service.gRPC.SingleProgress;
 import com.example.report_service.gRPC.TopInterns;
 import com.example.report_service.gRPC.TopInternsResponse;
@@ -577,8 +575,6 @@ public class UserController {
 
 
 
-
-
     @GetMapping("/interns")
     public ResponseEntity<?> getInterns(
             @RequestParam(defaultValue = "0") int page,
@@ -692,8 +688,6 @@ public class UserController {
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
         }
@@ -988,6 +982,52 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+      @GetMapping("/university/dashboard")
+    public ResponseEntity<?> getUniversityDashboard(HttpServletRequest request, Pageable pageable) {
+
+        String token = extractAccessToken(request);
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        String role = (String) request.getAttribute("role");
+
+        if(!"UNIVERSITY".equalsIgnoreCase(role)){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Only University can get university dashboard."));
+        }
+
+        // 2️⃣ Get userId from request attribute
+        Long userId = (Long) request.getAttribute("userId");
+
+        InternStatusesCount internStatusesCount = userService.countInternStatuses();
+        long supervisorCount = userService.countSupervisor();
+
+        // 4️⃣ Fetch recent activities from gRPC
+        GetRecentActivitiesResponse grpcResponse =
+                activityGrpcClient.getRecentActivities(token, userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        // 5️⃣ Map protobuf response to DTOs
+        List<ActivityDTO> activityList = grpcResponse.getActivitiesList().stream()
+                .map(a -> new ActivityDTO(
+                        a.getId(),
+                        a.getUserId(),
+                        a.getTitle(),
+                        a.getDescription(),
+                        LocalDateTime.parse(a.getCreatedAt())
+                ))
+                .toList();
+
+
+
+        // 7️⃣ Combine into single response
+        Map<String, Object> combinedResponse = new HashMap<>();
+        combinedResponse.put("internStatusesCount", internStatusesCount);
+        combinedResponse.put("supervisorCount", supervisorCount);
+        combinedResponse.put("recentActivities", activityList);
+
+        return ResponseEntity.ok(combinedResponse);
+    }
 
     @GetMapping("/interns/search")
     public ResponseEntity<?> searchApplicants(
