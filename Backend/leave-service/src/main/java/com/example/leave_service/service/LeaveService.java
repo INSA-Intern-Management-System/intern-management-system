@@ -139,7 +139,9 @@ public class LeaveService {
         List<Long> userIds = leavesPage.getContent().stream()
                 .map(leave -> leave.getUser().getId())
                 .distinct()
-                .toList();  
+                .toList();
+                
+        System.out.println("User IDs: " + userIds); // Debugging line
         
         //get all users from userGrpc service
         UsersResponse response = userGrpcClient.getAllUsers(jwtToken, userIds); 

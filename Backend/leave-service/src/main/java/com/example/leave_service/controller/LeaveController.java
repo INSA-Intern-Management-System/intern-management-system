@@ -158,8 +158,8 @@ public class LeaveController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<?> filterLeaves(@RequestParam String leaveType,
-                                          @RequestParam LeaveStatus leaveStatus,
+    public ResponseEntity<?> filterLeaves(@RequestParam(required = false) String leaveType,
+                                          @RequestParam(required = false) LeaveStatus leaveStatus,
                                           HttpServletRequest request,
                                           Pageable pageable) {
         try {
