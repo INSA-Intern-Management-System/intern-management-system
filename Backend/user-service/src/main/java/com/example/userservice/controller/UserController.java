@@ -728,9 +728,6 @@ public class UserController {
         }
     }
 
-
-
-
     @PutMapping("/assign-supervisor")
     public ResponseEntity<?> assignSupervisor(
             @RequestBody AssignSupervisorRequestDTO dto,
