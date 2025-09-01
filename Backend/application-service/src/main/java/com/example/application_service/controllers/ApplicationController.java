@@ -189,7 +189,6 @@ public class ApplicationController {
                     .body(Collections.singletonMap("message", "Unauthorized: Only University can apply"));
         }
 
-
         // ✅ Check if application limit is reached
         MaxInternResponse maxInternResponse = userServiceClient.getMaxIntern(MaxInternRequest.newBuilder().build(), token);
         int maxIntern = maxInternResponse.getMaxIntern();
@@ -492,14 +491,15 @@ public class ApplicationController {
 
             // 🔑 Extract role & id from token
             String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
 
-            if (!"HR".equalsIgnoreCase(role)) {
+            if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Only HR can access this resource"));
+                        .body(Map.of("error", "Only HR and University can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);
-            Page<Application> pageResult = applicationService.searchApplicants(query, pageable);
+            Page<Application> pageResult = applicationService.searchApplicants(query, institution,pageable);
 
             List<ApplicationResponseDTO> content = pageResult.getContent().stream()
                     .map(this::mapToDTO)
@@ -541,14 +541,15 @@ public class ApplicationController {
 
             // 🔑 Extract role & id from token
             String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
 
-            if (!"HR".equalsIgnoreCase(role)) {
+            if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Only HR can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);
-            Page<Application> result = applicationService.filterByStatus(ApplicationStatus.valueOf(status), pageable);
+            Page<Application> result = applicationService.filterByStatus(ApplicationStatus.valueOf(status), institution, pageable);
 
             List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
 

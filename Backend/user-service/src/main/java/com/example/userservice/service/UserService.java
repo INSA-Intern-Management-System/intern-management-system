@@ -48,12 +48,13 @@ public interface UserService {
     Page<User> getSupervisors(Role role, Pageable pageable);
 
 
-    Page<User> searchInterns(String query, Pageable pageable);
+    Page<User> searchInterns(String query, String institution, Pageable pageable);
 
     Page<User> searchUsers(String query, Pageable pageable);
     Page<User> filterUserByRole(String query, Pageable pageable);
 
     Page<User> filterByInstitution(String institution, Pageable pageable);
+    Page<User> filterBySupervisor(Long supervisorId, Pageable pageable);
     Page<User> filterSupervisorByInstitution(String institution, Pageable pageable);
 
 
