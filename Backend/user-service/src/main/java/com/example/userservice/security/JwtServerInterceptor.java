@@ -13,9 +13,9 @@ public class JwtServerInterceptor implements ServerInterceptor {
     private static final Context.Key<Long> USER_ID_CTX_KEY = Context.key("userId");
     private static final Context.Key<String> ROLE_CTX_KEY = Context.key("role");
 
-    // Define the custom metadata key for the token, matching the client
-    private static final Metadata.Key<String> COOKIE_TOKEN_KEY =
-            Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
+    // Key for cookie header
+    private static final Metadata.Key<String> COOKIE_HEADER_KEY =
+            Metadata.Key.of("cookie", Metadata.ASCII_STRING_MARSHALLER);
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
@@ -23,12 +23,21 @@ public class JwtServerInterceptor implements ServerInterceptor {
             Metadata headers,
             ServerCallHandler<ReqT, RespT> next) {
 
-        // Get the token from the custom metadata key instead of "Authorization"
-        String token = headers.get(COOKIE_TOKEN_KEY);
-        System.out.println("[GrpcAuth] Token from custom header: " + token);
+        // Get the cookie header
+        String cookieHeader = headers.get(COOKIE_HEADER_KEY);
+        System.out.println("[GrpcAuth] Cookie header: " + cookieHeader);
+
+        if (cookieHeader == null) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Missing cookie header"), new Metadata());
+            return new ServerCall.Listener<>() {};
+        }
+
+        // Extract the access_token from cookies
+        String token = extractTokenFromCookies(cookieHeader);
+        System.out.println("[GrpcAuth] Extracted token: " + (token != null ? "found" : "not found"));
 
         if (token == null) {
-            call.close(Status.UNAUTHENTICATED.withDescription("Missing token in custom cookie-access-token header"), new Metadata());
+            call.close(Status.UNAUTHENTICATED.withDescription("Missing access_token in cookies"), new Metadata());
             return new ServerCall.Listener<>() {};
         }
 
@@ -54,6 +63,21 @@ public class JwtServerInterceptor implements ServerInterceptor {
             call.close(Status.UNAUTHENTICATED.withDescription("Token processing failed: " + e.getMessage()), new Metadata());
             return new ServerCall.Listener<>() {};
         }
+    }
+
+    private String extractTokenFromCookies(String cookieHeader) {
+        if (cookieHeader == null) {
+            return null;
+        }
+        
+        String[] cookies = cookieHeader.split(";");
+        for (String cookie : cookies) {
+            String[] parts = cookie.trim().split("=");
+            if (parts.length == 2 && "access_token".equals(parts[0].trim())) {
+                return parts[1].trim();
+            }
+        }
+        return null;
     }
 
     public static Long getUserId() {

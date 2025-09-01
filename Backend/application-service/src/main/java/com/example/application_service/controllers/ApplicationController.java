@@ -545,7 +545,7 @@ public class ApplicationController {
 
             if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Only HR can access this resource"));
+                        .body(Map.of("error", "Only HR and University can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);

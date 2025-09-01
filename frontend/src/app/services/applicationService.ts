@@ -45,6 +45,20 @@ export interface ApplicationsResponse {
   empty?: boolean;
 }
 
+export interface CreateApplicationRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  institution?: string;
+  fieldOfStudy?: string;
+  gender?: string;
+  duration?: string;
+  linkedInUrl?: string;
+  githubUrl?: string;
+  cvFile?: File;
+}
+
 // Get access token helper
 const getAccessToken = async (): Promise<string> => {
   const accessToken = (await cookies()).get("access_token")?.value;
@@ -56,21 +70,282 @@ const getAccessToken = async (): Promise<string> => {
 
 // Format application data consistently
 const formatApplication = (app: any): Application => ({
-  ...app,
-  status: (app.status.charAt(0).toUpperCase() +
-    app.status.slice(1).toLowerCase()) as "Pending" | "Accepted" | "Rejected",
+  id: app.id,
+  status: (app.status?.charAt(0).toUpperCase() +
+    app.status?.slice(1).toLowerCase()) as "Pending" | "Accepted" | "Rejected",
+  createdAt: app.createdAt,
   applicant: {
-    ...app.applicant,
-    firstName: app.applicant.firstName
-      ? app.applicant.firstName.charAt(0).toUpperCase() +
-        app.applicant.firstName.slice(1).toLowerCase()
-      : "",
-    lastName: app.applicant.lastName
-      ? app.applicant.lastName.charAt(0).toUpperCase() +
-        app.applicant.lastName.slice(1).toLowerCase()
-      : "",
+    id: app.applicant?.id || app.id,
+    firstName: app.applicant?.firstName || "",
+    lastName: app.applicant?.lastName || "",
+    email: app.applicant?.email || "",
+    phoneNumber: app.applicant?.phoneNumber || null,
+    institution: app.applicant?.institution || null,
+    fieldOfStudy: app.applicant?.fieldOfStudy || null,
+    gender: app.applicant?.gender || null,
+    duration: app.applicant?.duration || null,
+    linkedInUrl: app.applicant?.linkedInUrl || null,
+    githubUrl: app.applicant?.githubUrl || null,
+    cvUrl: app.applicant?.cvUrl || null,
+    createdAt: app.applicant?.createdAt || app.createdAt,
   },
 });
+
+// UNIVERSITY SPECIFIC ENDPOINTS
+export const fetchUniversityApplications = async (
+  page: number = 0,
+  size: number = 10,
+  search?: string,
+  status?: string
+): Promise<ApplicationsResponse> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    // For university role, use the specific university endpoint
+    const response = await applicationApi.get(
+      "/applications/filter/for-university",
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+
+    // Your API returns a direct array, not paginated response
+    let allApplications = response.data.content || [];
+
+    // Implement client-side pagination
+    const startIndex = page * size;
+    const endIndex = startIndex + size;
+    const paginatedApplications = allApplications.slice(startIndex, endIndex);
+
+    return {
+      content: paginatedApplications.map(formatApplication),
+      totalPages: Math.ceil(allApplications.length / size),
+      totalElements: allApplications.length,
+      currentPage: page,
+      pageable: {
+        pageNumber: page,
+        pageSize: size,
+        sort: [],
+        offset: page * size,
+        paged: true,
+        unpaged: false,
+      },
+      last: endIndex >= allApplications.length,
+      first: page === 0,
+      numberOfElements: paginatedApplications.length,
+      empty: paginatedApplications.length === 0,
+    };
+  } catch (error: any) {
+    console.error("Failed to fetch university applications:", error);
+    return {
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+      currentPage: page,
+      pageable: {
+        pageNumber: page,
+        pageSize: size,
+        sort: [],
+        offset: page * size,
+        paged: true,
+        unpaged: false,
+      },
+      last: true,
+      first: true,
+      numberOfElements: 0,
+      empty: true,
+    };
+  }
+};
+
+export const createApplication = async (
+  applicationData: CreateApplicationRequest
+): Promise<Application> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const formData = new FormData();
+
+    // Append all fields to form data
+    formData.append("firstName", applicationData.firstName);
+    formData.append("lastName", applicationData.lastName);
+    formData.append("email", applicationData.email);
+
+    if (applicationData.phoneNumber) {
+      formData.append("phoneNumber", applicationData.phoneNumber);
+    }
+    if (applicationData.institution) {
+      formData.append("institution", applicationData.institution);
+    }
+    if (applicationData.fieldOfStudy) {
+      formData.append("fieldOfStudy", applicationData.fieldOfStudy);
+    }
+    if (applicationData.gender) {
+      formData.append("gender", applicationData.gender);
+    }
+    if (applicationData.duration) {
+      formData.append("duration", applicationData.duration);
+    }
+    if (applicationData.linkedInUrl) {
+      formData.append("linkedInUrl", applicationData.linkedInUrl);
+    }
+    if (applicationData.githubUrl) {
+      formData.append("githubUrl", applicationData.githubUrl);
+    }
+    if (applicationData.cvFile) {
+      formData.append("cvFile", applicationData.cvFile);
+    }
+
+    const response = await applicationApi.post("/apply", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
+
+    return formatApplication(response.data);
+  } catch (error: any) {
+    console.error("Failed to create application:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to create application"
+    );
+  }
+};
+
+export const batchImportApplications = async (file: File): Promise<any[]> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await applicationApi.post("/application/batch", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
+
+    return response.data || [];
+  } catch (error: any) {
+    console.error("Failed to batch import applications:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to batch import applications"
+    );
+  }
+};
+
+// Remove unnecessary functions that aren't used by university role
+// Keep only the functions that are actually needed
+
+export const updateApplicationStatus = async (
+  applicationId: number,
+  status: "Accepted" | "Rejected"
+): Promise<Application> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await applicationApi.put(
+      `/applications/${applicationId}/status`,
+      {},
+      {
+        params: { status },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+
+    return formatApplication(response.data);
+  } catch (error: any) {
+    console.error("Failed to update application status:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to update application status"
+    );
+  }
+};
+
+export const fetchApplicationById = async (
+  applicationId: number
+): Promise<Application | null> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await applicationApi.get(
+      `/applications/${applicationId}`,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return formatApplication(response.data);
+  } catch (error: any) {
+    console.error(
+      `Failed to fetch application with id ${applicationId}:`,
+      error
+    );
+    if (error.response?.status === 404) {
+      return null;
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch application"
+    );
+  }
+};
+
+export interface Applicant {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string | null;
+  institution: string | null;
+  fieldOfStudy: string | null;
+  gender: string | null;
+  duration: string | null;
+  linkedInUrl: string | null;
+  githubUrl: string | null;
+  cvUrl: string | null;
+  createdAt: string;
+}
+
+export interface Application {
+  id: number;
+  status: "Pending" | "Accepted" | "Rejected";
+  createdAt: string;
+  applicant: Applicant;
+}
+
+export interface ApplicationsResponse {
+  content: Application[];
+  totalPages: number;
+  totalElements: number;
+  currentPage: number;
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+    sort: any[];
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last?: boolean;
+  size?: number;
+  sort?: any[];
+  first?: boolean;
+  numberOfElements?: number;
+  empty?: boolean;
+}
+
+// Get access token helper
 
 export const fetchApplications = async (
   page: number = 0,
@@ -81,7 +356,6 @@ export const fetchApplications = async (
   university?: string
 ): Promise<ApplicationsResponse> => {
   const accessToken = await getAccessToken();
-
 
   try {
     let url = "/applications/all";
@@ -99,12 +373,10 @@ export const fetchApplications = async (
     else if (status && status !== "all") {
       url = "/applications/filter/status";
       params.status = status;
-    }
-    else if (position && position !== "all") {
+    } else if (position && position !== "all") {
       url = "/applications/filter/position";
       params.position = position;
-    }
-    else if (university && university !== "all") {
+    } else if (university && university !== "all") {
       url = "/applications/filter/university";
       params.university = university;
     }
@@ -240,7 +512,10 @@ export const fetchApplicationById = async (
     );
     return formatApplication(response.data);
   } catch (error: any) {
-    console.error(`Failed to fetch application with id ${applicationId}:`, error);
+    console.error(
+      `Failed to fetch application with id ${applicationId}:`,
+      error
+    );
     if (error.response?.status === 404) {
       return null;
     }
@@ -274,16 +549,13 @@ export const fetchAllApplications = async (
         if (status && status !== "all") params.status = status;
         if (position && position !== "all") params.position = position;
         if (university && university !== "all") params.university = university;
-      }
-      else if (status && status !== "all") {
+      } else if (status && status !== "all") {
         url = "/applications/filter/status";
         params.status = status;
-      }
-      else if (position && position !== "all") {
+      } else if (position && position !== "all") {
         url = "/applications/filter/position";
         params.position = position;
-      }
-      else if (university && university !== "all") {
+      } else if (university && university !== "all") {
         url = "/applications/filter/university";
         params.university = university;
       }
@@ -297,16 +569,18 @@ export const fetchAllApplications = async (
       });
 
       let content: any[] = [];
-      
+
       if (Array.isArray(response.data)) {
         content = response.data;
         hasMore = false; // Filter endpoints return all data at once
       } else if (response.data && Array.isArray(response.data.content)) {
         content = response.data.content;
-        hasMore = !response.data.last && page < (response.data.totalPages || 1) - 1;
+        hasMore =
+          !response.data.last && page < (response.data.totalPages || 1) - 1;
       } else if (response.data && response.data.currentPage !== undefined) {
         content = response.data.content || [];
-        hasMore = !response.data.last && page < (response.data.totalPages || 1) - 1;
+        hasMore =
+          !response.data.last && page < (response.data.totalPages || 1) - 1;
       }
 
       allApps = [...allApps, ...content.map(formatApplication)];
@@ -339,22 +613,19 @@ export const searchApplications = async (
   const accessToken = await getAccessToken();
 
   try {
-    const response = await applicationApi.get(
-      "/applications/search",
-      {
-        params: { query, page, size },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await applicationApi.get("/applications/search", {
+      params: { query, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
 
     const data = response.data;
     return {
       content: (data.content || []).map(formatApplication),
       totalPages: data.totalPages || 1,
-      totalElements: data.totalElements || (data.content?.length || 0),
+      totalElements: data.totalElements || data.content?.length || 0,
       currentPage: data.currentPage || page,
     };
   } catch (error: any) {
@@ -376,19 +647,18 @@ export const filterApplicationsByStatus = async (
   const accessToken = await getAccessToken();
 
   try {
-    const response = await applicationApi.get(
-      "/applications/filter/status",
-      {
-        params: { status, page, size },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await applicationApi.get("/applications/filter/status", {
+      params: { status, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
 
     // Status filter returns array directly
-    return (Array.isArray(response.data) ? response.data : []).map(formatApplication);
+    return (Array.isArray(response.data) ? response.data : []).map(
+      formatApplication
+    );
   } catch (error: any) {
     console.error("Failed to filter applications by status:", error);
     if (error.response?.status === 403) {
@@ -408,26 +678,26 @@ export const filterApplicationsByPosition = async (
   const accessToken = await getAccessToken();
 
   try {
-    const response = await applicationApi.get(
-      "/applications/filter/position",
-      {
-        params: { position, page, size },
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await applicationApi.get("/applications/filter/position", {
+      params: { position, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
 
     // Position filter returns array directly
-    return (Array.isArray(response.data) ? response.data : []).map(formatApplication);
+    return (Array.isArray(response.data) ? response.data : []).map(
+      formatApplication
+    );
   } catch (error: any) {
     console.error("Failed to filter applications by position:", error);
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
     throw new Error(
-      error.response?.data?.message || "Failed to filter applications by position"
+      error.response?.data?.message ||
+        "Failed to filter applications by position"
     );
   }
 };
@@ -452,14 +722,17 @@ export const filterApplicationsByUniversity = async (
     );
 
     // University filter returns array directly
-    return (Array.isArray(response.data) ? response.data : []).map(formatApplication);
+    return (Array.isArray(response.data) ? response.data : []).map(
+      formatApplication
+    );
   } catch (error: any) {
     console.error("Failed to filter applications by university:", error);
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
     throw new Error(
-      error.response?.data?.message || "Failed to filter applications by university"
+      error.response?.data?.message ||
+        "Failed to filter applications by university"
     );
   }
 };

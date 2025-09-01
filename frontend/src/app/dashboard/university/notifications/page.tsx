@@ -62,7 +62,19 @@ export default async function NotificationsPage() {
 
   return (
     <DashboardLayout requiredRole="university">
-      <NotificationsClient initialNotifications={notifications} />
+      <UniversityNotificationsClient
+        userRole="UNIVERSITY"
+        initialNotifications={notificationsData.content}
+        pagination={{
+          currentPage: notificationsData.number,
+          totalPages: notificationsData.totalPages,
+          totalItems: notificationsData.totalElements,
+          pageSize: notificationsData.size,
+        }}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onFetchData={handleFetchData}
+      />
     </DashboardLayout>
   );
 }

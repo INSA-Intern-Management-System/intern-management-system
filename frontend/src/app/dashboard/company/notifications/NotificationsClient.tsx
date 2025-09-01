@@ -138,9 +138,17 @@ export default function CompanyNotificationsClient({
     }
   };
 
+  const roleMap: Record<string, string[]> = {
+    COMPANY: ["PROJECT_MANAGER", "HR"],
+    UNIVERSITY: ["UNIVERSITY", "SUPERVISOR"],
+    STUDENT: ["STUDENT"],
+  };
+
   const isNotificationRead = (notification: Notification): boolean => {
-    const recipient = notification.recipients.find((r) => r.role === userRole);
-    return recipient?.read || false;
+    const backendRoles = roleMap[userRole] || [userRole];
+    return notification.recipients.some(
+      (r) => backendRoles.includes(r.role) && r.read
+    );
   };
 
   const handleMarkAsRead = async (notificationId: number) => {
@@ -152,7 +160,16 @@ export default function CompanyNotificationsClient({
       }
 
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? response.notification! : n))
+        prev.map((n) =>
+          n.id === notificationId
+            ? {
+                ...n,
+                recipients: n.recipients.map((r) =>
+                  roleMap[userRole]?.includes(r.role) ? { ...r, read: true } : r
+                ),
+              }
+            : n
+        )
       );
 
       toast({

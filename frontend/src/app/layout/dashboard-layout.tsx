@@ -38,15 +38,13 @@ export default async function DashboardLayout({
   const user = await getUser();
   let userRole = user.roles.name.toLowerCase();
   if (userRole === "admin") {
-    userRole = "admin";}
-  else if (userRole === "hr" || userRole === "project_manager") {
-    userRole="company"
-  }
-  else if (userRole === "supervisor") {
-    userRole="University"
-  }
-  else if (userRole === "student") {
-    userRole="student"
+    userRole = "admin";
+  } else if (userRole === "hr" || userRole === "project_manager") {
+    userRole = "company";
+  } else if (userRole === "supervisor") {
+    userRole = "university";
+  } else if (userRole === "student") {
+    userRole = "student";
   }
 
   if (requiredRole && userRole !== requiredRole.toLowerCase()) {

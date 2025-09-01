@@ -319,7 +319,7 @@ export const updateProjectAndMilestonesStatus = async (
       m.status.toUpperCase()
     );
 
-    const response = await projectApi.put<Project>(
+    const response = await projectApi.patch<Project>(
       `/projects/update/status`,
       {
         projectId,
