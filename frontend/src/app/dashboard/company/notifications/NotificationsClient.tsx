@@ -31,8 +31,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { Notification } from "@/app/services/notificationService";
 
-interface StudentNotificationsClientProps {
-  userRole: string;
+interface UniversityNotificationsClientProps {
   initialNotifications: Notification[];
   pagination: {
     currentPage: number;
@@ -61,14 +60,13 @@ interface StudentNotificationsClientProps {
   }>;
 }
 
-export default function CompanyNotificationsClient({
-  userRole,
+export default function UniversityNotificationsClient({
   initialNotifications,
   pagination,
   onMarkAsRead,
   onMarkAllAsRead,
   onFetchData,
-}: StudentNotificationsClientProps) {
+}: UniversityNotificationsClientProps) {
   const [notifications, setNotifications] =
     useState<Notification[]>(initialNotifications);
   const [page, setPage] = useState<number>(pagination.currentPage + 1);
@@ -78,15 +76,17 @@ export default function CompanyNotificationsClient({
   const pageSize = 3;
   const totalPages = Math.max(1, Math.ceil(pagination.totalItems / pageSize));
 
-  const currentNotifications = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return notifications.slice(start, end);
-  }, [notifications, page, pageSize]);
+  const currentNotifications = notifications;
 
   useEffect(() => {
-    setNotifications(initialNotifications);
-  }, [initialNotifications]);
+    const fetchPage = async () => {
+      setIsLoading(true);
+      const data = await onFetchData(page - 1, pageSize);
+      setNotifications(data.notifications);
+      setIsLoading(false);
+    };
+    fetchPage();
+  }, [page]);
 
   const loadAllNotifications = async () => {
     try {
@@ -138,17 +138,10 @@ export default function CompanyNotificationsClient({
     }
   };
 
-  const roleMap: Record<string, string[]> = {
-    COMPANY: ["PROJECT_MANAGER", "HR"],
-    UNIVERSITY: ["UNIVERSITY", "SUPERVISOR"],
-    STUDENT: ["STUDENT"],
-  };
-
   const isNotificationRead = (notification: Notification): boolean => {
-    const backendRoles = roleMap[userRole] || [userRole];
-    return notification.recipients.some(
-      (r) => backendRoles.includes(r.role) && r.read
-    );
+    const userRole = "COMPANY"; // This should come from user context
+    const recipient = notification.recipients.find((r) => r.role === userRole);
+    return recipient?.read || false;
   };
 
   const handleMarkAsRead = async (notificationId: number) => {
@@ -160,16 +153,7 @@ export default function CompanyNotificationsClient({
       }
 
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId
-            ? {
-                ...n,
-                recipients: n.recipients.map((r) =>
-                  roleMap[userRole]?.includes(r.role) ? { ...r, read: true } : r
-                ),
-              }
-            : n
-        )
+        prev.map((n) => (n.id === notificationId ? response.notification! : n))
       );
 
       toast({
@@ -194,16 +178,7 @@ export default function CompanyNotificationsClient({
         throw new Error(response.error);
       }
 
-      // 👇 Instead of re-fetching, update local state
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          recipients: n.recipients.map((r) =>
-            r.role === userRole ? { ...r, read: true } : r
-          ),
-        }))
-      );
-
+      await loadAllNotifications();
       toast({
         title: "Success",
         description: "All notifications marked as read",
@@ -255,11 +230,11 @@ export default function CompanyNotificationsClient({
             Stay updated with intern activities and important events
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        {/* <div className="flex items-center space-x-3">
           <Button variant="outline" onClick={handleMarkAllAsRead}>
             Mark All Read
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Notifications List */}
@@ -313,7 +288,7 @@ export default function CompanyNotificationsClient({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    {/* <div className="flex items-center space-x-3">
                       {!isRead && (
                         <Button
                           variant="outline"
@@ -328,7 +303,7 @@ export default function CompanyNotificationsClient({
                           Mark Read
                         </Button>
                       )}
-                    </div>
+                    </div> */}
                   </div>
                 </CardContent>
               </Card>

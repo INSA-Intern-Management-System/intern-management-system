@@ -31,8 +31,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { Notification } from "@/app/services/notificationService";
 
-interface StudentNotificationsClientProps {
-  userRole: string;
+interface UniversityNotificationsClientProps {
   initialNotifications: Notification[];
   pagination: {
     currentPage: number;
@@ -61,14 +60,13 @@ interface StudentNotificationsClientProps {
   }>;
 }
 
-export default function StudentNotificationsClient({
-  userRole,
+export default function UniversityNotificationsClient({
   initialNotifications,
   pagination,
   onMarkAsRead,
   onMarkAllAsRead,
   onFetchData,
-}: StudentNotificationsClientProps) {
+}: UniversityNotificationsClientProps) {
   const [notifications, setNotifications] =
     useState<Notification[]>(initialNotifications);
   const [page, setPage] = useState<number>(pagination.currentPage + 1);
@@ -78,15 +76,17 @@ export default function StudentNotificationsClient({
   const pageSize = 3;
   const totalPages = Math.max(1, Math.ceil(pagination.totalItems / pageSize));
 
-  const currentNotifications = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return notifications.slice(start, end);
-  }, [notifications, page, pageSize]);
+  const currentNotifications = notifications;
 
   useEffect(() => {
-    setNotifications(initialNotifications);
-  }, [initialNotifications]);
+    const fetchPage = async () => {
+      setIsLoading(true);
+      const data = await onFetchData(page - 1, pageSize);
+      setNotifications(data.notifications);
+      setIsLoading(false);
+    };
+    fetchPage();
+  }, [page]);
 
   const loadAllNotifications = async () => {
     try {
@@ -139,6 +139,7 @@ export default function StudentNotificationsClient({
   };
 
   const isNotificationRead = (notification: Notification): boolean => {
+    const userRole = "COMPANY"; // This should come from user context
     const recipient = notification.recipients.find((r) => r.role === userRole);
     return recipient?.read || false;
   };
@@ -152,20 +153,7 @@ export default function StudentNotificationsClient({
       }
 
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId
-            ? {
-                ...n,
-                recipients: n.recipients.map((r) => {
-                  toast({
-                    title: "Role check",
-                    description: `Recipient role: ${r.role}, userRole: ${userRole}`,
-                  });
-                  return r.role === userRole ? { ...r, read: true } : r;
-                }),
-              }
-            : n
-        )
+        prev.map((n) => (n.id === notificationId ? response.notification! : n))
       );
 
       toast({
@@ -190,16 +178,7 @@ export default function StudentNotificationsClient({
         throw new Error(response.error);
       }
 
-      // 👇 Instead of re-fetching, update local state
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          recipients: n.recipients.map((r) =>
-            r.role === userRole ? { ...r, read: true } : r
-          ),
-        }))
-      );
-
+      await loadAllNotifications();
       toast({
         title: "Success",
         description: "All notifications marked as read",
@@ -251,11 +230,11 @@ export default function StudentNotificationsClient({
             Stay updated with intern activities and important events
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        {/* <div className="flex items-center space-x-3">
           <Button variant="outline" onClick={handleMarkAllAsRead}>
             Mark All Read
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Notifications List */}
@@ -309,7 +288,7 @@ export default function StudentNotificationsClient({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    {/* <div className="flex items-center space-x-3">
                       {!isRead && (
                         <Button
                           variant="outline"
@@ -324,7 +303,7 @@ export default function StudentNotificationsClient({
                           Mark Read
                         </Button>
                       )}
-                    </div>
+                    </div> */}
                   </div>
                 </CardContent>
               </Card>
@@ -377,50 +356,7 @@ export default function StudentNotificationsClient({
         </Pagination>
       )}
 
-      {/* Quick Actions */}
-      <Card className="bg-white border border-gray-200 rounded-lg">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common actions based on your notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2 bg-transparent"
-            >
-              <FileText className="h-6 w-6" />
-              <span>Review Applications</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2 bg-transparent"
-            >
-              <CheckCircle className="h-6 w-6" />
-              <span>Evaluate Reports</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2 bg-transparent"
-            >
-              <Calendar className="h-6 w-6" />
-              <span>Approve Leave</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2 bg-transparent"
-            >
-              <MessageSquare className="h-6 w-6" />
-              <span>Send Messages</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notification Preferences */}
-      <Card className="bg-white border border-gray-200 rounded-lg">
+      <Card className="mt-10">
         <CardHeader>
           <CardTitle>Notification Preferences</CardTitle>
           <CardDescription>Choose how you want to be notified</CardDescription>
