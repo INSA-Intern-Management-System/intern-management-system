@@ -30,9 +30,9 @@ public interface ApplicationService {
 
     ApplicationDTO updateApplicationStatus(Long applicantId, ApplicationStatus status, String jwtToken);
 
-    Page<Application> searchApplicants(String query, Pageable pageable);
+    Page<Application> searchApplicants(String query, String institution, Pageable pageable);
 
-    Page<Application> filterByStatus(ApplicationStatus status, Pageable pageable);
+    Page<Application> filterByStatus(ApplicationStatus status, String institution, Pageable pageable);
 
     Page<Application> filterByPosition(String position, Pageable pageable);
 
