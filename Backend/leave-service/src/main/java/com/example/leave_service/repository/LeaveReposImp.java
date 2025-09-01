@@ -52,25 +52,25 @@ public class LeaveReposImp implements LeaveReposInterface {
     @Override
     public Page<Leave> searchLeaves(Long userId, String leaveType, String reason, Pageable pageable) {
         if (leaveType != null && !leaveType.isEmpty() && reason != null && !reason.isEmpty()) {
-            return leaveJpaRepository.findByUser_IdAndLeaveTypeContainingIgnoreCaseAndReasonContainingIgnoreCase(
+            return leaveJpaRepository.findByReceiver_IdAndLeaveTypeContainingIgnoreCaseAndReasonContainingIgnoreCase(
                     userId, leaveType, reason, pageable);
         } else if (leaveType != null && !leaveType.isEmpty()) {
-            return leaveJpaRepository.findByUser_IdAndLeaveTypeContainingIgnoreCase(userId, leaveType, pageable);
+            return leaveJpaRepository.findByReceiver_IdAndLeaveTypeContainingIgnoreCase(userId, leaveType, pageable);
         } else if (reason != null && !reason.isEmpty()) {
-            return leaveJpaRepository.findByUser_IdAndReasonContainingIgnoreCase(userId, reason, pageable);
+            return leaveJpaRepository.findByReceiver_IdAndReasonContainingIgnoreCase(userId, reason, pageable);
         } else {
-            return leaveJpaRepository.findByUser_Id(userId, pageable);
+            return leaveJpaRepository.findByReceiver_Id(userId, pageable);
         }
     }
 
     @Override
     public Page<Leave> filterLeavesByTypeAndStatus(String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
-        return leaveJpaRepository.findByLeaveTypeAndLeaveStatus(leaveType, leaveStatus, pageable);
+        return leaveJpaRepository.findByLeaveTypeOrLeaveStatus(leaveType, leaveStatus, pageable);
     }
 
     @Override
     public Page<Leave> filterLeavesByTypeAndStatus(Long receiverId, String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
-        return leaveJpaRepository.findByReceiver_IdAndLeaveTypeAndLeaveStatus(receiverId, leaveType, leaveStatus, pageable);
+        return leaveJpaRepository.findByReceiver_IdAndLeaveTypeOrLeaveStatus(receiverId, leaveType, leaveStatus, pageable);
     }
 
     @Override

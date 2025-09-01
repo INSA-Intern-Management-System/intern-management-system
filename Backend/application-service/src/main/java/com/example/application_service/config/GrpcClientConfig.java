@@ -1,6 +1,7 @@
 package com.example.application_service.config;
 
 
+import com.example.application_service.client.UserGrpcClientForApplication;
 import com.example.application_service.gRPC.NotificationGrpcClient;
 
 import com.example.application_service.gRPC.UserServiceClient;
@@ -30,6 +31,11 @@ public class GrpcClientConfig {
     @Bean
     public UserServiceClient userServiceClient() {
         return new UserServiceClient(user_host, user_port);
+    }
+
+    @Bean
+    public UserGrpcClientForApplication userGrpcClientForApplication() {
+        return new UserGrpcClientForApplication(user_host, user_port);
     }
 
 }

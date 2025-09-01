@@ -22,6 +22,7 @@ public class UserServiceClient {
     }
 
     public CreateUserResponse registerUser(CreateUserRequest request, String jwtToken) {
+
         // Create metadata with a custom key for the token
         Metadata metadata = new Metadata();
         Metadata.Key<String> cookieTokenKey = Metadata.Key.of("access-token", Metadata.ASCII_STRING_MARSHALLER);
