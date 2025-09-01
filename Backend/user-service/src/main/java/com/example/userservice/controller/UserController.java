@@ -493,22 +493,6 @@ public class UserController {
         }
     }
 
-        @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(HttpServletRequest request, @PathVariable Long id){
-        try{
-            String token = extractAccessToken(request);
-            if (token == null) {
-                return ResponseEntity.status(401).body("Missing access_token cookie");
-            }
-            User user = userService.getUserById(id);
-            return ResponseEntity.ok(new UserResponseDto(user));
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(400).body(error);
-        }
-    }
-
     @GetMapping("/me")
     public ResponseEntity<?> getUser(HttpServletRequest request){
         try{

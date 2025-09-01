@@ -12,6 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Building2,
   Search,
   Plus,
@@ -21,6 +28,8 @@ import {
   Trash2,
   Download,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -55,36 +64,22 @@ interface ProjectClientProps {
   userId: number;
   onCreateProject: (
     formData: FormData
-  ) => Promise<{ project?: Project; error?: string }>;
-  onUpdateProject: (
-    id: number,
-    data: Project
-  ) => Promise<{ project?: Project; error?: string }>;
+  ) => Promise<{ success?: boolean; project?: Project; error?: string }>;
+  onUpdateProjectStatus: (
+    projectId: number,
+    projectStatus: string,
+    milestoneUpdates: Array<{ milestoneId: number; status: string }>
+  ) => Promise<{ success?: boolean; project?: Project; error?: string }>;
   onDeleteProject: (
     id: number
   ) => Promise<{ success?: boolean; error?: string }>;
   onCreateMilestone: (
     projectId: number,
     milestoneData: { title: string; description: string; dueDate: string }
-  ) => Promise<{
-    project?: {
-      id: number;
-      milestones: Project["milestones"];
-      progress: number;
-    };
-    error?: string;
-  }>;
+  ) => Promise<{ success?: boolean; error?: string }>;
   onDeleteMilestone: (
-    projectId: number,
     milestoneId: number
-  ) => Promise<{
-    project?: {
-      id: number;
-      milestones: Project["milestones"];
-      progress: number;
-    };
-    error?: string;
-  }>;
+  ) => Promise<{ success?: boolean; error?: string }>;
   onFetchData: (
     page: number,
     size: number,
@@ -111,14 +106,13 @@ export default function ProjectClient({
   initialStatus,
   userId,
   onCreateProject,
-  onUpdateProject,
+  onUpdateProjectStatus,
   onDeleteProject,
   onCreateMilestone,
   onDeleteMilestone,
   onFetchData,
 }: ProjectClientProps) {
   const router = useRouter();
-  const pageSize = 3;
   const [allProjects, setAllProjects] = useState<Project[]>(initialProjects);
   const [stats, setStats] = useState<ProjectStats>(initialStats);
   const [showCreate, setShowCreate] = useState(false);
@@ -149,6 +143,7 @@ export default function ProjectClient({
     description: "",
     dueDate: "",
   });
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const loadAllProjects = async () => {
     try {
@@ -207,12 +202,12 @@ export default function ProjectClient({
   }, [allProjects, statusFilter, searchValue]);
 
   const totalItems = filteredProjects.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pagination.pageSize));
 
   const currentProjects = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredProjects.slice(start, start + pageSize);
-  }, [filteredProjects, page, pageSize]);
+    const start = (page - 1) * pagination.pageSize;
+    return filteredProjects.slice(start, start + pagination.pageSize);
+  }, [filteredProjects, page, pagination.pageSize]);
 
   useEffect(() => {
     if (page > totalPages && totalPages > 0) {
@@ -229,46 +224,36 @@ export default function ProjectClient({
   const handleCreateProject = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+
     try {
+      // Manual FormData creation
       const formData = new FormData();
-      formData.append("name", newProject.name);
-      formData.append("description", newProject.description);
-      formData.append("status", newProject.status);
-      formData.append("startDate", newProject.startDate);
-      formData.append("endDate", newProject.endDate);
-      formData.append("budget", newProject.budget.toString());
-      formData.append("technologies", newProject.technologies);
-      formData.append("milestones", newProject.milestones);
+      const formElements = e.currentTarget.elements as unknown as Record<
+        string,
+        HTMLInputElement | HTMLSelectElement
+      >;
+
+      // Add all form fields manually
+      formData.append("name", formElements.name?.value || "");
+      formData.append("description", formElements.description?.value || "");
+      formData.append("status", formElements.status?.value || "PLANNING");
+      formData.append("startDate", formElements.startDate?.value || "");
+      formData.append("endDate", formElements.endDate?.value || "");
+      formData.append("budget", formElements.budget?.value || "0");
+      formData.append("technologies", formElements.technologies?.value || "");
+      formData.append("milestones", formElements.milestones?.value || "");
 
       const result = await onCreateProject(formData);
-      if (result.project) {
-        setAllProjects((prev) => [result.project!, ...prev]);
-        updateStats();
-        setShowCreate(false);
-        setNewProject({
-          name: "",
-          description: "",
-          status: "PLANNING",
-          startDate: "",
-          endDate: "",
-          budget: 0,
-          technologies: "",
-          milestones: "",
-        });
-        setPage(1);
-        toast({
-          title: "Success",
-          description: "Project created successfully",
-        });
-        await loadAllProjects(); // Force reload to ensure milestones are loaded
-        router.push("/dashboard/company/projects"); // Redirect to projects page
+
+      if (result.success) {
+        window.location.reload();
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create project",
+        description: error.message || "Failed to create project",
         variant: "destructive",
       });
     } finally {
@@ -280,22 +265,19 @@ export default function ProjectClient({
     try {
       const result = await onDeleteProject(projectId);
       if (result.success) {
-        const currentFilteredLength = filteredProjects.length;
-        const currentTotalPages = totalPages;
-        let adjustPage = false;
-        if (
-          currentFilteredLength % pageSize === 1 &&
-          page === currentTotalPages &&
-          currentTotalPages > 1
-        ) {
-          adjustPage = true;
-        }
         setAllProjects((prev) => prev.filter((p) => p.id !== projectId));
-        updateStats();
+        setStats((prev) => ({
+          ...prev,
+          total: prev.total - 1,
+          [allProjects.find((p) => p.id === projectId)?.status.toLowerCase() ||
+          "active"]:
+            (prev[
+              allProjects
+                .find((p) => p.id === projectId)
+                ?.status.toLowerCase() as keyof ProjectStats
+            ] || 1) - 1,
+        }));
         setConfirmingAction(null);
-        if (adjustPage) {
-          setPage((prevPage) => prevPage - 1);
-        }
         toast({
           title: "Success",
           description: "Project deleted successfully",
@@ -303,10 +285,10 @@ export default function ProjectClient({
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to delete project",
+        description: error.message || "Failed to delete project",
         variant: "destructive",
       });
     }
@@ -316,30 +298,36 @@ export default function ProjectClient({
     if (!editProject || !editProject.id) return;
     setIsSubmitting(true);
     try {
-      const result = await onUpdateProject(editProject.id, {
-        ...editProject,
-      });
+      // Prepare milestone updates
+      const milestoneUpdates =
+        editProject.milestones?.map((milestone) => ({
+          milestoneId: milestone.id!,
+          status: milestone.completed ? "COMPLETED" : "IN_PROGRESS",
+        })) || [];
 
-      if (result.project) {
+      const result = await onUpdateProjectStatus(
+        editProject.id,
+        editProject.status,
+        milestoneUpdates
+      );
+
+      if (result.success) {
         setAllProjects((prev) =>
-          prev.map((p) => (p.id === editProject.id ? result.project! : p))
+          prev.map((p) => (p.id === editProject.id ? { ...editProject } : p))
         );
-        updateStats();
         setManageOpen(null);
         setEditProject(null);
         toast({
           title: "Success",
           description: "Project updated successfully",
         });
-        await loadAllProjects(); // Force reload to ensure changes are loaded
-        router.push("/dashboard/company/projects"); // Redirect to projects page
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update project",
+        description: error.message || "Failed to update project",
         variant: "destructive",
       });
     } finally {
@@ -359,46 +347,17 @@ export default function ProjectClient({
 
     setIsSubmitting(true);
     try {
-      const result = await onCreateMilestone(projectId, {
-        title: newMilestone.title,
-        description: newMilestone.description || newMilestone.title,
-        dueDate: newMilestone.dueDate,
-      });
-
-      if (result.project) {
-        setAllProjects((prev) =>
-          prev.map((p) =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  milestones: result.project!.milestones,
-                  progress: result.project!.progress,
-                }
-              : p
-          )
-        );
-        setEditProject((prev) =>
-          prev && prev.id === projectId
-            ? {
-                ...prev,
-                milestones: result.project!.milestones,
-                progress: result.project!.progress,
-              }
-            : prev
-        );
-        setNewMilestone({ title: "", description: "", dueDate: "" });
-        toast({
-          title: "Success",
-          description: "Milestone created successfully",
-        });
-        await loadAllProjects(); // Force reload to ensure new milestone is loaded
+      const result = await onCreateMilestone(projectId, newMilestone);
+      if (result.success) {
+        // Refresh the page to get updated data
+        window.location.reload();
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create milestone",
+        description: error.message || "Failed to create milestone",
         variant: "destructive",
       });
     } finally {
@@ -406,60 +365,26 @@ export default function ProjectClient({
     }
   };
 
-  const handleDeleteMilestoneAction = async (
-    projectId: number,
-    milestoneId: number
-  ) => {
+  const handleDeleteMilestoneAction = async (milestoneId: number) => {
     setIsSubmitting(true);
     try {
-      const result = await onDeleteMilestone(projectId, milestoneId);
-      if (result.project) {
-        setAllProjects((prev) =>
-          prev.map((p) =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  milestones: result.project!.milestones,
-                  progress: result.project!.progress,
-                }
-              : p
-          )
-        );
-        setEditProject((prev) =>
-          prev && prev.id === projectId
-            ? {
-                ...prev,
-                milestones: result.project!.milestones,
-                progress: result.project!.progress,
-              }
-            : prev
-        );
-        setConfirmingAction(null);
-        toast({
-          title: "Success",
-          description: "Milestone deleted successfully",
-        });
-        await loadAllProjects(); // Force reload to ensure changes are loaded
+      const result = await onDeleteMilestone(milestoneId);
+      if (result.success) {
+        // Refresh the page to get updated data
+        window.location.reload();
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to delete milestone",
+        description: error.message || "Failed to delete milestone",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const handleFilterChange =
-    (setter: (v: string) => void) =>
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setter(e.target.value);
-      setPage(1);
-    };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
@@ -525,15 +450,13 @@ export default function ProjectClient({
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-green-500 text-white">Active</Badge>;
       case "completed":
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
+        return <Badge className="bg-blue-500 text-white">Completed</Badge>;
       case "planning":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">Planning</Badge>
-        );
+        return <Badge className="bg-yellow-500 text-white">Planning</Badge>;
       case "onhold":
-        return <Badge className="bg-gray-100 text-gray-800">On Hold</Badge>;
+        return <Badge className="bg-gray-500 text-white">On Hold</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -757,17 +680,55 @@ export default function ProjectClient({
                 onChange={handleSearchChange}
               />
             </div>
-            <select
-              className="border border-gray-200 rounded px-2 py-1"
-              value={statusFilter}
-              onChange={handleFilterChange(setStatusFilter)}
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="planning">Planning</option>
-              <option value="onhold">On Hold</option>
-            </select>
+
+            <div className="relative">
+              <Button
+                variant="outline"
+                onClick={() => setFilterOpen((o) => !o)}
+              >
+                Filter
+              </Button>
+
+              {filterOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10 p-4 space-y-4 text-sm">
+                  <div>
+                    <label className="block font-medium mb-1">Status</label>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={(value) => {
+                        setStatusFilter(value);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="planning">Planning</SelectItem>
+                        <SelectItem value="onhold">On Hold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setStatusFilter("all");
+                        setPage(1);
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -839,11 +800,13 @@ export default function ProjectClient({
                               handleSaveEdit();
                             }}
                           >
+                            {/* Project Status */}
                             <div>
                               <label className="block text-sm font-medium mb-1">
                                 Project Status
                               </label>
                               <select
+                                name="status"
                                 className="border border-gray-200 rounded w-full px-2 py-2"
                                 value={editProject.status}
                                 onChange={(e) =>
@@ -859,12 +822,34 @@ export default function ProjectClient({
                                 <option value="ONHOLD">On Hold</option>
                               </select>
                             </div>
+
+                            {/* Project Description */}
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                Description
+                              </label>
+                              <textarea
+                                name="description"
+                                className="border border-gray-200 rounded w-full px-2 py-2"
+                                value={editProject.description}
+                                onChange={(e) =>
+                                  setEditProject({
+                                    ...editProject,
+                                    description: e.target.value,
+                                  })
+                                }
+                                rows={3}
+                              />
+                            </div>
+
+                            {/* New Milestone Section */}
                             <div>
                               <label className="block text-sm font-medium mb-1">
                                 New Milestone
                               </label>
                               <div className="space-y-2">
                                 <Input
+                                  name="newMilestoneTitle"
                                   placeholder="Milestone Title"
                                   value={newMilestone.title}
                                   onChange={(e) =>
@@ -875,6 +860,7 @@ export default function ProjectClient({
                                   }
                                 />
                                 <Input
+                                  name="newMilestoneDescription"
                                   placeholder="Description"
                                   value={newMilestone.description}
                                   onChange={(e) =>
@@ -885,6 +871,7 @@ export default function ProjectClient({
                                   }
                                 />
                                 <Input
+                                  name="newMilestoneDueDate"
                                   type="date"
                                   value={newMilestone.dueDate}
                                   onChange={(e) =>
@@ -910,6 +897,8 @@ export default function ProjectClient({
                                 </Button>
                               </div>
                             </div>
+
+                            {/* Existing Milestones */}
                             <div>
                               <label className="block text-sm font-medium mb-1">
                                 Milestones
@@ -964,7 +953,7 @@ export default function ProjectClient({
                                         setConfirmingAction({
                                           projectId: editProject.id!,
                                           action: "removeMilestone",
-                                          milestoneId: m.id,
+                                          milestoneId: m.id!,
                                           name: m.name,
                                         })
                                       }
@@ -975,22 +964,7 @@ export default function ProjectClient({
                                 ))}
                               </div>
                             </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                Description
-                              </label>
-                              <textarea
-                                className="border border-gray-200 rounded w-full px-2 py-2"
-                                value={editProject.description}
-                                onChange={(e) =>
-                                  setEditProject({
-                                    ...editProject,
-                                    description: e.target.value,
-                                  })
-                                }
-                                rows={3}
-                              />
-                            </div>
+
                             <div className="flex space-x-2">
                               <Button
                                 type="submit"
@@ -1070,7 +1044,6 @@ export default function ProjectClient({
                             className="bg-red-600 hover:bg-red-700 text-xs h-7"
                             onClick={() =>
                               handleDeleteMilestoneAction(
-                                project.id!,
                                 confirmingAction.milestoneId!
                               )
                             }

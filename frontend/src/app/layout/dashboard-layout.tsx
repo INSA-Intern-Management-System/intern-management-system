@@ -42,7 +42,7 @@ export default async function DashboardLayout({
   } else if (userRole === "hr" || userRole === "project_manager") {
     userRole = "company";
   } else if (userRole === "supervisor") {
-    userRole = "University";
+    userRole = "university";
   } else if (userRole === "student") {
     userRole = "student";
   }

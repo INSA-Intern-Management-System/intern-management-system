@@ -152,7 +152,20 @@ export default function StudentNotificationsClient({
       }
 
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? response.notification! : n))
+        prev.map((n) =>
+          n.id === notificationId
+            ? {
+                ...n,
+                recipients: n.recipients.map((r) => {
+                  toast({
+                    title: "Role check",
+                    description: `Recipient role: ${r.role}, userRole: ${userRole}`,
+                  });
+                  return r.role === userRole ? { ...r, read: true } : r;
+                }),
+              }
+            : n
+        )
       );
 
       toast({

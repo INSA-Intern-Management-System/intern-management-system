@@ -493,9 +493,9 @@ public class ApplicationController {
             // 🔑 Extract role & id from token
             String role = (String) request.getAttribute("role");
 
-            if (!"HR".equalsIgnoreCase(role)) {
+            if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Only HR can access this resource"));
+                        .body(Map.of("error", "Only HR and University can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);
@@ -542,9 +542,9 @@ public class ApplicationController {
             // 🔑 Extract role & id from token
             String role = (String) request.getAttribute("role");
 
-            if (!"HR".equalsIgnoreCase(role)) {
+            if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Only HR can access this resource"));
+                        .body(Map.of("error", "Only HR and University can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);
