@@ -64,7 +64,6 @@ interface NotificationsClientProps {
 }
 
 export default function UniversityNotificationsClient({
-  userRole,
   initialNotifications,
   pagination,
   onMarkAsRead,
@@ -80,24 +79,17 @@ export default function UniversityNotificationsClient({
   const pageSize = 3;
   const totalPages = Math.max(1, Math.ceil(pagination.totalItems / pageSize));
 
-  const currentNotifications = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return notifications.slice(start, end);
-  }, [notifications, page, pageSize]);
+  const currentNotifications = notifications;
 
   useEffect(() => {
-    setNotifications(initialNotifications);
-  }, [initialNotifications]);
-
-  const roleMap: Record<string, string[]> = {
-    COMPANY: ["PROJECT_MANAGER", "HR"],
-    UNIVERSITY: ["UNIVERSITY", "SUPERVISOR", "HR"], // include HR for read check
-    STUDENT: ["STUDENT"],
-    ADMIN: ["ADMIN"],
-  };
-
-  const getBackendRoles = (): string[] => roleMap[userRole] || [userRole];
+    const fetchPage = async () => {
+      setIsLoading(true);
+      const data = await onFetchData(page - 1, pageSize);
+      setNotifications(data.notifications);
+      setIsLoading(false);
+    };
+    fetchPage();
+  }, [page]);
 
   const loadAllNotifications = async () => {
     try {
@@ -131,8 +123,6 @@ export default function UniversityNotificationsClient({
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case "INFO":
         return <Bell className="h-5 w-5 text-blue-600" />;
-      case "CHANGE":
-        return <Settings className="h-5 w-5 text-orange-600" />;
       default:
         return <Bell className="h-5 w-5 text-gray-600" />;
     }
@@ -146,31 +136,33 @@ export default function UniversityNotificationsClient({
         return <Badge className="bg-green-100 text-green-800">Success</Badge>;
       case "INFO":
         return <Badge className="bg-blue-100 text-blue-800">Info</Badge>;
-      case "CHANGE":
-        return <Badge className="bg-orange-100 text-orange-800">Change</Badge>;
       default:
         return <Badge variant="secondary">{type}</Badge>;
     }
   };
 
-  const isNotificationRead = (notification: Notification) => {
-    const backendRoles = getBackendRoles();
-    return notification.recipients.some(
-      (r) => backendRoles.includes(r.role) && r.read
-    );
+  const isNotificationRead = (notification: Notification): boolean => {
+    const userRole = "COMPANY"; // This should come from user context
+    const recipient = notification.recipients.find((r) => r.role === userRole);
+    return recipient?.read || false;
   };
-
-  const hasUnread = notifications.some((n) => !isNotificationRead(n));
 
   const handleMarkAsRead = async (notificationId: number) => {
     setIsMarkingRead(notificationId);
     try {
       const response = await onMarkAsRead(notificationId);
-      if (!response.success) throw new Error(response.error);
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? response.notification! : n))
       );
-      toast({ title: "Success", description: "Notification marked as read" });
+
+      toast({
+        title: "Success",
+        description: "Notification marked as read",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -185,7 +177,10 @@ export default function UniversityNotificationsClient({
   const handleMarkAllAsRead = async () => {
     try {
       const response = await onMarkAllAsRead();
-      if (!response.success) throw new Error(response.error);
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
       await loadAllNotifications();
       toast({
         title: "Success",
@@ -208,20 +203,25 @@ export default function UniversityNotificationsClient({
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
     const diffMinutes = Math.floor(diffTime / (1000 * 60));
-    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-    else if (diffHours > 0)
+
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    } else if (diffHours > 0) {
       return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    else if (diffMinutes > 0)
+    } else if (diffMinutes > 0) {
       return `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
-    else return "Just now";
+    } else {
+      return "Just now";
+    }
   };
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
       </div>
     );
+  }
 
   return (
     <div className="space-y-6">
@@ -233,11 +233,11 @@ export default function UniversityNotificationsClient({
             Stay updated with intern activities and important events
           </p>
         </div>
-        {hasUnread && (
+        {/* <div className="flex items-center space-x-3">
           <Button variant="outline" onClick={handleMarkAllAsRead}>
             Mark All Read
           </Button>
-        )}
+        </div> */}
       </div>
 
       {/* Notifications List */}
@@ -255,10 +255,6 @@ export default function UniversityNotificationsClient({
         ) : (
           currentNotifications.map((notification) => {
             const isRead = isNotificationRead(notification);
-            const backendRoles = getBackendRoles();
-            const userRecipient = notification.recipients.find((r) =>
-              backendRoles.includes(r.role)
-            );
 
             return (
               <Card
@@ -267,47 +263,51 @@ export default function UniversityNotificationsClient({
                   !isRead ? "border-l-4 border-l-blue-500 bg-blue-50/30" : ""
                 }`}
               >
-                <CardContent className="p-6 flex justify-between items-start">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3
-                          className={`font-semibold ${
-                            !isRead ? "text-gray-900" : "text-gray-700"
-                          }`}
-                        >
-                          {notification.title}
-                        </h3>
-                        {!isRead && (
-                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        )}
-                        {getTypeBadge(notification.type)}
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between relative">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        {getNotificationIcon(notification.type)}
                       </div>
-                      <p className="text-gray-600 mb-2">
-                        {notification.description}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(notification.createdAt)}
-                      </p>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3
+                            className={`font-semibold ${
+                              !isRead ? "text-gray-900" : "text-gray-700"
+                            }`}
+                          >
+                            {notification.title}
+                          </h3>
+                          {!isRead && (
+                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                          )}
+                          {getTypeBadge(notification.type)}
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          {notification.description}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(notification.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {!isRead && userRecipient && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-300"
-                      onClick={() => handleMarkAsRead(notification.id)}
-                      disabled={isMarkingRead === notification.id}
-                    >
-                      {isMarkingRead === notification.id && (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {/* <div className="flex items-center space-x-3">
+                      {!isRead && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-300"
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          disabled={isMarkingRead === notification.id}
+                        >
+                          {isMarkingRead === notification.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Mark Read
+                        </Button>
                       )}
-                      Mark Read
-                    </Button>
-                  )}
+                    </div> */}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -358,6 +358,34 @@ export default function UniversityNotificationsClient({
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Notification Preferences */}
+      <Card className="bg-white border border-gray-200 rounded-lg">
+        <CardHeader>
+          <CardTitle>Notification Preferences</CardTitle>
+          <CardDescription>Choose how you want to be notified</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-3">Email Notifications</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Report Deadlines</li>
+                <li>• Feedback Received</li>
+                <li>• Meeting Reminders</li>
+                <li>• Weekly Digest</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3">Push Notifications</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Urgent Messages</li>
+                <li>• Application Updates</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

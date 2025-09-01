@@ -63,7 +63,6 @@ export default async function NotificationsPage() {
   return (
     <DashboardLayout requiredRole="university">
       <UniversityNotificationsClient
-        userRole="UNIVERSITY"
         initialNotifications={notificationsData.content}
         pagination={{
           currentPage: notificationsData.number,
