@@ -83,8 +83,8 @@ public class UserController {
     public ResponseEntity<?> computeFilter(HttpServletRequest request,@RequestParam String filter, Pageable pageable) {
         try {
             String role = (String) request.getAttribute("role");
-            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only supervisor can access university.");
+            if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
+                return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
             String institution = (String) request.getAttribute("institution");
 
@@ -170,8 +170,8 @@ public class UserController {
     public ResponseEntity<?> computeSearch(HttpServletRequest request,@RequestParam String keyword, Pageable pageable) {
         try {
             String role = (String) request.getAttribute("role");
-            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only supervisor can access university.");
+            if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
+                return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
 
             String institution = (String) request.getAttribute("institution");
@@ -264,8 +264,8 @@ public class UserController {
     ) {
         try {
             String role = (String) request.getAttribute("role");
-            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only supervisor can access university.");
+            if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
+                return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
             String institution = (String) request.getAttribute("institution");
 
@@ -333,8 +333,8 @@ public class UserController {
         try {
             String role = (String) request.getAttribute("role");
 
-            if (role == null || !"supervisor".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only supervisor can access university.");
+            if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
+                return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
             String institution = (String) request.getAttribute("institution");
 
