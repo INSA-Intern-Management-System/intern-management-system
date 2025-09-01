@@ -2,6 +2,8 @@ package com.example.report_service.dto;
 
 import java.time.LocalDateTime;
 
+import com.example.report_service.model.Status;
+
 public class ReportResponseDTO {
     private Long id;
     private Long managerId;
@@ -12,6 +14,7 @@ public class ReportResponseDTO {
     private String taskCompleted;
     private String challenges;
     private String nextWeekGoals;
+    private Status status;
     private LocalDateTime createdAt;
     private ReviewResponseDTO review;
     private ProjectResponseDTO projectResponse;
@@ -19,7 +22,7 @@ public class ReportResponseDTO {
     public ReportResponseDTO() {}
 
     public ReportResponseDTO(Long id, Long managerId, Long projectId, Long internId, String title, String periodTo,
-                             String taskCompleted, String challenges, String nextWeekGoals, LocalDateTime createdAt,ReviewResponseDTO review,ProjectResponseDTO projectResponse) {
+                             String taskCompleted, String challenges, String nextWeekGoals,Status status, LocalDateTime createdAt,ReviewResponseDTO review,ProjectResponseDTO projectResponse) {
         this.id = id;
         this.managerId = managerId;
         this.projectId = projectId;
@@ -29,6 +32,7 @@ public class ReportResponseDTO {
         this.taskCompleted = taskCompleted;
         this.challenges = challenges;
         this.nextWeekGoals = nextWeekGoals;
+        this.status = status;
         this.createdAt = createdAt;
         this.review = review;
         this.projectResponse = projectResponse;
@@ -60,6 +64,9 @@ public class ReportResponseDTO {
 
     public String getNextWeekGoals() { return nextWeekGoals; }
     public void setNextWeekGoals(String nextWeekGoals) { this.nextWeekGoals = nextWeekGoals; }
+
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

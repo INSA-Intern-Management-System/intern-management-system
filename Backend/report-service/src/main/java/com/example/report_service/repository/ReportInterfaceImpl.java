@@ -209,6 +209,18 @@ public class ReportInterfaceImpl implements ReportReposInterface {
         return reportJpa.updateFeedbackStatus(reportId,feedbackStatus);
 
     }
+    @Override
+    public Page<Report> findReportsByInternAndTitle(Long internId, String title,Pageable pageable){
+        return reportJpa.findReportsByInternAndTitle(internId, title, pageable);
+    }
+    @Override
+    public Page<Report> findReportsByManagerAndTitle(Long managerId, String title,Pageable pageable){
+        return reportJpa.findReportsByManagerAndTitle(managerId, title, pageable);
+    }
+    @Override
+    public Page<Report> findReportsByTitle(String title,Pageable pageable){
+        return reportJpa.findReportsByTitle( title, pageable);
+    }
     // Helper
     private LocalDateTime getStartDateByPeriod(String period) {
         LocalDateTime now = LocalDateTime.now();

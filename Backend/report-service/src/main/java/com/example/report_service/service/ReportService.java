@@ -128,7 +128,9 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
-                }
+                }else{
+                        projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
+            }
 
                 return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -168,6 +170,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -205,6 +209,47 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
+            }
+            return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
+        });
+    }
+
+    public Page<ReportResponseDTO> searchMyReports(String jwtToken,Long userId,String title, Pageable pageable) {
+        Page<Report> reports = reportRepos.findReportsByInternAndTitle(userId, title, pageable);
+        if (reports.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        // Map reviews for the reports
+        List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
+        Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
+                .stream().collect(Collectors.toMap(
+                        Review::getReportId,
+                        review -> mapper.toReviewResponseDTO(review)
+                ));
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+        // Fetch project responses from gRPC
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
+        return reports.map(report -> {
+            ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
+            ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
+                    .filter(project -> project.getProjectId() == report.getProject().getId())
+                    .findFirst()
+                    .orElse(null);
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -248,6 +293,7 @@ public class ReportService {
                     .filter(project -> project.getProjectId() == report.getProject().getId())
                     .findFirst()
                     .orElse(null);
+        
             if (projectResponse == null) {
                 throw new RuntimeException("Project not found for report ID: " + report.getId());
             }
@@ -262,6 +308,41 @@ public class ReportService {
 
     public Page<ReportResponseDTO> filterManagerReports(String jwtToken,Long managerId,String title, String status, String period, Pageable pageable) {
         Page<Report> reports = reportRepos.findReportsByManagerAndFilters(managerId,title, status, period, pageable);
+        List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
+        Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
+                .stream().collect(Collectors.toMap(
+                        Review::getReportId,
+                        review -> mapper.toReviewResponseDTO(review)
+                ));
+
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+        
+        // get all the project response from gRPC
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
+        return reports.map(report -> {
+            ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
+            ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
+                    .filter(project -> project.getProjectId() == report.getProject().getId())
+                    .findFirst()
+                    .orElse(null);
+            if (projectResponse == null) {
+                throw new RuntimeException("Project not found for report ID: " + report.getId());
+            }
+            ProjectResponseDTO projectResponseDTO = new ProjectResponseDTO(
+                    projectResponse.getProjectId(),
+                    projectResponse.getProjectName(),
+                    projectResponse.getProjectDescription()
+            );
+            return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
+        });
+    }
+
+     public Page<ReportResponseDTO> searchManagersReports(String jwtToken,Long managerId,String title, Pageable pageable) {
+        Page<Report> reports = reportRepos.findReportsByManagerAndTitle(managerId,title, pageable);
         List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
         Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
                 .stream().collect(Collectors.toMap(
@@ -376,6 +457,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -412,6 +495,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -448,6 +533,8 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
@@ -483,6 +570,45 @@ public class ReportService {
                         projectResponse.getProjectName(),
                         projectResponse.getProjectDescription()
                 );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
+            }
+            return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
+        });
+    }
+
+    public Page<ReportResponseDTO> searchHRReports(String jwtToken,String title, Pageable pageable) {
+        Page<Report> reports = reportRepos.findReportsByTitle(title, pageable);
+        List<Long> reportIds = reports.stream().map(Report::getId).collect(Collectors.toList());
+        Map<Long, ReviewResponseDTO> reviewMap = reviewRepos.findByReportIds(reportIds)
+                .stream().collect(Collectors.toMap(
+                        Review::getReportId,
+                        review -> mapper.toReviewResponseDTO(review)
+                ));
+
+        // Collect project IDs from the reports
+        List<Long> projectIds = reports.stream()
+                .map(report -> report.getProject().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        // get all the project response from gRPC
+        AllProjectResponses allProjectResponses = projectManagerGrpcClient.getProjects(jwtToken, projectIds);
+        return reports.map(report -> {
+            ReviewResponseDTO reviewDto = reviewMap.get(report.getId());
+            ProjectResponse projectResponse = allProjectResponses.getProjectsList().stream()
+                    .filter(project -> project.getProjectId() == report.getProject().getId())
+                    .findFirst()
+                    .orElse(null);
+            ProjectResponseDTO projectResponseDTO = null;
+            if (projectResponse != null) {
+                projectResponseDTO = new ProjectResponseDTO(
+                        projectResponse.getProjectId(),
+                        projectResponse.getProjectName(),
+                        projectResponse.getProjectDescription()
+                );
+            }else{
+                projectResponseDTO=new ProjectResponseDTO(0L,"UNKOWN","UNKOWN");
             }
             return mapper.toReportResponseDTO(report, reviewDto, projectResponseDTO);
         });
