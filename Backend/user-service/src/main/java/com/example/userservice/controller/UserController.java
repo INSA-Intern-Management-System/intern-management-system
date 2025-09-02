@@ -546,7 +546,6 @@ public class UserController {
 
     @PutMapping
     public ResponseEntity<?> updateUserProfile( @RequestBody User user, HttpServletRequest request) {
-    public ResponseEntity<?> updateUserProfile( @RequestBody User user, HttpServletRequest request) {
         try {
             //get user id and role from request
             String token = extractAccessToken(request);
@@ -838,7 +837,6 @@ public class UserController {
         Long userId = (Long) request.getAttribute("userId");
         String role =(String) request.getAttribute("role");
         if (!"STUDENT".equalsIgnoreCase(role)){
-        if (!"STUDENT".equalsIgnoreCase(role)){
             return ResponseEntity.status(403).body("Access denied");
         }
 
@@ -996,7 +994,7 @@ public class UserController {
             GetAllActivitiesResponse grpcResponse =
                     activityGrpcClient.getAllActivities(token, pageable.getPageNumber(), pageable.getPageSize());
 
-//         5️⃣ Map protobuf response to DTOs
+ //         5️⃣ Map protobuf response to DTOs
             List<ActivityDTO> allActivities = grpcResponse.getActivitiesList().stream()
                     .map(a -> new ActivityDTO(
                             a.getId(),
@@ -1100,7 +1098,7 @@ public class UserController {
                         UserStatusCount::getCount
                 ));
 
-//        Map<String, Object> response = Map.of("statuses", statusMap);
+ //        Map<String, Object> response = Map.of("statuses", statusMap);
 
         Map<String, Object> combinedResponse = new HashMap<>();
         combinedResponse.put("totalUser", totalUser);
@@ -1608,11 +1606,6 @@ public class UserController {
     }
 
 
-    private ResponseEntity<?> errorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-    }
     private String extractAccessToken(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
@@ -1622,17 +1615,6 @@ public class UserController {
             }
         }
         return null;
-    }
-    private UserResponseDto mapToDTO(User user) {
-        return new UserResponseDto(user);
-    }
-    private void logActivity(String jwtToken, Long userId, String action, String description) {
-        try {
-            activityGrpcClient.createActivity(jwtToken, userId, action, description);
-        } catch (Exception e) {
-            // Log the failure, but do NOT block business logic
-            System.err.println("Failed to log activity: " + e.getMessage());
-        }
     }
 
 
@@ -1885,6 +1867,4 @@ public class UserController {
             System.err.println("Failed to log activity: " + e.getMessage());
         }
     }
-
-
 }
