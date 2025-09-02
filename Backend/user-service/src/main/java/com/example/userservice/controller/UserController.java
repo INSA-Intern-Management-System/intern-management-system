@@ -1606,24 +1606,6 @@ public class UserController {
     }
 
 
-    private ResponseEntity<?> errorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-    }
-    private String extractAccessToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
-    private UserResponseDto mapToDTO(User user) {
-        return new UserResponseDto(user);
-    }
     private void logActivity(String jwtToken, Long userId, String action, String description) {
         try {
             activityGrpcClient.createActivity(jwtToken, userId, action, description);
@@ -1857,7 +1839,24 @@ public class UserController {
         return milestoneDTOs;
     }
 
-  
- 
+    private ResponseEntity<?> errorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+    private String extractAccessToken(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+    private UserResponseDto mapToDTO(User user) {
+        return new UserResponseDto(user);
+    }
+
 
 }

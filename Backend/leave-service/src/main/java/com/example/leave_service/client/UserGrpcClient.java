@@ -8,7 +8,6 @@ import io.grpc.StatusRuntimeException;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 public class UserGrpcClient {
 
     private final ManagedChannel channel;
