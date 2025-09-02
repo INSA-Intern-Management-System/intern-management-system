@@ -25,6 +25,7 @@ public class GrpcServerRunner {
     private final RoleRepository roleRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtServerInterceptor jwtInterceptor;
+    private final UserMessageInterface userrepository;
     private final GrpcProperties grpcProperties;
 
     private Server server;
@@ -36,6 +37,7 @@ public class GrpcServerRunner {
                             PasswordEncoder passwordEncoder,
                             RoleRepository roleRepo,
                             JwtServerInterceptor jwtInterceptor,
+                            UserMessageInterface userrepository,
                             GrpcProperties grpcProperties) {
         this.repository = repository;
         this.roleRepo = roleRepo;
@@ -45,6 +47,7 @@ public class GrpcServerRunner {
 
         this.userMessageInterface = userMessageInterface;
         this.jwtInterceptor = jwtInterceptor;
+        this.userrepository = userrepository;
         this.grpcProperties = grpcProperties;
     }
 
@@ -57,7 +60,7 @@ public class GrpcServerRunner {
 
         // Register each service separately, with the JWT interceptor applied
         builder.addService(ServerInterceptors.intercept(
-                new InternManagerGrpcService(repository),
+                new InternManagerGrpcService(repository, userrepository),
                 jwtInterceptor
         ));
         builder.addService(ServerInterceptors.intercept(
