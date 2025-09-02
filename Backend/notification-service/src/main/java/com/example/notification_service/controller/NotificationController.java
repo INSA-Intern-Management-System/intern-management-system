@@ -63,20 +63,7 @@ public class NotificationController {
         String roleStr = (String) request.getAttribute("role");
 
         try {
-            String enumRole;
-
-            // if ("HR".equalsIgnoreCase(roleStr)) {
-            //     // Keep HR as-is
-            //     enumRole = "HR";
-            // } else {
-            //     // Convert roles like "PROJECT_MANAGER" → "Project_Manager"
-            //     enumRole = Arrays.stream(roleStr.split("_"))
-            //             .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase())
-            //             .collect(Collectors.joining("_")); // join with underscore
-            // }
-
             RecipientRole role = RecipientRole.valueOf(roleStr);
-
             Pageable pageable = PageRequest.of(page, size);
             Page<Notification> notifications = notificationService.getNotificationsByRole(role, pageable);
             return ResponseEntity.ok(notifications);

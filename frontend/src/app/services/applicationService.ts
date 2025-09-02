@@ -240,6 +240,67 @@ export const batchImportApplications = async (file: File): Promise<any[]> => {
   }
 };
 
+// Remove unnecessary functions that aren't used by university role
+// Keep only the functions that are actually needed
+
+export const updateApplicationStatus = async (
+  applicationId: number,
+  status: "Accepted" | "Rejected"
+): Promise<Application> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await applicationApi.put(
+      `/applications/${applicationId}/status`,
+      {},
+      {
+        params: { status },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+
+    return formatApplication(response.data);
+  } catch (error: any) {
+    console.error("Failed to update application status:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to update application status"
+    );
+  }
+};
+
+export const fetchApplicationById = async (
+  applicationId: number
+): Promise<Application | null> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await applicationApi.get(
+      `/applications/${applicationId}`,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return formatApplication(response.data);
+  } catch (error: any) {
+    console.error(
+      `Failed to fetch application with id ${applicationId}:`,
+      error
+    );
+    if (error.response?.status === 404) {
+      return null;
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch application"
+    );
+  }
+};
+
 export interface Applicant {
   id: number;
   firstName: string;
@@ -391,76 +452,6 @@ export const fetchApplications = async (
       numberOfElements: 0,
       empty: true,
     };
-  }
-};
-
-export const updateApplicationStatus = async (
-  applicationId: number,
-  status: "Accepted" | "Rejected"
-): Promise<Application> => {
-  const accessToken = await getAccessToken();
-
-  try {
-    const response = await applicationApi.put(
-      `/applications/${applicationId}/status?status=${status}`,
-      {},
-      {
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (response.status !== 200) {
-      throw new Error(`Failed to update status: ${response.statusText}`);
-    }
-
-    // Refetch the updated application to get complete data
-    const updatedApp = await fetchApplicationById(applicationId);
-    if (!updatedApp) {
-      throw new Error("Failed to fetch updated application");
-    }
-
-    return formatApplication(updatedApp);
-  } catch (error: any) {
-    console.error("Failed to update application status:", error);
-    if (error.response?.status === 403) {
-      throw new Error("Unauthorized access. Please log in again.");
-    }
-    throw new Error(
-      error.response?.data?.message || "Failed to update application status"
-    );
-  }
-};
-
-export const fetchApplicationById = async (
-  applicationId: number
-): Promise<Application | null> => {
-  const accessToken = await getAccessToken();
-
-  try {
-    const response = await applicationApi.get(
-      `/applications/${applicationId}`,
-      {
-        headers: {
-          Cookie: `access_token=${accessToken}`,
-        },
-        withCredentials: true,
-      }
-    );
-    return formatApplication(response.data);
-  } catch (error: any) {
-    console.error(
-      `Failed to fetch application with id ${applicationId}:`,
-      error
-    );
-    if (error.response?.status === 404) {
-      return null;
-    }
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch application"
-    );
   }
 };
 
