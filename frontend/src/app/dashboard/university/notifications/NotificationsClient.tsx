@@ -20,21 +20,18 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { toast } from "@/components/ui/use-toast";
+import { Notification } from "@/app/services/notificationService";
 
-interface Notification {
-  id: number;
-  title: string;
-  description: string;
-  created_at: string;
-  is_read: boolean;
-  type: string;
-  priority: string;
-  role: string[];
-}
-
-interface NotificationsClientProps {
+interface UniversityNotificationsClientProps {
   initialNotifications: Notification[];
   pagination: {
     currentPage: number;

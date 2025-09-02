@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { User } from "@/types/entities";
 import { Sidebar } from "@/components/sidebar";
 import { api } from "@/api/axios";
-import { University } from "lucide-react";
+import { Toaster } from "@/components/ui/toaster";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,20 +16,8 @@ async function getUser(): Promise<User> {
 
   if (!accessToken || !userId) {
     redirect("/login");
-    redirect("/login");
   }
 
-  try {
-    const response = await api.get<User>(`/users/me`, {
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error) {
-    redirect("/login");
-  }
   try {
     const response = await api.get<User>(`/users/me`, {
       headers: {
@@ -44,24 +32,9 @@ async function getUser(): Promise<User> {
 }
 
 export default async function DashboardLayout({
-export default async function DashboardLayout({
   children,
   requiredRole,
 }: DashboardLayoutProps) {
-  const user = await getUser();
-  let userRole = user.roles.name.toLowerCase();
-  if (userRole === "admin") {
-    userRole = "admin";
-  } else if (userRole === "hr" || userRole === "project_manager") {
-    userRole = "company";
-  } else if (userRole === "supervisor") {
-    userRole = "university";
-  } else if (userRole === "student") {
-    userRole = "student";
-  }
-
-  if (requiredRole && userRole !== requiredRole.toLowerCase()) {
-    redirect(`/dashboard/${userRole}`);
   const user = await getUser();
   let userRole = user.roles.name.toLowerCase();
   if (userRole === "admin") {
@@ -81,8 +54,6 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar
-        userRole={userRole}
-        userName={`${user.firstName} ${user.lastName}`.trim()}
         userRole={userRole}
         userName={`${user.firstName} ${user.lastName}`.trim()}
       />
