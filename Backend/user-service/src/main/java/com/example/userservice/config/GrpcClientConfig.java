@@ -38,8 +38,6 @@ public class GrpcClientConfig {
     @Value("${grpc.server.application-port}")
     private int application_port;
 
-
-
     @Value("${grpc.server.report-address}")
     private String report_host;
 

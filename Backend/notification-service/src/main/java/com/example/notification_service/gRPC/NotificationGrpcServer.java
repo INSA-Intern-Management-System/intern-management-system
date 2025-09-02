@@ -32,7 +32,7 @@ public class NotificationGrpcServer extends NotificationServiceGrpc.Notification
 
         // Map roles
         Set<RecipientRole> javaRoles = request.getRolesList().stream()
-                .map(protoRole -> RecipientRole.valueOf(protoRole.name()))
+                .map(protoRole -> RecipientRole.valueOf(protoRole.name().toUpperCase()))
                 .collect(Collectors.toSet());
 
         notification.setRoles(javaRoles);

@@ -83,7 +83,6 @@ public class ApplicationServiceImpl implements ApplicationService{
             cvUrl = cloudinaryService.uploadFile(cvFile);
         }
         dto.setCvUrl(cvUrl);
-        System.out.println(cvUrl);
 
         Applicant applicant = Applicant.builder()
                 .id(dto.getId())
@@ -261,16 +260,28 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public Page<Application> searchApplicants(String query, Pageable pageable) {
-        return applicationRepository
-                .findByApplicant_FirstNameContainingIgnoreCaseOrApplicant_InstitutionContainingIgnoreCaseOrApplicant_FieldOfStudyContainingIgnoreCase(
-                        query, query, query, pageable);
+    public Page<Application> searchApplicants(String query, String institution, Pageable pageable) {
+
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCaseAndApplicant_FirstNameEqualsIgnoreCaseOrApplicant_InstitutionEqualsIgnoreCaseAndApplicant_FieldOfStudyEqualsIgnoreCase(
+                    institution, query, institution, query, pageable);
+        } else {
+            return applicationRepository.findByApplicant_FirstNameEqualsIgnoreCaseOrApplicant_InstitutionEqualsIgnoreCaseOrApplicant_FieldOfStudyEqualsIgnoreCase(
+                    query, query, query, pageable);
+        }
 
     }
 
     @Override
-    public Page<Application> filterByStatus(ApplicationStatus status, Pageable pageable) {
-        return applicationRepository.findByStatus(status, pageable);
+    public Page<Application> filterByStatus(ApplicationStatus status, String institution, Pageable pageable) {
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCaseAndStatus(
+                    institution, status, pageable
+            );
+        } else {
+            return applicationRepository.findByStatus(status, pageable);
+        }
+
     }
 
     @Override

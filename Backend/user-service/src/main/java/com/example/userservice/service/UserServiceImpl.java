@@ -417,12 +417,19 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public Page<User> searchInterns(String query, Pageable pageable) {
+    public Page<User> searchInterns(String query, String institution, Pageable pageable) {
         Role internRole = roleRepo.findByName("STUDENT");
 
-        return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
-                internRole, query, internRole, query, pageable
-        );
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return userRepo.findByRoleAndInstitutionAndFirstNameEqualsIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyEqualsIgnoreCase(
+                    internRole, institution, query, internRole, institution, query, pageable
+            );
+        } else {
+            return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
+                    internRole, query, internRole, query, pageable
+            );
+        }
+
     }
 
     @Override
@@ -441,6 +448,11 @@ public class UserServiceImpl implements UserService {
     public Page<User> filterByInstitution(String institution, Pageable pageable) {
         Role internRole = roleRepo.findByName("STUDENT");
         return userRepo.findByRoleAndInstitution(internRole, institution, pageable);
+    }
+    @Override
+    public Page<User> filterBySupervisor(Long supervisorId, Pageable pageable) {
+        Role studentRole = roleRepo.findByName("STUDENT");
+        return userRepo.findBySupervisorIdAndRole(supervisorId, studentRole, pageable);
     }
 
     @Override
@@ -676,7 +688,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<User> searchSupervisors(String query, String institution, Pageable pageable) {
         Role supervisorRole = roleRepo.findByName("SUPERVISOR");
-        return userRepo.findByRoleAndInstitutionAndFirstNameContainingIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyContainingIgnoreCase(
+        return userRepo.findByRoleAndInstitutionAndFirstNameEqualsIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyEqualsIgnoreCase(
                 supervisorRole, institution, query,
                 supervisorRole, institution, query,
                 pageable
