@@ -140,7 +140,6 @@ services:
       <<: *common-env
       GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-9090}
       GRPC_SERVER_NOTIFICATION_ADDRESS: ${NOTIFICATION_SERVICE_GRPC_PORT:-9096}
-      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m"
     volumes:
       - "${USERPROFILE}/.m2:/root/.m2"
     depends_on:
