@@ -1606,17 +1606,6 @@ public class UserController {
     }
 
 
-    private String extractAccessToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
-
 
 
     private Long countUserByStatus(String role,UserStatus status){
