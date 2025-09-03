@@ -72,7 +72,7 @@ public interface UserService {
     
 
     long countActiveInterns();
-    long countSupervisor();
+    long countSupervisor(String institution);
 
     Page<User> searchSupervisors(String query, String institution, Pageable pageable);
     Page<User> filterInternBySupervisor(String supervisorName, Pageable pageable);
@@ -84,7 +84,7 @@ public interface UserService {
     Page<User> getInternsForUniveristy(String where, Pageable pageable);
     Page<User> searchByRoleInstitutionAndKeyword( String institution, String keyword, Pageable pageable);
     Page<User> findByRoleAndInstitutionAndSupervisorName(String institution, String supervisorName, Pageable pageable);
-    InternStatusesCount countInternStatuses();
+    InternStatusesCount countInternStatuses(String institution);
     UserStatsResponse userStats();
 
 

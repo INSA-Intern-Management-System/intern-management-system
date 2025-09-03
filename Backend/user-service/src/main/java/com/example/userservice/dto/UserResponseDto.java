@@ -4,6 +4,7 @@ import com.example.userservice.model.Role;
 import com.example.userservice.model.Role;
 import com.example.userservice.model.User;
 import com.example.userservice.model.UserStatus;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
@@ -35,8 +36,9 @@ public class UserResponseDto {
     private String fieldOfStudy;
     private String institution;
     private LocalDateTime lastLogin;
-    private SupervisorDTO supervisor;
-    private ProjectManagerDTO projectManager;
+
+    private SimpleUserDto supervisor;;
+    private SimpleUserDto projectManager;
 
     @NotBlank(message = "Role is required")
     private Role role;
@@ -67,39 +69,36 @@ public class UserResponseDto {
         this.userStatus = user.getUserStatus();
 
         if (user.getSupervisor() != null) {
-            this.supervisor = new SupervisorDTO(user.getSupervisor());
+            this.supervisor = new SimpleUserDto(user.getSupervisor());
         }
 
         if (user.getProjectManager() != null) {
-            this.projectManager = new ProjectManagerDTO(user.getProjectManager());
+            this.projectManager = new SimpleUserDto(user.getProjectManager());
         }
 
     }
 
     // Getters and Setters (generate with Alt+Insert or Lombok)
 
-
-
     public Boolean getNotifyEmail() {
         return notifyEmail;
     }
 
-    public SupervisorDTO getSupervisor() {
+    public SimpleUserDto getSupervisor() {
         return supervisor;
     }
 
-    public void setSupervisor(SupervisorDTO supervisor) {
+    public void setSupervisor(SimpleUserDto supervisor) {
         this.supervisor = supervisor;
     }
 
-    public ProjectManagerDTO getProjectManager() {
+    public SimpleUserDto getProjectManager() {
         return projectManager;
     }
 
-    public void setProjectManager(ProjectManagerDTO supervisor) {
+    public void setProjectManager(SimpleUserDto supervisor) {
         this.projectManager = projectManager;
     }
-
 
     public String getLinkedInUrl() {
         return linkedInUrl;

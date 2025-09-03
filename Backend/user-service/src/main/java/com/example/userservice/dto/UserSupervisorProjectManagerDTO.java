@@ -2,27 +2,27 @@ package com.example.userservice.dto;
 
 public class UserSupervisorProjectManagerDTO {
 
-    private SupervisorDTO supervisor;
-    private ProjectManagerDTO projectManager;
+    private SimpleUserDto supervisor;
+    private SimpleUserDto projectManager;
 
     public UserSupervisorProjectManagerDTO(UserResponseDto userResponseDto) {
         this.supervisor = userResponseDto.getSupervisor();
         this.projectManager = userResponseDto.getProjectManager();
     }
 
-    public SupervisorDTO getSupervisor() {
+    public SimpleUserDto getSupervisor() {
         return supervisor;
     }
 
-    public void setSupervisor(SupervisorDTO supervisor) {
+    public void setSupervisor(SimpleUserDto supervisor) {
         this.supervisor = supervisor;
     }
 
-    public ProjectManagerDTO getProjectManager() {
+    public SimpleUserDto getProjectManager() {
         return projectManager;
     }
 
-    public void setProjectManager(ProjectManagerDTO projectManager) {
+    public void setProjectManager(SimpleUserDto projectManager) {
         this.projectManager = projectManager;
     }
 }

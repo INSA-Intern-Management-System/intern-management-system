@@ -17,7 +17,7 @@ public class InternManager {
 
     // Many users can have the same manager
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "manager_id")
+    @JoinColumn(name = "manager_id" ,nullable=true)
     private User manager;
 
     // Many users can have the same manager

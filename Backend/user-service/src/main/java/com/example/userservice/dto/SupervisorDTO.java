@@ -1,7 +1,10 @@
 package com.example.userservice.dto;
 
 import com.example.userservice.model.User;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SupervisorDTO {
     private Long id;
@@ -11,7 +14,9 @@ public class SupervisorDTO {
     private String fieldOfStudy;
     private String institution;
     private String phoneNumber;
-    private List<User> supervisedInterns;
+
+    @JsonManagedReference
+    private List<UserResponseDto> supervisedInterns;
 
     public SupervisorDTO(User supervisor) {
         this.id = supervisor.getId();
@@ -21,6 +26,12 @@ public class SupervisorDTO {
         this.fieldOfStudy = supervisor.getFieldOfStudy();
         this.institution = supervisor.getInstitution();
         this.phoneNumber = supervisor.getPhoneNumber();
+
+        if (supervisor.getSupervisedInterns() != null) {
+            this.supervisedInterns = supervisor.getSupervisedInterns().stream()
+                    .map(UserResponseDto::new)
+                    .collect(Collectors.toList());
+        }
     }
 
     // Getters and Setters
@@ -80,11 +91,11 @@ public class SupervisorDTO {
         this.phoneNumber = phoneNumber;
     }
 
-    public List<User> getSupervisedInterns() {
+    public List<UserResponseDto> getSupervisedInterns() {
         return supervisedInterns;
     }
 
-    public void setSupervisedInterns(List<User> supervisedInterns) {
+    public void setSupervisedInterns(List<UserResponseDto> supervisedInterns) {
         this.supervisedInterns = supervisedInterns;
     }
 }

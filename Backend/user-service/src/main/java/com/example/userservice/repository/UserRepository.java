@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,8 +27,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRoleId(Long roleId);
 
     long countByRoleIdAndUserStatus(Long roleId, UserStatus userStatus);
+    long countByRoleIdAndInstitutionAndUserStatus(Long roleId, String institution, UserStatus userStatus);
 
-    Long countByRole(Role role);
+    long countByRole(Role role);
+    long countByRoleAndInstitution(Role role);
+
     List<User> findByFirstNameContainingIgnoreCaseAndRole_Name(String firstName, String roleName);
     List<User> findAll();
 
@@ -39,9 +43,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Pageable pageable
     );
 
-    Page<User> findByRoleAndInstitutionAndFirstNameEqualsIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyEqualsIgnoreCase(
-            Role role1, String institution1, String firstName,
-            Role role2, String institution2, String fieldOfStudy,
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.institution = :institution " +
+            "AND (LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+            "OR LOWER(u.fieldOfStudy) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<User> searchUserByCustomQuery(
+            @Param("role") Role role,
+            @Param("institution") String institution1,
+            @Param("query") String query,
             Pageable pageable
     );
 

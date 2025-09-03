@@ -773,12 +773,9 @@ public class UserController {
             Page<User> pageResult = userService.filterSupervisorByInstitution(institution, pageable);
 
             List<SupervisorDTO> content = pageResult.getContent().stream()
-                    .map(supervisor -> {
-                        SupervisorDTO dto = new SupervisorDTO(supervisor);
-                        dto.setSupervisedInterns(supervisor.getSupervisedInterns());
-                        return dto;
-                    })
+                    .map(user -> new SupervisorDTO(user))
                     .toList();
+
 
             return ResponseEntity.ok(Map.of(
                     "content", content,
@@ -809,7 +806,7 @@ public class UserController {
 
             if (!"ADMIN".equalsIgnoreCase(role)  ){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only HR can assign_project manager for student."));
+                        .body(Map.of("error", "Only Admin can reset password!"));
             }
 
             if (resetRequest.getNewPassword() == null || resetRequest.getNewPassword().length() < 6) {
@@ -1034,9 +1031,10 @@ public class UserController {
 
         // 2️⃣ Get userId from request attribute
         Long userId = (Long) request.getAttribute("userId");
+        String institution = (String) request.getAttribute("institution");
 
-        InternStatusesCount internStatusesCount = userService.countInternStatuses();
-        long supervisorCount = userService.countSupervisor();
+        InternStatusesCount internStatusesCount = userService.countInternStatuses(institution);
+        long supervisorCount = userService.countSupervisor(institution);
 
         // 4️⃣ Fetch recent activities from gRPC
         GetRecentActivitiesResponse grpcResponse =
@@ -1163,7 +1161,7 @@ public class UserController {
                         .body(Map.of("error", "Only University can access this resource."));
             }
 
-            String institution = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
             Pageable pageable = PageRequest.of(page, size);
             Page<User> pageResult = userService.searchSupervisors(query, institution, pageable);
 
@@ -1604,36 +1602,6 @@ public class UserController {
                     .body("An error occured while filtering intern by their assigned supervisors");
         }
     }
-
-
-    private ResponseEntity<?> errorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-    }
-    private String extractAccessToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("access_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
-    private UserResponseDto mapToDTO(User user) {
-        return new UserResponseDto(user);
-    }
-    private void logActivity(String jwtToken, Long userId, String action, String description) {
-        try {
-            activityGrpcClient.createActivity(jwtToken, userId, action, description);
-        } catch (Exception e) {
-            // Log the failure, but do NOT block business logic
-            System.err.println("Failed to log activity: " + e.getMessage());
-        }
-    }
-
-
 
     private Long countUserByStatus(String role,UserStatus status){
         try{

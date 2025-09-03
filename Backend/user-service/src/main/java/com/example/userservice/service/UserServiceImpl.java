@@ -211,6 +211,7 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    @Transactional
     @Override
     public User adminResetUserPassword(String targetUserEmail, String newPassword){
         User targetUser = userRepo.findByEmail(targetUserEmail);
@@ -418,15 +419,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<User> searchInterns(String query, String institution, Pageable pageable) {
-        Role internRole = roleRepo.findByName("STUDENT");
+        Role role = roleRepo.findByName("STUDENT");
 
         if (!"INSA".equalsIgnoreCase(institution)) {
-            return userRepo.findByRoleAndInstitutionAndFirstNameEqualsIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyEqualsIgnoreCase(
-                    internRole, institution, query, internRole, institution, query, pageable
+            return userRepo.searchUserByCustomQuery(
+                    role, institution, query, pageable
             );
         } else {
             return userRepo.findByRoleAndFirstNameContainingIgnoreCaseOrRoleAndFieldOfStudyContainingIgnoreCase(
-                    internRole, query, internRole, query, pageable
+                    role, query, role, query, pageable
             );
         }
 
@@ -439,7 +440,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<User> filterUserByRole(String query, Pageable pageable){
-        Role matchedRole = roleRepo.findByName(query);
+        Role matchedRole = roleRepo.findByNameEqualsIgnoreCase(query);
 
         return userRepo.findByRole(matchedRole, pageable);
     }
@@ -550,13 +551,25 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public InternStatusesCount countInternStatuses() {
+    public InternStatusesCount countInternStatuses(String institution) {
         Role studentRole = roleRepo.findByName("STUDENT");
         Long roleId = studentRole.getId();
 
-        long activeCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.ACTIVE);
-        long completedCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.COMPLETED);
-
+        long activeCount;
+        long completedCount;
+        if ("INSA".equalsIgnoreCase(institution)) {
+            // INSA can view all students
+            activeCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.ACTIVE);
+            completedCount = userRepo.countByRoleIdAndUserStatus(roleId, UserStatus.COMPLETED);
+        } else {
+            // University should only count its own students
+            activeCount = userRepo.countByRoleIdAndInstitutionAndUserStatus(
+                    roleId, institution, UserStatus.ACTIVE
+            );
+            completedCount = userRepo.countByRoleIdAndInstitutionAndUserStatus(
+                    roleId, institution, UserStatus.COMPLETED
+            );
+        }
         return new InternStatusesCount(activeCount, completedCount);
     }
 
@@ -631,11 +644,8 @@ public class UserServiceImpl implements UserService {
         student.setSupervisor(supervisor);
 
         // 4️⃣ Find existing InternManager or create new
-        InternManager internManager = null;
-        try {
-            internManager = internManagerReposInterface.getInfo(student.getId());
-        } catch (RuntimeException e) {
-            // Not found → create new
+        InternManager internManager = internManagerReposInterface.getInfo(student.getId());
+        if (internManager == null) {
             internManager = new InternManager();
             internManager.setUser(student);
         }
@@ -687,13 +697,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<User> searchSupervisors(String query, String institution, Pageable pageable) {
-        Role supervisorRole = roleRepo.findByName("SUPERVISOR");
-        return userRepo.findByRoleAndInstitutionAndFirstNameEqualsIgnoreCaseOrRoleAndInstitutionAndFieldOfStudyEqualsIgnoreCase(
-                supervisorRole, institution, query,
-                supervisorRole, institution, query,
-                pageable
+        Role role = roleRepo.findByName("SUPERVISOR");
+        return userRepo.searchUserByCustomQuery(
+                role, institution, query, pageable
         );
     }
+
     @Override
     public Long countByRoleAndUserStatus(String role, UserStatus userStatus){
     
@@ -724,8 +733,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public long countSupervisor(){
+    public long countSupervisor(String institution){
         Role supervisorRole = roleRepo.findByName("SUPERVISOR");
+
+        long supervisorCount;
+
+        if ("INSA".equalsIgnoreCase(institution)) {
+            supervisorCount = userRepo.countByRole(supervisorRole);
+        } else {
+            supervisorCount = userRepo.countByRoleAndInstitution(supervisorRole);
+
+        }
         return userRepo.countByRole(supervisorRole);
     }
 
@@ -783,7 +801,7 @@ public class UserServiceImpl implements UserService {
 
     // --- Helper Methods (no changes needed) ---
     private String generateRandomPassword(int length) {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?";
+        String chars = "ABCDEFGHIJKL1236STUVWXYZabcdefg78920klmnopqrstuvwxyz0123456789!@#$%^4783ab-_=+[]{}|;:,.<>?";
         SecureRandom random = new SecureRandom();
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
@@ -816,6 +834,5 @@ public class UserServiceImpl implements UserService {
         }
 
     }
-
 
 }
