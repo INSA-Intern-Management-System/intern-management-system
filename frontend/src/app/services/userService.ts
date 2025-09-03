@@ -60,8 +60,8 @@ export interface UsersResponse {
   currentPage: number;
   totalElements: number;
   totalPages: number;
-  totalUser: number;
-  message: string;
+  totalUser?: number;
+  message?: string;
 }
 
 export interface CreateUserRequest {
@@ -92,10 +92,10 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
-// Fetch all users
+// Fetch all users with pagination
 export const fetchUsers = async (
   page: number = 0,
-  size: number = 10,
+  size: number = 5,
   accessToken: string
 ): Promise<UsersResponse> => {
   try {
@@ -105,6 +105,7 @@ export const fetchUsers = async (
         params: { page, size },
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
         },
       }
     );
@@ -112,10 +113,10 @@ export const fetchUsers = async (
     return {
       users: response.data.users || [],
       currentPage: response.data.currentPage || 0,
-      totalElements: response.data.totalElements || 0,
-      totalPages: response.data.totalPages || 0,
-      totalUser: response.data.totalUser || 0,
-      message: response.data.message || "",
+      totalElements: response.data.totalElements || response.data.totalUser || 0,
+      totalPages: response.data.totalPages || 1,
+      totalUser: response.data.totalUser,
+      message: response.data.message,
     };
     
   } catch (error: any) {
@@ -127,47 +128,11 @@ export const fetchUsers = async (
   }
 };
 
-// Filter users by status
-export const filterUsersByStatus = async (
-  status: string,
-  page: number = 0,
-  size: number = 10,
-  accessToken: string
-): Promise<UsersResponse> => {
-  try {
-    const response = await api.get(
-      "/users/filter-all-users-by-status",
-      {
-        params: { query: status, page, size },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    
-    return {
-      users: response.data.content || [],
-      currentPage: response.data.currentPage || 0,
-      totalElements: response.data.totalElements || 0,
-      totalPages: response.data.totalPages || 0,
-      totalUser: response.data.totalElements || 0,
-      message: "Users filtered successfully",
-    };
-    
-  } catch (error: any) {
-    console.error("Failed to filter users:", error);
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw new Error("Unauthorized access. Please log in again.");
-    }
-    throw new Error(error.response?.data?.message || "Failed to filter users");
-  }
-};
-
-// Search users
+// Search users with pagination
 export const searchUsers = async (
   query: string,
   page: number = 0,
-  size: number = 10,
+  size: number = 5,
   accessToken: string
 ): Promise<UsersResponse> => {
   try {
@@ -177,6 +142,7 @@ export const searchUsers = async (
         params: { query, page, size },
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
         },
       }
     );
@@ -185,9 +151,7 @@ export const searchUsers = async (
       users: response.data.content || [],
       currentPage: response.data.currentPage || 0,
       totalElements: response.data.totalElements || 0,
-      totalPages: response.data.totalPages || 0,
-      totalUser: response.data.totalElements || 0,
-      message: "Users searched successfully",
+      totalPages: response.data.totalPages || 1,
     };
     
   } catch (error: any) {
@@ -199,11 +163,81 @@ export const searchUsers = async (
   }
 };
 
+// Filter users by status with pagination
+export const filterUsersByStatus = async (
+  status: string,
+  page: number = 0,
+  size: number = 5,
+  accessToken: string
+): Promise<UsersResponse> => {
+  try {
+    const response = await api.get(
+      "/users/filter-all-users-by-status",
+      {
+        params: { query: status, page, size },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
+        },
+      }
+    );
+    
+    return {
+      users: response.data.content || [],
+      currentPage: response.data.currentPage || 0,
+      totalElements: response.data.totalElements || 0,
+      totalPages: response.data.totalPages || 1,
+    };
+    
+  } catch (error: any) {
+    console.error("Failed to filter users by status:", error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to filter users");
+  }
+};
+
+// Filter users by role with pagination
+export const filterUsersByRole = async (
+  role: string,
+  page: number = 0,
+  size: number = 5,
+  accessToken: string
+): Promise<UsersResponse> => {
+  try {
+    const response = await api.get(
+      "/users/filter-by-role",
+      {
+        params: { query: role, page, size },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
+        },
+      }
+    );
+    
+    return {
+      users: response.data.content || [],
+      currentPage: response.data.currentPage || 0,
+      totalElements: response.data.totalElements || 0,
+      totalPages: response.data.totalPages || 1,
+    };
+    
+  } catch (error: any) {
+    console.error("Failed to filter users by role:", error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to filter users by role");
+  }
+};
+
 // Create user
 export const createUser = async (
-  userData: CreateUserRequest,
+  userData: Partial<CreateUserRequest>,
   accessToken: string
-): Promise<any> => {
+): Promise<{ message: string; user: User }> => {
   try {
     const response = await api.post(
       "/auth/register",
@@ -211,6 +245,7 @@ export const createUser = async (
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
         },
       }
     );
@@ -219,6 +254,9 @@ export const createUser = async (
     
   } catch (error: any) {
     console.error("Failed to create user:", error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
     throw new Error(error.response?.data?.message || "Failed to create user");
   }
 };
@@ -227,13 +265,14 @@ export const createUser = async (
 export const deleteUser = async (
   userId: number,
   accessToken: string
-): Promise<any> => {
+): Promise<{ message: string }> => {
   try {
     const response = await api.delete(
       `/users/${userId}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
         },
       }
     );
@@ -242,6 +281,9 @@ export const deleteUser = async (
     
   } catch (error: any) {
     console.error("Failed to delete user:", error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
     throw new Error(error.response?.data?.message || "Failed to delete user");
   }
 };
@@ -250,7 +292,7 @@ export const deleteUser = async (
 export const resetPassword = async (
   resetData: ResetPasswordRequest,
   accessToken: string
-): Promise<any> => {
+): Promise<{ message: string }> => {
   try {
     const response = await api.post(
       "/users/admin/reset-password",
@@ -258,6 +300,7 @@ export const resetPassword = async (
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          Cookie: `access_token=${accessToken}`,
         },
       }
     );
@@ -266,6 +309,9 @@ export const resetPassword = async (
     
   } catch (error: any) {
     console.error("Failed to reset password:", error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
     throw new Error(error.response?.data?.message || "Failed to reset password");
   }
 };

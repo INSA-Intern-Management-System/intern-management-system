@@ -4,12 +4,13 @@ import DashboardLayout from "@/app/layout/dashboard-layout";
 import UsersClient from "./UserClient";
 import {
   fetchUsers,
-  filterUsersByStatus,
   searchUsers,
+  filterUsersByStatus,
+  filterUsersByRole,
   createUser,
   deleteUser,
   resetPassword,
-  User,
+  User
 } from "@/app/services/userService";
 
 async function getUser() {
@@ -44,11 +45,13 @@ export default async function UsersPage({
   let usersData;
   try {
     if (search) {
-      usersData = await searchUsers(search, page, 10, accessToken);
+      usersData = await searchUsers(search, page, 5, accessToken);
     } else if (status !== "all") {
-      usersData = await filterUsersByStatus(status, page, 10, accessToken);
+      usersData = await filterUsersByStatus(status, page, 5, accessToken);
+    } else if (role !== "all") {
+      usersData = await filterUsersByRole(role, page, 5, accessToken);
     } else {
-      usersData = await fetchUsers(page, 10, accessToken);
+      usersData = await fetchUsers(page, 5, accessToken);
     }
   } catch (error: any) {
     console.error("Failed to fetch users:", error);
@@ -60,8 +63,6 @@ export default async function UsersPage({
       currentPage: 0,
       totalPages: 0,
       totalElements: 0,
-      totalUser: 0,
-      message: "",
     };
   }
 
@@ -111,62 +112,22 @@ export default async function UsersPage({
     }
   };
 
-  const handleFetchData = async (
-    page: number,
-    size: number,
-    search: string,
-    status: string,
-    role: string
-  ) => {
-    "use server";
-    try {
-      let data;
-      if (search) {
-        data = await searchUsers(search, page, size, accessToken);
-      } else if (status !== "all") {
-        data = await filterUsersByStatus(status, page, size, accessToken);
-      } else {
-        data = await fetchUsers(page, size, accessToken);
-      }
-
-      return {
-        users: data?.users || [],
-        pagination: {
-          currentPage: data?.currentPage || 0,
-          totalPages: data?.totalPages || 0,
-          totalItems: data?.totalElements || 0,
-          pageSize: size,
-        },
-      };
-    } catch (error: any) {
-      console.error("handleFetchData error:", error);
-      return {
-        users: [],
-        pagination: {
-          currentPage: 0,
-          totalPages: 0,
-          totalItems: 0,
-          pageSize: size,
-        },
-        error: error.message || "Failed to fetch users",
-      };
-    }
-  };
+  const usersContent = usersData?.users || [];
 
   return (
     <DashboardLayout requiredRole="admin">
       <UsersClient
-        initialUsers={usersData.users || []}
+        initialUsers={usersContent}
         initialPagination={{
-          currentPage: usersData.currentPage || 0,
-          totalPages: usersData.totalPages || 0,
-          totalItems: usersData.totalElements || 0,
-          pageSize: 10,
+          currentPage: usersData?.currentPage || 0,
+          totalPages: usersData?.totalPages || 0,
+          totalItems: usersData?.totalElements || usersData?.totalUser || 0,
+          pageSize: 5,
         }}
         onCreateUser={handleCreateUser}
         onDeleteUser={handleDeleteUser}
         onResetPassword={handleResetPassword}
-        onFetchData={handleFetchData}
+        searchParams={searchParamsAwaited}
       />
     </DashboardLayout>
   );

@@ -1020,7 +1020,7 @@ public class UserController {
             GetAllActivitiesResponse grpcResponse = activityGrpcClient.getAllActivities(token, pageable.getPageNumber(),
                     pageable.getPageSize());
 
-//         5️⃣ Map protobuf response to DTOs
+            // 5️⃣ Map protobuf response to DTOs
             List<ActivityDTO> allActivities = grpcResponse.getActivitiesList().stream()
                     .map(a -> new ActivityDTO(
                             a.getId(),
@@ -1118,7 +1118,7 @@ public class UserController {
                         item -> item.getUserStatus().toString(), // Convert enum to String
                         UserStatusCount::getCount));
 
-//        Map<String, Object> response = Map.of("statuses", statusMap);
+        // Map<String, Object> response = Map.of("statuses", statusMap);
 
         Map<String, Object> combinedResponse = new HashMap<>();
         combinedResponse.put("totalUser", totalUser);
@@ -1324,7 +1324,7 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
 
-            if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role)) {
+            if (!"HR".equalsIgnoreCase(role) && !"PROJECT_MANAGER".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "Only HR and PM can access this resource"));
             }
@@ -1596,7 +1596,6 @@ public class UserController {
         }
     }
 
-
     private void logActivity(String jwtToken, Long userId, String action, String description) {
         try {
             activityGrpcClient.createActivity(jwtToken, userId, action, description);
@@ -1605,8 +1604,6 @@ public class UserController {
             System.err.println("Failed to log activity: " + e.getMessage());
         }
     }
-
-
 
     private Long countUserByStatus(String role, UserStatus status) {
         try {
@@ -1836,9 +1833,19 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
+    private String extractAccessToken(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
     private UserResponseDto mapToDTO(User user) {
         return new UserResponseDto(user);
     }
-
 
 }
