@@ -477,7 +477,8 @@ export default function CompanyReportsClient({
                             {formatDate(report.createdAt)}
                           </p>
                           <p className="text-sm text-gray-600">
-                            <strong>Intern ID:</strong> {report.internId}
+                            <strong>Intern Name:</strong>{" "}
+                            {report.intern.firstName} {report.intern.lastName}
                           </p>
                         </div>
                         {/* <div>

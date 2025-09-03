@@ -155,6 +155,11 @@ export interface Report {
     projectName: string;
     projectDescription: string;
   };
+  intern: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export interface ReportsResponse {

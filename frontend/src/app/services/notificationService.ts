@@ -47,7 +47,7 @@ export interface PagedResponse<T> {
 }
 
 // Get access token helper
-const getAccessToken = async (): Promise<string> => {
+export const getAccessToken = async (): Promise<string> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
     throw new Error("Access token is missing");
@@ -138,6 +138,38 @@ export const markAllAsRead = async (): Promise<{ message: string }> => {
     throw new Error(
       error.response?.data?.message ||
         "Failed to mark all notifications as read"
+    );
+  }
+};
+
+// Create a new notification
+export const createNotification = async (notificationData: {
+  title: string;
+  description: string;
+  type: string;
+  recipients: string[];
+}): Promise<Notification> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await notificationApi.post<Notification>(
+      "/notifications/create",
+      notificationData,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to create notification:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to create notification"
     );
   }
 };

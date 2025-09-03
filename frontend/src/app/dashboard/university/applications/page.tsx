@@ -40,6 +40,7 @@ export default async function ApplicationsPage({
     page,
     10 // Page size
   );
+  console.log("Fetched applications data:", applicationsData);
 
   const handleCreateApplication = async (
     applicationData: CreateApplicationRequest
@@ -47,6 +48,8 @@ export default async function ApplicationsPage({
     "use server";
     try {
       const application = await createApplication(applicationData);
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/dashboard/university/applications");
       return { success: true, data: application };
     } catch (error: any) {
       console.error("Server action error:", error);

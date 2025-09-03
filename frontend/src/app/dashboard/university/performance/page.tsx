@@ -1,468 +1,197 @@
-"use client";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import DashboardLayout from "@/app/layout/dashboard-layout";
+import PerformanceClient from "./PerformanceClient";
+import {
+  fetchPerformanceData,
+  fetchPerformanceStats,
+  filterPerformanceBySupervisor,
+  searchPerformance,
+  fetchSupervisorsList,
+  PerformanceUser,
+  PerformanceStats,
+} from "@/app/services/performanceService";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import {
-  User,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  FileText,
-  Calendar,
-} from "lucide-react";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { useRouter } from "next/navigation";
-import { Star, StarHalf, StarOff } from "lucide-react";
-export default function PerformancePage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [supervisorFilter, setSupervisorFilter] = useState("all");
-  const [gradeFilter, setGradeFilter] = useState("all");
-  const [page, setPage] = useState(1);
+async function getUser() {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  const userId = (await cookies()).get("userId")?.value;
+
+  if (!accessToken || !userId) {
+    redirect("/login");
+  }
+
+  return { userId: Number(userId) };
+}
+
+// Helper function to calculate overall score (server-side only)
+const calculateOverallScore = (user: PerformanceUser): number => {
+  if (user.performanceLabel === "N/A") return 0;
+
+  const attendanceWeight = 0.3;
+  const reportsWeight = 0.2;
+  const ratingWeight = 0.3;
+  const gradeWeight = 0.2;
+
+  const attendanceScore = user.attendance;
+  const reportsScore = Math.min((user.totalReports / 8) * 100, 100);
+  const ratingScore = (user.lastRating / 5) * 100;
+
+  const gradeMap: { [key: string]: number } = {
+    "A+": 100,
+    A: 95,
+    "B+": 85,
+    B: 80,
+    "C+": 75,
+    C: 70,
+    D: 65,
+    F: 50,
+  };
+  const gradeScore = gradeMap[user.grade] || 0;
+
+  return Math.round(
+    attendanceScore * attendanceWeight +
+      reportsScore * reportsWeight +
+      ratingScore * ratingWeight +
+      gradeScore * gradeWeight
+  );
+};
+
+// Transform API data to client format (server-side only)
+const transformUserData = (users: PerformanceUser[]) => {
+  return users.map((user) => ({
+    id: user.userId,
+    student: user.fullName,
+    supervisor: user.supervisorName,
+    attendance: user.attendance,
+    weeklyReports: {
+      submitted: user.totalReports,
+      total: 8,
+    },
+    companyFeedback: user.lastRating,
+    academicGrade: user.grade,
+    overallScore: calculateOverallScore(user),
+    trend: "stable",
+    lastUpdate:
+      user.lastReviewTime !== "N/A" ? user.lastReviewTime.split("T")[0] : "N/A",
+    performanceLabel: user.performanceLabel,
+    lastReviewFeedback: user.lastReviewFeedback,
+  }));
+};
+
+export default async function PerformancePage({
+  searchParams,
+}: {
+  searchParams: { page?: string; search?: string; supervisor?: string };
+}) {
+  const { userId } = await getUser();
+  const searchParamsAwaited = await searchParams;
+  const page = parseInt(searchParamsAwaited.page || "1") - 1;
   const pageSize = 3;
+  const search = searchParamsAwaited.search || "";
+  const supervisor = searchParamsAwaited.supervisor || "all";
 
-  // Mock data
-  const performanceData = [
-    {
-      id: 1,
-      student: "John Doe",
-      company: "Tech Corp",
-      supervisor: "Dr. Smith",
-      attendance: 95,
-      weeklyReports: { submitted: 8, total: 8 },
-      companyFeedback: 4.8,
-      academicGrade: "A",
-      overallScore: 92,
-      trend: "up",
-      lastUpdate: "2024-03-10",
-    },
-    {
-      id: 2,
-      student: "Jane Smith",
-      company: "Innovation Labs",
-      supervisor: "Dr. Johnson",
-      attendance: 98,
-      weeklyReports: { submitted: 8, total: 8 },
-      companyFeedback: 5.0,
-      academicGrade: "A+",
-      overallScore: 96,
-      trend: "up",
-      lastUpdate: "2024-03-09",
-    },
-    {
-      id: 3,
-      student: "Mike Johnson",
-      company: "StartupXYZ",
-      supervisor: "Dr. Brown",
-      attendance: 92,
-      weeklyReports: { submitted: 7, total: 8 },
-      companyFeedback: 3.9,
-      academicGrade: "B+",
-      overallScore: 85,
-      trend: "down",
-      lastUpdate: "2024-03-08",
-    },
-    {
-      id: 4,
-      student: "Sarah Wilson",
-      company: "Digital Agency",
-      supervisor: "Dr. Davis",
-      attendance: 88,
-      weeklyReports: { submitted: 6, total: 8 },
-      companyFeedback: 3.4,
-      academicGrade: "B",
-      overallScore: 78,
-      trend: "up",
-      lastUpdate: "2024-03-07",
-    },
-  ];
+  let performanceData;
+  let supervisorsList: any[] = [];
 
-  // Unique values for filters
-  const supervisorsList = Array.from(
-    new Set(performanceData.map((s) => s.supervisor))
-  );
-  const gradesList = Array.from(
-    new Set(performanceData.map((s) => s.academicGrade))
-  );
-  const router = useRouter();
-  // Filtering logic
-  const filteredData = performanceData.filter(
-    (item) =>
-      (supervisorFilter === "all" || item.supervisor === supervisorFilter) &&
-      (gradeFilter === "all" || item.academicGrade === gradeFilter) &&
-      (item.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.supervisor.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-  const totalPages = Math.ceil(filteredData.length / pageSize);
-  const paginatedData = filteredData.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
+  try {
+    // Fetch supervisors list
+    supervisorsList = await fetchSupervisorsList();
 
-  const getPerformanceBadge = (score: number) => {
-    if (score >= 90)
-      return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
-    if (score >= 80)
-      return <Badge className="bg-blue-100 text-blue-800">Good</Badge>;
-    if (score >= 70)
-      return <Badge className="bg-yellow-100 text-yellow-800">Average</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>;
-  };
-
-  const getGradeBadge = (grade: string) => {
-    const gradeColors: { [key: string]: string } = {
-      "A+": "bg-green-100 text-green-800",
-      A: "bg-green-100 text-green-800",
-      "B+": "bg-blue-100 text-blue-800",
-      B: "bg-blue-100 text-blue-800",
-      "C+": "bg-yellow-100 text-yellow-800",
-      C: "bg-yellow-100 text-yellow-800",
+    // Use separate endpoints based on the parameters
+    if (search) {
+      performanceData = await searchPerformance(search, page, pageSize);
+    } else if (supervisor !== "all") {
+      performanceData = await filterPerformanceBySupervisor(
+        supervisor,
+        page,
+        pageSize
+      );
+    } else {
+      performanceData = await fetchPerformanceData(page, pageSize);
+    }
+  } catch (error: any) {
+    console.error("Failed to fetch performance data:", error);
+    if (error.message === "Unauthorized access. Please log in again.") {
+      redirect("/login");
+    }
+    performanceData = {
+      users: [],
+      pageNumber: 0,
+      pageSize: pageSize,
+      totalElements: 0,
+      totalPages: 0,
     };
-    return (
-      <Badge className={gradeColors[grade] || "bg-gray-100 text-gray-800"}>
-        {grade}
-      </Badge>
-    );
-  };
+  }
 
-  const getAttendanceColor = (attendance: number) => {
-    if (attendance >= 95) return "text-green-600";
-    if (attendance >= 90) return "text-blue-600";
-    if (attendance >= 85) return "text-yellow-600";
-    return "text-red-600";
-  };
+  let statsData;
+  try {
+    statsData = await fetchPerformanceStats();
+  } catch (error: any) {
+    console.error("Failed to fetch performance stats:", error);
+    statsData = {
+      totalReports: 0,
+      averageRating: 0,
+      score: 0,
+      attendance: 0,
+    };
+  }
 
-  // Add this helper inside the component, above `return`
-  const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating - fullStars >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  // Server action for fetching data with proper endpoint selection
+  const handleFetchData = async (
+    page: number,
+    size: number,
+    search: string,
+    supervisor: string
+  ) => {
+    "use server";
+    try {
+      let data;
 
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <Star
-          key={`full-${i}`}
-          className="w-4 h-4 text-yellow-500 fill-yellow-500"
-        />
-      );
+      if (search) {
+        data = await searchPerformance(search, page, size);
+      } else if (supervisor !== "all") {
+        data = await filterPerformanceBySupervisor(supervisor, page, size);
+      } else {
+        data = await fetchPerformanceData(page, size);
+      }
+
+      return {
+        users: transformUserData(data.users),
+        stats: await fetchPerformanceStats(),
+        pagination: {
+          currentPage: data.pageNumber + 1,
+          totalPages: data.totalPages,
+          totalItems: data.totalElements,
+          pageSize: data.pageSize,
+        },
+      };
+    } catch (error: any) {
+      console.error("handleFetchData error:", error);
+      return {
+        users: [],
+        stats: { totalReports: 0, averageRating: 0, score: 0, attendance: 0 },
+        pagination: { currentPage: 1, totalPages: 0, totalItems: 0, pageSize },
+        error: error.message || "Failed to fetch performance data",
+      };
     }
-
-    if (hasHalfStar) {
-      stars.push(
-        <StarHalf
-          key="half"
-          className="w-4 h-4 text-yellow-500 fill-yellow-500"
-        />
-      );
-    }
-
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<Star key={`empty-${i}`} className="w-4 h-4 text-gray-300" />);
-    }
-
-    return <div className="flex items-center space-x-1">{stars}</div>;
   };
 
   return (
     <DashboardLayout requiredRole="university">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Performance Tracking
-            </h1>
-            <p className="text-gray-600">
-              Monitor student performance and attendance
-            </p>
-          </div>
-
-          <Button className="bg-black text-white">
-            <FileText className="h-4 w-4 mr-2" />
-            Generate Report
-          </Button>
-        </div>
-
-        {/* Search and Filters */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by student name, company, or supervisor..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-10"
-                />
-              </div>
-              <select
-                className="border rounded px-2 py-1 text-sm "
-                value={supervisorFilter}
-                onChange={(e) => {
-                  setSupervisorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Supervisors</option>
-                {supervisorsList.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Performance Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">92.5%</p>
-                <p className="text-sm text-gray-600">Average Attendance</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-purple-600">29/32</p>
-                <p className="text-sm text-gray-600">Reports Submitted</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-orange-600">4.6/5</p>
-                <p className="text-sm text-gray-600">Company Rating</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Student Performance Details</CardTitle>
-            <CardDescription>
-              Detailed performance metrics for each student
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {paginatedData.map((student) => (
-                <div key={student.id} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-gray-100 rounded-full">
-                        <User className="h-6 w-6 text-gray-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {student.student}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {student.company} • Supervisor: {student.supervisor}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Attendance */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Attendance
-                      </p>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Progress
-                          value={student.attendance}
-                          className="flex-1"
-                        />
-                        <div className="relative w-full h-3 bg-gray-300 rounded-4xl overflow-hidden mb-3">
-                          <div
-                            className="h-full bg-black flex items-center rounded-4xl justify-center"
-                            style={{
-                              width: `${Math.min(student.attendance, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                        <span
-                          className={`text-sm text-gray-700 mb-3 ml-2 ${getAttendanceColor(
-                            student.attendance
-                          )}`}
-                        >
-                          {student.attendance}%
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Weekly Reports */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Weekly Reports
-                      </p>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Progress
-                          value={
-                            (student.weeklyReports.submitted /
-                              student.weeklyReports.total) *
-                            100
-                          }
-                          className="flex-1"
-                        />
-                        <div className="relative w-full h-3 bg-gray-300 rounded-4xl overflow-hidden mb-1">
-                          <div
-                            className="h-full bg-black flex items-center rounded-4xl justify-center "
-                            style={{
-                              width: `${Math.min(
-                                (student.weeklyReports.submitted /
-                                  student.weeklyReports.total) *
-                                  100,
-                                100
-                              )}%`,
-                            }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-gray-700 ml-2">
-                          {" "}
-                          {student.weeklyReports.submitted}/
-                          {student.weeklyReports.total}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Company Feedback */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2 ">
-                        Company Feedback
-                      </p>
-                      <div className="flex items-center space-x-2 mb-2  ml-4">
-                        <div className="flex space-x-1">
-                          {renderStars(student.companyFeedback)}
-                        </div>
-                        <span className="text-sm text-gray-700 ml-2">
-                          {student.companyFeedback.toFixed(1)} / 5
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Overall Score */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Overall Score
-                      </p>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Progress
-                          value={student.overallScore}
-                          className="flex-1"
-                        />
-                        <div className="relative w-full h-3 bg-gray-300 rounded-4xl overflow-hidden mb-3">
-                          <div
-                            className="h-full bg-black flex items-center justify-center "
-                            style={{
-                              width: `${Math.min(student.overallScore, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 mb-3 ml-2">
-                          {student.overallScore}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <div className="flex items-center space-x-2 text-xs text-gray-500">
-                      <Calendar className="h-3 w-3" />
-                      <span>Last updated: {student.lastUpdate}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/dashboard/university/messages`)
-                        }
-                      >
-                        Contact Student
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {paginatedData.length === 0 && (
-                <div className="text-center text-gray-500 py-8">
-                  No results found.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        {/* Pagination */}
-        <Pagination className="mt-6">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage((p) => Math.max(1, p - 1));
-                }}
-              />
-            </PaginationItem>
-            {[...Array(totalPages)].map((_, i) => (
-              <PaginationItem key={i}>
-                <PaginationLink
-                  href="#"
-                  isActive={page === i + 1}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage(i + 1);
-                  }}
-                >
-                  {i + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage((p) => Math.min(totalPages, p + 1));
-                }}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      <PerformanceClient
+        initialUsers={transformUserData(performanceData.users)}
+        initialStats={statsData}
+        pagination={{
+          currentPage: performanceData.pageNumber + 1,
+          totalPages: performanceData.totalPages,
+          totalItems: performanceData.totalElements,
+          pageSize: performanceData.pageSize,
+        }}
+        searchParams={{ search, supervisor }}
+        supervisorsList={supervisorsList}
+        userId={userId}
+        onFetchData={handleFetchData}
+      />
     </DashboardLayout>
   );
 }
