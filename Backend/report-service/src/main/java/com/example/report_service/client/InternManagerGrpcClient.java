@@ -1,9 +1,12 @@
 package com.example.report_service.client;
 
 import com.example.userservice.gRPC.InternManagerServiceGrpc;
+import com.example.userservice.gRPC.MultiUsersResponse;
+import com.example.userservice.gRPC.UserMultipleIdsRequest;
 import com.example.userservice.gRPC.UserRequest;
 import com.example.userservice.gRPC.UserResponse;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.example.userservice.gRPC.InternManagerRequest;
@@ -48,6 +51,22 @@ public class InternManagerGrpcClient {
 
         return stubWithAuth.searchByName(request);
     }
+
+    public MultiUsersResponse getAllUsers(String jwtToken, List<Long> ids) {
+        JwtClientInterceptor authInterceptor = new JwtClientInterceptor(jwtToken);
+        InternManagerServiceGrpc.InternManagerServiceBlockingStub stubWithAuth =
+                blockingStub.withInterceptors(authInterceptor);
+
+        UserMultipleIdsRequest.Builder requestBuilder = UserMultipleIdsRequest.newBuilder();
+
+        for (Long id : ids) {
+            requestBuilder.addUserIds(id);
+        }
+
+        UserMultipleIdsRequest request = requestBuilder.build();
+
+        return stubWithAuth.getUsersByIdsForReport(request);
+}
 
     public void shutdown() throws InterruptedException {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);

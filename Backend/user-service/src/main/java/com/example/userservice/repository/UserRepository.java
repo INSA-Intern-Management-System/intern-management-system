@@ -30,7 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByRoleIdAndInstitutionAndUserStatus(Long roleId, String institution, UserStatus userStatus);
 
     long countByRole(Role role);
-    long countByRoleAndInstitution(Role role);
+    long countByRoleAndInstitution(Role role, String institution);
 
     List<User> findByFirstNameContainingIgnoreCaseAndRole_Name(String firstName, String roleName);
     List<User> findAll();

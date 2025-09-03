@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class MapperService {
 
-    public ReportResponseDTO toReportResponseDTO(Report report, ReviewResponseDTO reviewDto,ProjectResponseDTO projectResponse) {
+    public ReportResponseDTO toReportResponseDTO(Report report, ReviewResponseDTO reviewDto,ProjectResponseDTO projectResponse, UserDTO intern) {
         return new ReportResponseDTO(
                 report.getId(),
                 report.getManager().getId(),
@@ -24,7 +24,8 @@ public class MapperService {
                 report.getFeedbackStatus(),
                 report.getCreatedAt(),
                 reviewDto,
-                projectResponse
+                projectResponse,
+                intern
         );
     }
 

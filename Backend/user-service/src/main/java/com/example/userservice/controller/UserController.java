@@ -776,7 +776,6 @@ public class UserController {
                     .map(user -> new SupervisorDTO(user))
                     .toList();
 
-
             return ResponseEntity.ok(Map.of(
                     "content", content,
                     "currentPage", pageResult.getNumber(),

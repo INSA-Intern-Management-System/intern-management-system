@@ -741,7 +741,7 @@ public class UserServiceImpl implements UserService {
         if ("INSA".equalsIgnoreCase(institution)) {
             supervisorCount = userRepo.countByRole(supervisorRole);
         } else {
-            supervisorCount = userRepo.countByRoleAndInstitution(supervisorRole);
+            supervisorCount = userRepo.countByRoleAndInstitution(supervisorRole, institution);
 
         }
         return userRepo.countByRole(supervisorRole);
