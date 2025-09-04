@@ -138,6 +138,16 @@ export interface Review {
   rating: number;
   createdAt: string;
 }
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  totalPages: number;
+  totalElements: number;
+}
 export interface Report {
   id: number;
   managerId: number;
