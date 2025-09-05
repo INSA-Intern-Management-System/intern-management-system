@@ -5,10 +5,8 @@ import MessagesClient from "./MessagesClient";
 import {
   fetchRooms,
   fetchRoomMessages,
-  sendMessage,
-  markMessagesAsRead,
+  // markMessagesAsRead,
   searchUsersByName,
-  createRoom,
 } from "@/app/services/messageService";
 import type {
   Message,
@@ -63,42 +61,19 @@ export default async function MessagesPage({
     roomMessages = await fetchRoomMessages(roomId, 0, 50);
   }
 
-  // Server actions
-  const handleSendMessage = async (
-    roomId: number,
-    content: string,
-    receiverId: number
-  ): Promise<{
-    success: boolean;
-    data?: Message | undefined;
-    error?: string | undefined;
-  }> => {
-    "use server";
-    try {
-      const result = await sendMessage(roomId, content, receiverId);
-      return { success: true, data: result as Message };
-    } catch (error: any) {
-      console.error("Server action error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to send message",
-      };
-    }
-  };
-
-  const handleMarkAsRead = async (roomId: number) => {
-    "use server";
-    try {
-      await markMessagesAsRead(roomId);
-      return { success: true };
-    } catch (error: any) {
-      console.error("Server action error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to mark messages as read",
-      };
-    }
-  };
+  // const handleMarkAsRead = async (roomId: number) => {
+  //   "use server";
+  //   try {
+  //     await markMessagesAsRead(roomId);
+  //     return { success: true };
+  //   } catch (error: any) {
+  //     console.error("Server action error:", error);
+  //     return {
+  //       success: false,
+  //       error: error.message || "Failed to mark messages as read",
+  //     };
+  //   }
+  // };
 
   const handleSearchUsers = async (
     name: string
@@ -120,26 +95,6 @@ export default async function MessagesPage({
     }
   };
 
-  const handleCreateRoom = async (
-    otherUserId: number
-  ): Promise<{
-    success: boolean;
-    data?: RoomUserUnreadDTO | undefined;
-    error?: string;
-  }> => {
-    "use server";
-    try {
-      const result = await createRoom(otherUserId);
-      return { success: true, data: result };
-    } catch (error: any) {
-      console.error("Create room error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to create conversation",
-      };
-    }
-  };
-
   return (
     <DashboardLayout requiredRole="university">
       <MessagesClient
@@ -152,12 +107,10 @@ export default async function MessagesPage({
           pageSize: roomsData.pageable.pageSize,
         }}
         userId={userId}
-        accessToken={accessToken} // Add this prop
+        accessToken={accessToken}
         initialRoomId={roomId}
-        onSendMessage={handleSendMessage}
-        onMarkAsRead={handleMarkAsRead}
+        // onMarkAsRead={handleMarkAsRead}
         onSearchUsers={handleSearchUsers}
-        onCreateRoom={handleCreateRoom}
       />
     </DashboardLayout>
   );

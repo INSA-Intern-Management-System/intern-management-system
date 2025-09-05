@@ -61,19 +61,19 @@ export default async function MessagesPage({
     roomMessages = await fetchRoomMessages(roomId, 0, 50);
   }
 
-  const handleMarkAsRead = async (roomId: number) => {
-    "use server";
-    try {
-      await markMessagesAsRead(roomId);
-      return { success: true };
-    } catch (error: any) {
-      console.error("Server action error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to mark messages as read",
-      };
-    }
-  };
+  // const handleMarkAsRead = async (roomId: number) => {
+  //   "use server";
+  //   try {
+  //     await markMessagesAsRead(roomId);
+  //     return { success: true };
+  //   } catch (error: any) {
+  //     console.error("Server action error:", error);
+  //     return {
+  //       success: false,
+  //       error: error.message || "Failed to mark messages as read",
+  //     };
+  //   }
+  // };
 
   const handleSearchUsers = async (
     name: string
@@ -109,7 +109,7 @@ export default async function MessagesPage({
         userId={userId}
         accessToken={accessToken}
         initialRoomId={roomId}
-        onMarkAsRead={handleMarkAsRead}
+        // onMarkAsRead={handleMarkAsRead}
         onSearchUsers={handleSearchUsers}
       />
     </DashboardLayout>

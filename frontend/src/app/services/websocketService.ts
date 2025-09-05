@@ -99,6 +99,7 @@ class WebSocketService {
     }
 
     const destination = `/topic/rooms/${roomId}`;
+    console.log(`Subscribing to ${destination}`);
     const subscription = this.client.subscribe(destination, (message) => {
       try {
         const parsedMessage = JSON.parse(message.body);
@@ -110,6 +111,8 @@ class WebSocketService {
           this.callbacks.onRoomCreated?.(tempRoomId, realRoomId);
           return;
         }
+
+        console.log("Received message:", parsedMessage);
 
         callback(parsedMessage);
         this.callbacks.onMessage?.(parsedMessage);
