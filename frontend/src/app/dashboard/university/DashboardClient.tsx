@@ -2,7 +2,7 @@
 
 import { User } from "@/types/entities";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CheckCircle, GraduationCap } from "lucide-react";
+import { Users, CheckCircle, GraduationCap, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Stat {
@@ -31,10 +31,10 @@ const iconMap = {
   Users: Users,
   GraduationCap: GraduationCap,
   CheckCircle: CheckCircle,
+  Star: Star,
 };
 
 export default function UniversityDashboardClient({
-  user,
   stats,
   recentActivities,
 }: UniversityDashboardClientProps) {
@@ -74,8 +74,8 @@ export default function UniversityDashboardClient({
           );
         })}
       </div>
+      {/* Recent Activities */}
 
-      {/* Recent Activities - Full width since we removed deadlines */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Activities</CardTitle>
@@ -109,21 +109,21 @@ export default function UniversityDashboardClient({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
               <button onClick={goToStudents} className="w-full text-left">
-                <Users className="h-8 w-8 text-blue-600 mb-2" />
+                <Users className="h-7 w-7 text-blue-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">Manage Students</h3>
                 <p className="text-sm text-gray-600">View and manage student records</p>
               </button>
             </div>
             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
               <button onClick={goToSupervisors} className="w-full text-left">
-                <CheckCircle className="h-8 w-8 text-green-600 mb-2" />
+                <GraduationCap className="h-7 w-7 text-purple-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">Manage Supervisors </h3>
                 <p className="text-sm text-gray-600">View and manage Supervisors records</p>
               </button>
             </div>
             <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
               <button onClick={goToPerformance} className="w-full text-left">
-                <CheckCircle className="h-8 w-8 text-orange-600 mb-2" />
+                <Star className="h-7 w-7 text-green-600 mb-2" />
                 <h3 className="font-semibold text-gray-900">Performance Report</h3>
                 <p className="text-sm text-gray-600">Generate performance reports</p>
               </button>

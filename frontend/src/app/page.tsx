@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+
+
 interface Internship {
   id: number;
   title: string;
@@ -60,7 +62,7 @@ export default function Home() {
       description:
         "Analyze complex datasets and extract meaningful insights to drive business decisions.",
       category: "Data Science",
-      image: "/data-science.png",
+      image: "/data-science.jpg"
     },
     {
       id: 5,
@@ -68,7 +70,7 @@ export default function Home() {
       description:
         "Manage and optimize cloud-based systems for maximum performance and security.",
       category: "Cloud Computing",
-      image: "/cloud-computing.png",
+      image: "/cloud-computing.jpg"
     },
     {
       id: 6,
@@ -246,18 +248,10 @@ export default function Home() {
             </nav>
 
             <div className="hidden md:flex items-center space-x-8">
-              <Link
-                href="/login"
-                className="border border-blue-600 text-blue-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-50 transition-all duration-300"
-              >
+              <Link href="/login" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md text-center">
                 Sign In
               </Link>
-              <Link
-                href="/signup"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md"
-              >
-                Sign Up
-              </Link>
+             
             </div>
 
             {/* Mobile menu button */}
@@ -300,21 +294,12 @@ export default function Home() {
                     {item.label}
                   </button>
                 ))}
-                <div className="pt-4 pb-3 border-t border-gray-200">
+                
                   <div className="flex items-center space-x-4 px-3">
-                    <Link
-                      href="/login"
-                      className="flex-1 border border-blue-600 text-blue-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-50 transition-all duration-300 text-center"
-                    >
+                    <Link href="/login" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md text-center">
                       Sign In
                     </Link>
-                    <Link
-                      href="/signup"
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md text-center"
-                    >
-                      Sign Up
-                    </Link>
-                  </div>
+                  
                 </div>
               </div>
             </div>
@@ -629,7 +614,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      {/* <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -678,7 +663,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Join Community */}
       <section
@@ -727,37 +712,58 @@ export default function Home() {
                 from you. Fill out the form and our team will get back to you as
                 soon as possible.
               </p>
+              
+<form className="space-y-6" onSubmit={(e) => {
+  e.preventDefault();
 
-              <form className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Your Email"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Subject"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                />
-                <textarea
-                  rows={5}
-                  placeholder="Your Message"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                ></textarea>
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-md"
-                >
-                  Send Message
-                </button>
-              </form>
+  const name = e.target.name.value;
+  const email = e.target.email.value;
+  const subject = e.target.subject.value;
+  const message = e.target.message.value;
+
+  window.location.href = `mailto:info@insa.gov.et?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+    `From: ${name} (${email})\n\n${message}`
+  )}`;
+}}>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <input 
+      type="text" 
+      name="name"
+      placeholder="Your Name" 
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+      required
+    />
+    <input 
+      type="email" 
+      name="email"
+      placeholder="Your Email" 
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+      required
+    />
+  </div>
+  <input 
+    type="text" 
+    name="subject"
+    placeholder="Subject" 
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+  />
+  <textarea 
+    rows={5} 
+    name="message"
+    placeholder="Your Message" 
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+    required
+  ></textarea>
+  <button 
+    type="submit"
+    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-md"
+  >
+    Send Message
+  </button>
+</form>
+
+
+
             </div>
 
             <div>
@@ -865,40 +871,32 @@ export default function Home() {
               <div className="mt-12">
                 <h4 className="font-bold text-lg mb-6">Follow Us</h4>
                 <div className="flex space-x-6">
-                  <a
-                    href="#"
-                    className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                  <a href="https://twitter.com/insaethio" className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                     </svg>
                   </a>
-                  <a
-                    href="#"
-                    className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M.057 24l.001.001L5.48 21.44c-2.476-1.801-4.194-4.45-4.758-7.527C.145 10.858.002 7.982.002 5.04 0 2.258.214.119 2.29.025l.14-.007h19.414c2.779 0 2.937 2.193 2.842 4.93-.096 2.754-.645 5.834-2.99 7.828l-5.91 5.04c-1.492 1.273-2.894 2.04-4.273 2.808 3.334.71 6.745.793 9.622-.262l-.047.016c2.635-.853 4.899-2.957 5.959-5.696l.011-.027c1.145-2.885.798-6.25-.892-8.875-1.69-2.623-4.37-4.1-7.15-4.1H5.838c-2.78 0-5.462 1.477-7.153 4.1-1.69 2.625-2.038 5.99-.892 8.875l.011.027c.453 1.07.76 2.25.892 3.436.06.57.1.962.123 1.244.024.282.034.438.034.438l-.001.004c0 2.842-.144 5.718-.722 8.776-.577 3.058-1.605 5.769-4.083 7.57l-.14.092H2.29l-.14-.007C.214 23.882.057 21.743.057 24z" />
-                    </svg>
-                  </a>
-                  <a
-                    href="#"
-                    className="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center text-white hover:bg-blue-900 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                <a
+  href="https://t.me/insagovet"
+
+  className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+>
+  <svg
+    className="w-7 h-7"
+    fill="currentColor"
+    viewBox="0 0 240 240"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M120 0C53.73 0 0 53.73 0 120s53.73 120 120 120 120-53.73 120-120S186.27 0 120 0zm55.43 83.17l-17.07 80.52c-1.28 5.79-4.62 7.22-9.39 4.49l-25.95-19.12-12.52 12.06c-1.39 1.39-2.55 2.55-5.18 2.55l1.85-26.18 47.56-43.08c2.07-1.85-0.45-2.88-3.21-1.03l-58.8 37.08-25.33-7.92c-5.5-1.72-5.6-5.5 1.15-8.13l99.99-38.57c4.6-1.72 8.62 1.12 7.19 8.7z"
+      fill="white"
+    />
+  </svg>
+</a>
+
+                  <a href="https://et.linkedin.com/company/information-network-security-agency" className="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center text-white hover:bg-blue-900 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                     </svg>
                   </a>
                 </div>
@@ -926,40 +924,30 @@ export default function Home() {
                 through innovative internship programs.
               </p>
               <div className="flex space-x-4">
-                <a
-                  href="#"
-                  className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                <a href="https://twitter.com/insaethio" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                   </svg>
                 </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 bg-blue-800 rounded-full flex items-center justify-center text-white hover:bg-blue-900 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                  </svg>
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white hover:bg-purple-700 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+   <a
+    href="https://t.me/insagovet"
+    className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+  >
+    <svg
+      className="w-6 h-6"  
+      fill="currentColor"
+      viewBox="0 0 240 240"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M120 0C53.73 0 0 53.73 0 120s53.73 120 120 120 120-53.73 120-120S186.27 0 120 0zm55.43 83.17l-17.07 80.52c-1.28 5.79-4.62 7.22-9.39 4.49l-25.95-19.12-12.52 12.06c-1.39 1.39-2.55 2.55-5.18 2.55l1.85-26.18 47.56-43.08c2.07-1.85-0.45-2.88-3.21-1.03l-58.8 37.08-25.33-7.92c-5.5-1.72-5.6-5.5 1.15-8.13l99.99-38.57c4.6-1.72 8.62 1.12 7.19 8.7z"
+        fill="white"
+      />
+    </svg>
+  </a>
+                <a href="https://et.linkedin.com/company/information-network-security-agency" className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white hover:bg-purple-700 transition-colors">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                   </svg>
                 </a>
               </div>

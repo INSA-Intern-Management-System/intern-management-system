@@ -624,7 +624,7 @@ public class UserController {
                 return errorResponse("Unauthorized.");
             }
 
-            User updatedUser = userService.updateUser(id, user);
+            User updatedUser = userService.updateUser(userId, user);
 
             // log activity
             // logActivity( userId, "for " + updatedUser.getFirstName() + " " +
@@ -632,9 +632,7 @@ public class UserController {
             return ResponseEntity.ok(new UserResponseDto(updatedUser));
         } catch (Exception e) {
             // You can customize error response here
-            return ResponseEntity
-                    .badRequest()
-                    .body("Failed to update user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("an error occurred: " + e.getMessage());
         }
     }
 
