@@ -34,12 +34,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { FileText, Plus, Upload, Search, Download } from "lucide-react";
 import {
   Application,
-  ApplicationsResponse,
   CreateApplicationRequest,
 } from "@/app/services/applicationService";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -205,14 +203,12 @@ export default function ApplicationsClient({
 
       setShowBatchDialog(false);
 
-      // Show success message with actual count
       const importedCount = response.data?.length || 0;
       toast({
         title: "Success",
         description: `Successfully imported ${importedCount} applications`,
       });
 
-      // Refresh the applications list
       const params = new URLSearchParams(searchParams.toString());
       router.push(`/dashboard/university/applications?${params.toString()}`);
     } catch (error: any) {
@@ -229,7 +225,6 @@ export default function ApplicationsClient({
   const updateUrlParams = () => {
     const params = new URLSearchParams();
 
-    // Always reset to first page when filters change
     params.set("page", "0");
 
     if (search) params.set("search", search);
@@ -239,14 +234,11 @@ export default function ApplicationsClient({
   };
 
   useEffect(() => {
-    // This will trigger when search or statusFilter changes
     const params = new URLSearchParams();
 
     if (search) params.set("search", search);
     if (statusFilter !== "all") params.set("status", statusFilter);
-    // Always reset to first page when filters change
     params.set("page", "0");
-
     router.push(`/dashboard/university/applications?${params.toString()}`);
   }, [search, statusFilter]);
 
@@ -259,31 +251,30 @@ export default function ApplicationsClient({
   const getStatusBadge = (status: string | undefined | null) => {
     if (!status) {
       return (
-        <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs font-medium">
+        <span className="px-2 py-1 rounded-2xl bg-yellow-100 text-yellow-800 text-xs font-medium">
           Pending
         </span>
       );
     }
 
-    // Normalize status for comparison
     const normalizedStatus = status.toUpperCase();
 
     switch (normalizedStatus) {
       case "ACCEPTED":
         return (
-          <span className="px-2 py-1 rounded bg-green-100 text-green-800 text-xs font-medium">
+          <span className="px-2 py-1 rounded-3xl bg-green-100 text-green-800 text-xs font-medium">
             Accepted
           </span>
         );
       case "REJECTED":
         return (
-          <span className="px-2 py-1 rounded bg-red-100 text-red-800 text-xs font-medium">
+          <span className="px-2 py-1 rounded-3xl bg-red-100 text-red-800 text-xs font-medium">
             Rejected
           </span>
         );
       case "PENDING":
         return (
-          <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs font-medium">
+          <span className="px-2 py-1 rounded-3xl bg-yellow-100 text-yellow-800 text-xs font-medium">
             Pending
           </span>
         );
@@ -296,15 +287,13 @@ export default function ApplicationsClient({
     }
   };
 
-  // Professional pagination rendering
   const renderPaginationItems = () => {
     const items = [];
     const totalPages = pagination.totalPages;
-    const current = currentPage + 1; // Convert to 1-based for display
+    const current = currentPage + 1; 
 
     if (totalPages <= 1) return null;
 
-    // Always show first page
     items.push(
       <PaginationItem key={1}>
         <PaginationLink
@@ -329,7 +318,6 @@ export default function ApplicationsClient({
     let start = Math.max(2, current - 1);
     let end = Math.min(totalPages - 1, current + 1);
 
-    // Add visible pages
     for (let i = start; i <= end; i++) {
       if (i > 1 && i < totalPages) {
         items.push(
@@ -354,7 +342,6 @@ export default function ApplicationsClient({
       items.push(<PaginationEllipsis key="ellipsis-end" />);
     }
 
-    // Always show last page if there is more than one page
     if (totalPages > 1) {
       items.push(
         <PaginationItem key={totalPages}>
@@ -376,7 +363,7 @@ export default function ApplicationsClient({
   };
 
   return (
-    <div className="space-y-6 bg-gray-50 min-h-screen p-6">
+    <div className="space-y-6 bg-gray-50 min-h-screen p-4s">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -388,8 +375,8 @@ export default function ApplicationsClient({
         <div className="flex gap-2">
           <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-black text-white hover:bg-gray-900">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button className="bg-blue-100 text-blue-700 hover:bg-blue-200">
+                <Plus className="h-4 w-4 mr-2 text-blue-700" />
                 New Application
               </Button>
             </DialogTrigger>
@@ -532,7 +519,7 @@ export default function ApplicationsClient({
                 <div className="flex gap-2 pt-4">
                   <Button
                     type="submit"
-                    className="bg-black text-white hover:bg-gray-900"
+                    className="text-blue-500 hover:bg-blue-50"
                     disabled={isLoading}
                   >
                     {isLoading ? "Submitting..." : "Submit Application"}
@@ -540,6 +527,8 @@ export default function ApplicationsClient({
                   <Button
                     type="button"
                     variant="outline"
+                    className="text-red-500 hover:bg-red-50"
+                    
                     onClick={() => setShowNewDialog(false)}
                     disabled={isLoading}
                   >
@@ -552,7 +541,9 @@ export default function ApplicationsClient({
 
           <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                className="bg-blue-600 text-white hover:bg-blue-700">
                 <Upload className="h-4 w-4 mr-2" />
                 Batch Import
               </Button>
@@ -572,12 +563,14 @@ export default function ApplicationsClient({
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={isLoading}>
+                  <Button type="submit" disabled={isLoading}
+                  className="text-blue-500 hover:bg-blue-50">
                     {isLoading ? "Importing..." : "Import"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
+                    className="hover:bg-red-50 text-red-500"
                     onClick={() => setShowBatchDialog(false)}
                     disabled={isLoading}
                   >
@@ -683,9 +676,9 @@ export default function ApplicationsClient({
                           href={application.applicant.cvUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 bg-blue-100 text-blue-700 hover:bg-blue-200"
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-4 w-4 text-blue-700" />
                           CV
                         </a>
                       </Button>

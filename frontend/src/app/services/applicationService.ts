@@ -59,7 +59,6 @@ export interface CreateApplicationRequest {
   cvFile?: File;
 }
 
-// Get access token helper
 const getAccessToken = async (): Promise<string> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
@@ -68,11 +67,9 @@ const getAccessToken = async (): Promise<string> => {
   return accessToken;
 };
 
-// Format application data consistently
 const formatApplication = (app: any): Application => {
   let statusValue = app.status;
 
-  // Normalize status to match your expected format
   if (typeof statusValue === "string") {
     statusValue =
       statusValue.charAt(0).toUpperCase() + statusValue.slice(1).toLowerCase();
@@ -100,11 +97,9 @@ const formatApplication = (app: any): Application => {
   };
 };
 
-// UNIVERSITY SPECIFIC ENDPOINTS
-// UNIVERSITY SPECIFIC ENDPOINTS - UPDATED
 export const fetchUniversityApplications = async (
   page: number = 0,
-  size: number = 10,
+  size: number = 5,
   search?: string,
   status?: string
 ): Promise<ApplicationsResponse> => {
@@ -114,7 +109,6 @@ export const fetchUniversityApplications = async (
     let url: string;
     const params: Record<string, string | number> = {};
 
-    // Determine which endpoint to use based on parameters
     if (search) {
       url = "/applications/search";
       params.query = search;
@@ -123,11 +117,8 @@ export const fetchUniversityApplications = async (
     } else if (status && status !== "all") {
       url = "/applications/filter/status";
       params.status = status;
-      // Status endpoint doesn't support pagination, so we'll handle it client-side
     } else {
-      // Default: get all applications for university
       url = "/applications/filter/for-university";
-      // This endpoint might not support pagination either
     }
 
     const response = await applicationApi.get(url, {
@@ -145,54 +136,44 @@ export const fetchUniversityApplications = async (
     let totalElements = 0;
     let currentPage = page;
 
-    // Handle different response structures based on endpoint
     if (url === "/applications/search") {
-      // Search endpoint returns paginated response
       const data = response.data;
       content = data.content || [];
       totalPages = data.totalPages || 1;
       totalElements = data.totalElements || 0;
       currentPage = data.currentPage || page;
     } else if (url === "/applications/filter/status") {
-      // Status filter returns array directly (no pagination)
       content = Array.isArray(response.data) ? response.data : [];
       totalElements = content.length;
       totalPages = Math.ceil(totalElements / size);
 
-      // Implement client-side pagination for status filter
       const startIndex = page * size;
       const endIndex = startIndex + size;
       content = content.slice(startIndex, endIndex);
     } else {
-      // University endpoint (may return array or paginated response)
       if (Array.isArray(response.data)) {
         content = response.data;
         totalElements = response.data.length;
         totalPages = Math.ceil(totalElements / size);
 
-        // Implement client-side pagination
         const startIndex = page * size;
         const endIndex = startIndex + size;
         content = content.slice(startIndex, endIndex);
       } else if (response.data && Array.isArray(response.data.content)) {
-        // Paginated response
         content = response.data.content;
         totalPages = response.data.totalPages || 1;
         totalElements = response.data.totalElements || content.length;
         currentPage = response.data.pageable?.pageNumber || page;
       } else if (response.data && response.data.currentPage !== undefined) {
-        // Search-like response structure
         content = response.data.content || [];
         totalPages = response.data.totalPages || 1;
         totalElements = response.data.totalElements || content.length;
         currentPage = response.data.currentPage || page;
       } else {
-        // Fallback: assume it's an array
         content = Array.isArray(response.data) ? response.data : [];
         totalElements = content.length;
         totalPages = Math.ceil(totalElements / size);
 
-        // Implement client-side pagination
         const startIndex = page * size;
         const endIndex = startIndex + size;
         content = content.slice(startIndex, endIndex);
@@ -248,7 +229,6 @@ export const createApplication = async (
   try {
     const formData = new FormData();
 
-    // Append all fields to form data
     formData.append("firstName", applicationData.firstName);
     formData.append("lastName", applicationData.lastName);
     formData.append("email", applicationData.email);
@@ -318,9 +298,6 @@ export const batchImportApplications = async (file: File): Promise<any[]> => {
     );
   }
 };
-
-// Remove unnecessary functions that aren't used by university role
-// Keep only the functions that are actually needed
 
 export const updateApplicationStatus = async (
   applicationId: number,
@@ -424,11 +401,10 @@ export interface ApplicationsResponse {
   empty?: boolean;
 }
 
-// Get access token helper
 
 export const fetchApplications = async (
   page: number = 0,
-  size: number = 10,
+  size: number = 5,
   query?: string,
   status?: string,
   position?: string,
@@ -440,7 +416,6 @@ export const fetchApplications = async (
     let url = "/applications/all";
     const params: Record<string, string | number> = { page, size };
 
-    // Handle query endpoint
     if (query) {
       url = "/applications/search";
       params.query = query;
@@ -448,7 +423,7 @@ export const fetchApplications = async (
       if (position && position !== "all") params.position = position;
       if (university && university !== "all") params.university = university;
     }
-    // Handle individual filter endpoints
+
     else if (status && status !== "all") {
       url = "/applications/filter/status";
       params.status = status;
@@ -468,7 +443,6 @@ export const fetchApplications = async (
       withCredentials: true,
     });
 
-    // Handle different response structures
     let content: any[] = [];
     let totalPages = 1;
     let totalElements = 0;
@@ -581,7 +555,7 @@ export const fetchAllApplications = async (
 
       if (Array.isArray(response.data)) {
         content = response.data;
-        hasMore = false; // Filter endpoints return all data at once
+        hasMore = false; 
       } else if (response.data && Array.isArray(response.data.content)) {
         content = response.data.content;
         hasMore =
@@ -595,7 +569,6 @@ export const fetchAllApplications = async (
       allApps = [...allApps, ...content.map(formatApplication)];
       page++;
 
-      // Break if we've fetched all pages or if it's a filter endpoint that returns all data
       if (!hasMore || Array.isArray(response.data)) {
         break;
       }
@@ -613,7 +586,6 @@ export const fetchAllApplications = async (
   }
 };
 
-// Individual filter functions for more specific use cases
 export const searchApplications = async (
   query: string,
   page: number = 0,
@@ -651,7 +623,7 @@ export const searchApplications = async (
 export const filterApplicationsByStatus = async (
   status: string,
   page: number = 0,
-  size: number = 20
+  size: number = 5
 ): Promise<Application[]> => {
   const accessToken = await getAccessToken();
 

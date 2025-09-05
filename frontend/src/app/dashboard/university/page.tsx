@@ -6,7 +6,6 @@ import DashboardLayout from "@/app/layout/dashboard-layout";
 import UniversityDashboardClient from "./DashboardClient";
 import {
   fetchUniversityDashboard,
-  UniversityDashboardResponse,
 } from "@/app/services/universityDashboardService";
 
 async function getUser(): Promise<User> {
@@ -35,7 +34,6 @@ async function getDashboardData() {
 
   const dashboardData = await fetchUniversityDashboard();
 
-  // Transform the API data to match the expected format
   const stats = [
     {
       title: "Active Interns",
@@ -50,16 +48,16 @@ async function getDashboardData() {
       value: dashboardData.supervisorCount.toString(),
       change: "+0",
       icon: "GraduationCap",
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
     },
     {
       title: "Completed Internships",
       value: dashboardData.internStatusesCount.completedIntern.toString(),
       change: "+0%",
       icon: "CheckCircle",
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
     },
   ];
 

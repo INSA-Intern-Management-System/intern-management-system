@@ -38,7 +38,7 @@ export default async function ApplicationsPage({
   // Fetch university applications with search and filter params
   const applicationsData = await fetchUniversityApplications(
     page,
-    10 // Page size
+    5
   );
   console.log("Fetched applications data:", applicationsData);
 
@@ -82,7 +82,7 @@ export default async function ApplicationsPage({
           currentPage: applicationsData.currentPage || 0,
           totalPages: applicationsData.totalPages || 1,
           totalItems: applicationsData.totalElements || 0,
-          pageSize: 10,
+          pageSize: 5,
         }}
         onCreateApplication={handleCreateApplication}
         onBatchImport={handleBatchImport}
