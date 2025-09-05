@@ -204,11 +204,12 @@ export default function ApplicationsClient({
       }
 
       setShowBatchDialog(false);
+
+      // Show success message with actual count
+      const importedCount = response.data?.length || 0;
       toast({
         title: "Success",
-        description: `Successfully imported ${
-          response.data?.length || 0
-        } applications`,
+        description: `Successfully imported ${importedCount} applications`,
       });
 
       // Refresh the applications list
@@ -237,23 +238,17 @@ export default function ApplicationsClient({
     router.push(`/dashboard/university/applications?${params.toString()}`);
   };
 
-  // Debounce the search to avoid too many requests
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (search !== initialSearch) {
-        updateUrlParams();
-      }
-    }, 500);
+    // This will trigger when search or statusFilter changes
+    const params = new URLSearchParams();
 
-    return () => clearTimeout(timer);
-  }, [search]);
+    if (search) params.set("search", search);
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    // Always reset to first page when filters change
+    params.set("page", "0");
 
-  // Immediate filter change for status
-  useEffect(() => {
-    if (statusFilter !== (initialStatus || "all")) {
-      updateUrlParams();
-    }
-  }, [statusFilter]);
+    router.push(`/dashboard/university/applications?${params.toString()}`);
+  }, [search, statusFilter]);
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -261,8 +256,19 @@ export default function ApplicationsClient({
     router.push(`/dashboard/university/applications?${params.toString()}`);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (status: string | undefined | null) => {
+    if (!status) {
+      return (
+        <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs font-medium">
+          Pending
+        </span>
+      );
+    }
+
+    // Normalize status for comparison
+    const normalizedStatus = status.toUpperCase();
+
+    switch (normalizedStatus) {
       case "ACCEPTED":
         return (
           <span className="px-2 py-1 rounded bg-green-100 text-green-800 text-xs font-medium">
@@ -276,10 +282,15 @@ export default function ApplicationsClient({
           </span>
         );
       case "PENDING":
-      default:
         return (
           <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs font-medium">
             Pending
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs font-medium">
+            {status}
           </span>
         );
     }
@@ -639,7 +650,7 @@ export default function ApplicationsClient({
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-gray-900">
                         {application.applicant.firstName}{" "}
-                        {application.applicant.lastName}
+                        {application.applicant.lastName}{" "}
                       </h3>
                       {getStatusBadge(application.status)}
                     </div>
@@ -654,7 +665,9 @@ export default function ApplicationsClient({
                         <span>• {application.applicant.fieldOfStudy}</span>
                       )}
                       <span>
-                        • Applied: {formatDateSafe(application.createdAt)}
+                        • Applied:{" "}
+                        {formatDateSafe(application.createdAt) ||
+                          "Being applied"}
                       </span>
                     </div>
                     {application.applicant.phoneNumber && (

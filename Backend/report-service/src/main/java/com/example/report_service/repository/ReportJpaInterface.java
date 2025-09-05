@@ -73,8 +73,8 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
     WHERE r.intern.id = :internId 
       AND (
            LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) 
-           OR r.feedbackStatus = :feedbackStatus 
-           OR r.createdAt BETWEEN :startDate AND :endDate
+           AND r.feedbackStatus = :feedbackStatus 
+           AND r.createdAt BETWEEN :startDate AND :endDate
       )
         """)
         Page<Report> findReportsByInternAndFilters(
@@ -89,7 +89,7 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
         WHERE r.intern.id = :internId 
         AND (
                 LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) 
-                OR r.createdAt BETWEEN :startDate AND :endDate
+                AND r.createdAt BETWEEN :startDate AND :endDate
         )
                 """)
                 Page<Report> findReportsByInternAndFiltersNostatus(
@@ -101,11 +101,22 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
 
         @Query("""
         SELECT r FROM Report r
+        WHERE r.intern.id = :internId
+        AND LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
+        """)
+        Page<Report> findReportsByInternAndTitle(
+                @Param("internId") Long internId,
+                @Param("title") String title,
+                Pageable pageable);
+
+
+        @Query("""
+        SELECT r FROM Report r
         WHERE r.manager.id = :managerId 
         AND (
                 LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) 
-                OR r.feedbackStatus = :feedbackStatus 
-                OR r.createdAt BETWEEN :startDate AND :endDate
+                AND r.feedbackStatus = :feedbackStatus 
+                AND r.createdAt BETWEEN :startDate AND :endDate
         )
         """)
         Page<Report> findReportsByManagerAndFilters(
@@ -121,7 +132,7 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
         WHERE r.manager.id = :managerId 
         AND (
                 LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) 
-                OR r.createdAt BETWEEN :startDate AND :endDate
+                AND r.createdAt BETWEEN :startDate AND :endDate
         )
         """)
         Page<Report> findReportsByManagerAndFiltersNoStatus(
@@ -133,9 +144,20 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
 
         @Query("""
         SELECT r FROM Report r
+        WHERE r.manager.id = :managerId
+        AND LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
+        """)
+        Page<Report> findReportsByManagerAndTitle(
+                @Param("managerId") Long managerId,
+                @Param("title") String title,
+                Pageable pageable);
+
+
+        @Query("""
+        SELECT r FROM Report r
         WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
-        OR r.feedbackStatus = :feedbackStatus
-        OR r.createdAt BETWEEN :startDate AND :endDate
+        AND r.feedbackStatus = :feedbackStatus
+        AND r.createdAt BETWEEN :startDate AND :endDate
         """)
         Page<Report> findReportsByTitleOrStatusOrDate(
                 @Param("title") String title,
@@ -158,13 +180,22 @@ public interface ReportJpaInterface extends JpaRepository<Report, Long> {
         @Query("""
         SELECT r FROM Report r
         WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
-        OR r.createdAt BETWEEN :startDate AND :endDate
+        AND r.createdAt BETWEEN :startDate AND :endDate
         """)
         Page<Report> findReportsByTitleOrDate(
                 @Param("title") String title,
                 @Param("startDate") LocalDateTime startDate,
                 @Param("endDate") LocalDateTime endDate,
                 Pageable pageable);
+
+        @Query("""
+        SELECT r FROM Report r
+        WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))
+        """)
+        Page<Report> findReportsByTitle(
+                @Param("title") String title,
+                Pageable pageable);
+
 
 
         @Query("SELECT COUNT(r) FROM Report r WHERE r.intern.id IN :userIds")

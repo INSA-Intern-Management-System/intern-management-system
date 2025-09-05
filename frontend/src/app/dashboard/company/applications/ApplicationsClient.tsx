@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,18 +62,12 @@ interface Application {
 }
 
 interface ApplicationsClientProps {
-  initialApplications: Application[];
+  allApplications: Application[];
   initialStats: {
     totalItems: number;
     pendingCount: number;
     acceptedCount: number;
     rejectedCount: number;
-  };
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    pageSize: number;
   };
   initialSearch: string;
   initialStatus?: string;
@@ -89,48 +83,30 @@ interface ApplicationsClientProps {
     position?: string,
     university?: string
   ) => Promise<{ success: boolean; data?: Application[]; error?: string }>;
-  onFetchData: (
-    page: number,
-    size: number,
-    search: string,
-    status: string,
-    position: string,
-    university: string
-  ) => Promise<{
-    applications: Application[];
-    pagination: {
-      currentPage: number;
-      totalPages: number;
-      totalItems: number;
-      pageSize: number;
-    };
-    error?: string;
-  }>;
 }
 
 export default function ApplicationsClient({
-  initialApplications,
+  allApplications,
   initialStats,
-  pagination,
   initialSearch,
   initialStatus = "all",
   initialPosition = "all",
   initialUniversity = "all",
   onUpdateStatus,
   onExportApplications,
-  onFetchData,
 }: ApplicationsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [applications, setApplications] = useState<Application[]>(initialApplications);
+  const [applications, setApplications] =
+    useState<Application[]>(allApplications);
+  const [filteredApplications, setFilteredApplications] =
+    useState<Application[]>(allApplications);
   const [stats, setStats] = useState(initialStats);
   const [institutionFilter, setInstitutionFilter] = useState(initialUniversity);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [fieldFilter, setFieldFilter] = useState(initialPosition);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
-  const [currentPage, setCurrentPage] = useState(pagination.currentPage);
-  const [totalPages, setTotalPages] = useState(pagination.totalPages);
-  const [totalItems, setTotalItems] = useState(pagination.totalItems);
+  const [currentPage, setCurrentPage] = useState(0);
   const [confirmingAction, setConfirmingAction] = useState<{
     applicationId: number;
     action: "accept" | "reject";
@@ -138,101 +114,127 @@ export default function ApplicationsClient({
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRefetching, setIsRefetching] = useState(false);
 
-  const pageSize = pagination.pageSize;
+  const pageSize = 3;
+  const totalPages = Math.ceil(filteredApplications.length / pageSize);
+  const paginatedApplications = useMemo(() => {
+    const startIndex = currentPage * pageSize;
+    return filteredApplications.slice(startIndex, startIndex + pageSize);
+  }, [filteredApplications, currentPage, pageSize]);
 
   // Extract unique institutions and fields from all applications (for filter dropdowns)
-  const institutions = useMemo(() => 
-    Array.from(
-      new Set(
-        applications
-          .map((app) => app.applicant.institution)
-          .filter((inst): inst is string => Boolean(inst))
-      )
-    ).sort(),
-    [applications]
+  const institutions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allApplications
+            .map((app) => app.applicant.institution)
+            .filter((inst): inst is string => Boolean(inst))
+        )
+      ).sort(),
+    [allApplications]
   );
 
-  const fieldsOfStudy = useMemo(() =>
-    Array.from(
-      new Set(
-        applications
-          .map((app) => app.applicant.fieldOfStudy)
-          .filter((field): field is string => Boolean(field))
-      )
-    ).sort(),
-    [applications]
+  const fieldsOfStudy = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allApplications
+            .map((app) => app.applicant.fieldOfStudy)
+            .filter((field): field is string => Boolean(field))
+        )
+      ).sort(),
+    [allApplications]
   );
 
-  useEffect(() => {
-    setApplications(initialApplications);
-    setStats(initialStats);
-    setCurrentPage(pagination.currentPage);
-    setTotalPages(pagination.totalPages);
-    setTotalItems(pagination.totalItems);
-  }, [initialApplications, initialStats, pagination]);
+  // Filter applications based on current filters
+  const filterApplications = useCallback(() => {
+    let filtered = allApplications;
 
-  // Update URL and fetch new data when filters change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      updateUrlAndFetchData();
-    }, 300); // Debounce to avoid too many requests
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, statusFilter, fieldFilter, institutionFilter, currentPage]);
-
-  const updateUrlAndFetchData = async () => {
-    setIsRefetching(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", currentPage.toString());
-      if (searchTerm) params.set("search", searchTerm);
-      if (statusFilter !== "all") params.set("status", statusFilter);
-      if (fieldFilter !== "all") params.set("position", fieldFilter);
-      if (institutionFilter !== "all") params.set("university", institutionFilter);
-      
-      // Update URL without scrolling
-      router.push(`/dashboard/company/applications?${params.toString()}`, { scroll: false });
-
-      // Fetch new data from server
-      const response = await onFetchData(
-        currentPage,
-        pageSize,
-        searchTerm,
-        statusFilter,
-        fieldFilter,
-        institutionFilter
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (app) =>
+          app.applicant.firstName.toLowerCase().includes(searchLower) ||
+          app.applicant.lastName.toLowerCase().includes(searchLower) ||
+          app.applicant.email.toLowerCase().includes(searchLower) ||
+          (app.applicant.institution &&
+            app.applicant.institution.toLowerCase().includes(searchLower)) ||
+          (app.applicant.fieldOfStudy &&
+            app.applicant.fieldOfStudy.toLowerCase().includes(searchLower))
       );
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      setApplications(response.applications);
-      setTotalPages(response.pagination.totalPages);
-      setTotalItems(response.pagination.totalItems);
-    } catch (error: any) {
-      console.error("Failed to fetch applications:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to fetch applications",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefetching(false);
     }
-  };
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((app) => app.status === statusFilter);
+    }
+
+    // Apply field filter
+    if (fieldFilter !== "all") {
+      filtered = filtered.filter(
+        (app) =>
+          app.applicant.fieldOfStudy &&
+          app.applicant.fieldOfStudy === fieldFilter
+      );
+    }
+
+    // Apply institution filter
+    if (institutionFilter !== "all") {
+      filtered = filtered.filter(
+        (app) =>
+          app.applicant.institution &&
+          app.applicant.institution === institutionFilter
+      );
+    }
+
+    setFilteredApplications(filtered);
+    setCurrentPage(0); // Reset to first page when filters change
+  }, [
+    allApplications,
+    searchTerm,
+    statusFilter,
+    fieldFilter,
+    institutionFilter,
+  ]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("page", currentPage.toString());
+    if (searchTerm) params.set("search", searchTerm);
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (fieldFilter !== "all") params.set("position", fieldFilter);
+    if (institutionFilter !== "all")
+      params.set("university", institutionFilter);
+
+    // Update URL without scrolling
+    router.push(`/dashboard/company/applications?${params.toString()}`, {
+      scroll: false,
+    });
+  }, [
+    searchTerm,
+    statusFilter,
+    fieldFilter,
+    institutionFilter,
+    currentPage,
+    router,
+  ]);
+
+  // Filter applications when filters change
+  useEffect(() => {
+    filterApplications();
+  }, [filterApplications]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(0); // Reset to first page on search
   };
 
-  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => 
+  const handleFilterChange =
+    (setter: React.Dispatch<React.SetStateAction<string>>) =>
     (value: string) => {
       setter(value);
-      setCurrentPage(0); // Reset to first page on filter change
     };
 
   const handlePageChange = (newPage: number) => {
@@ -260,7 +262,9 @@ export default function ApplicationsClient({
       );
 
       if (!response.success || !response.data) {
-        throw new Error(response.error || "Failed to fetch applications for export");
+        throw new Error(
+          response.error || "Failed to fetch applications for export"
+        );
       }
 
       const exportApps = response.data;
@@ -345,46 +349,38 @@ export default function ApplicationsClient({
     setIsSubmitting(true);
     try {
       const response = await onUpdateStatus(applicationId, status);
+      console.log("Update response:", response);
       if (response.success && response.data) {
         // Update the local state with the updated application
-        setApplications((prev) =>
-          prev.map((app) =>
-            app.id === applicationId ? { ...app, status } : app
-          )
+        const updatedApplications = allApplications.map((app) =>
+          app.id === applicationId ? { ...app, status } : app
         );
-        
+
+        setApplications(updatedApplications);
+        filterApplications(); // Reapply filters
+
         // Update stats
-type Status = "Pending" | "Accepted" | "Rejected";
+        setStats((prev) => {
+          let newStats = { ...prev };
 
-interface Stats {
-  totalItems: number;
-  pendingCount: number;
-  acceptedCount: number;
-  rejectedCount: number;
-}
+          if (status === "Accepted") {
+            newStats.acceptedCount += 1;
+            newStats.pendingCount -= 1;
+          } else if (status === "Rejected") {
+            newStats.rejectedCount += 1;
+            newStats.pendingCount -= 1;
+          }
 
-setStats((prev) => {
-  let newStats: Stats = { ...prev };
+          return newStats;
+        });
 
-  if (status === "Accepted") {
-    newStats.acceptedCount += 1;
-    newStats.pendingCount -= 1;
-  } else if (status === "Rejected") {
-    newStats.rejectedCount += 1;
-    newStats.pendingCount -= 1;
-  }
-
-  return newStats;
-});
-
-        
         setConfirmingAction(null);
         toast({
           title: "Success",
           description: `Application ${status.toLowerCase()} successfully`,
         });
       } else {
-        throw new Error(response.error || 'Unknown error');
+        throw new Error(response.error || "Unknown error");
       }
     } catch (error: any) {
       console.error("Failed to update status:", error);
@@ -432,7 +428,7 @@ setStats((prev) => {
   }
 
   return (
-    <div className="space-y-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 bg-gray-50 min-h-screen p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -441,10 +437,10 @@ setStats((prev) => {
             Review and manage student applications
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={exportApplicationsToCSV} 
-          disabled={isSubmitting || isRefetching}
+        <Button
+          variant="outline"
+          onClick={exportApplicationsToCSV}
+          disabled={isSubmitting}
         >
           <Download className="h-4 w-4 mr-2" />
           Export Applications
@@ -521,7 +517,7 @@ setStats((prev) => {
                   className="pl-10"
                   value={searchTerm}
                   onChange={handleSearchChange}
-                  disabled={isSubmitting || isRefetching}
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -529,7 +525,7 @@ setStats((prev) => {
               <Select
                 value={statusFilter}
                 onValueChange={handleFilterChange(setStatusFilter)}
-                disabled={isSubmitting || isRefetching}
+                disabled={isSubmitting}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Filter by status" />
@@ -544,7 +540,7 @@ setStats((prev) => {
               <Select
                 value={fieldFilter}
                 onValueChange={handleFilterChange(setFieldFilter)}
-                disabled={isSubmitting || isRefetching}
+                disabled={isSubmitting}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Filter by field" />
@@ -561,7 +557,7 @@ setStats((prev) => {
               <Select
                 value={institutionFilter}
                 onValueChange={handleFilterChange(setInstitutionFilter)}
-                disabled={isSubmitting || isRefetching}
+                disabled={isSubmitting}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Filter by institution" />
@@ -580,16 +576,9 @@ setStats((prev) => {
         </CardContent>
       </Card>
 
-      {/* Loading indicator */}
-      {isRefetching && (
-        <div className="flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-        </div>
-      )}
-
       {/* Applications List */}
       <div className="space-y-4">
-        {applications.length === 0 ? (
+        {paginatedApplications.length === 0 ? (
           <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <CardContent className="p-12 text-center">
               <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -607,7 +596,7 @@ setStats((prev) => {
             </CardContent>
           </Card>
         ) : (
-          applications.map((application) => (
+          paginatedApplications.map((application) => (
             <Card
               key={application.id}
               className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
@@ -750,7 +739,9 @@ setStats((prev) => {
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
-                            <span>Applied: {formatDate(application.createdAt)}</span>
+                            <span>
+                              Applied: {formatDate(application.createdAt)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -800,10 +791,10 @@ setStats((prev) => {
                               setConfirmingAction({
                                 applicationId: application.id,
                                 action: "accept",
-                                name: `${application.applicant.firstName} ${application.applicant.lastName}`
+                                name: `${application.applicant.firstName} ${application.applicant.lastName}`,
                               })
                             }
-                            disabled={isSubmitting || isRefetching}
+                            disabled={isSubmitting}
                           >
                             <Check className="h-4 w-4 mr-2" />
                             Accept
@@ -850,10 +841,10 @@ setStats((prev) => {
                               setConfirmingAction({
                                 applicationId: application.id,
                                 action: "reject",
-                                name: `${application.applicant.firstName} ${application.applicant.lastName}`
+                                name: `${application.applicant.firstName} ${application.applicant.lastName}`,
                               })
                             }
-                            disabled={isSubmitting || isRefetching}
+                            disabled={isSubmitting}
                           >
                             <X className="h-4 w-4 mr-2" />
                             Reject
@@ -880,7 +871,9 @@ setStats((prev) => {
                   e.preventDefault();
                   handlePageChange(Math.max(0, currentPage - 1));
                 }}
-                className={currentPage === 0 ? "pointer-events-none opacity-50" : ""}
+                className={
+                  currentPage === 0 ? "pointer-events-none opacity-50" : ""
+                }
               />
             </PaginationItem>
             {[...Array(totalPages)].map((_, i) => (
@@ -905,7 +898,9 @@ setStats((prev) => {
                   handlePageChange(Math.min(totalPages - 1, currentPage + 1));
                 }}
                 className={
-                  currentPage === totalPages - 1 ? "pointer-events-none opacity-50" : ""
+                  currentPage === totalPages - 1
+                    ? "pointer-events-none opacity-50"
+                    : ""
                 }
               />
             </PaginationItem>

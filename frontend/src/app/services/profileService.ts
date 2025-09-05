@@ -53,6 +53,7 @@ export interface UpdateProfileRequest {
   githubUrl?: string;
   cvUrl?: string;
   profilePicUrl?: string;
+  notifyEmail?: boolean;
 }
 
 export const fetchUserProfile = async (): Promise<UserProfile> => {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { redirect, usePathname, useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -106,11 +106,11 @@ const sidebarItems = {
       label: "Performance",
       href: "/dashboard/university/performance",
     },
-    {
-      icon: CheckCircle,
-      label: "Evaluations",
-      href: "/dashboard/university/evaluations",
-    },
+    // {
+    //   icon: CheckCircle,
+    //   label: "Evaluations",
+    //   href: "/dashboard/university/evaluations",
+    // },
     {
       icon: MessageSquare,
       label: "Messages",
@@ -130,7 +130,6 @@ const sidebarItems = {
   admin: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/admin" },
     { icon: Users, label: "User Management", href: "/dashboard/admin/users" },
-    { icon: Shield, label: "Role Management", href: "/dashboard/admin/roles" },
     {
       icon: Settings,
       label: "System Settings",
@@ -167,7 +166,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
-      router.push("/login");
+      redirect("/login");
     },
     onError: (error) => {
       console.error("Logout failed:", error);

@@ -2,6 +2,7 @@ package com.example.leave_service.controller;
 
 import com.example.leave_service.dto.LeaveRequest;
 import com.example.leave_service.dto.LeaveResponse;
+import com.example.leave_service.dto.LeaveResult;
 import com.example.leave_service.model.LeaveStatus;
 import com.example.leave_service.service.LeaveService;
 
@@ -68,11 +69,26 @@ public class LeaveController {
                 return errorResponse("Unauthorized: Only INTERN or ADMIN can view leaves");
             }
 
+            // ✅ Get JWT from HttpOnly cookie
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
             if("PROJECT_MANAGER".equalsIgnoreCase(role)){
-                Page<LeaveResponse> leaves = leaveService.getLeavesByManager(userId, pageable);
+                Page<LeaveResult> leaves = leaveService.getLeavesByManager(jwtToken,userId, pageable);
                 return ResponseEntity.ok(leaves);
             }else if("HR".equalsIgnoreCase(role)){
-                Page<LeaveResponse> leaves = leaveService.getAllLeaves(pageable);
+                Page<LeaveResult> leaves = leaveService.getAllLeaves(jwtToken,pageable);
                 return ResponseEntity.ok(leaves);
 
             }else{
@@ -110,15 +126,29 @@ public class LeaveController {
             String role = (String) request.getAttribute("role");
             Long userId = (Long) request.getAttribute("userId");
 
-            if ("PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only STUDENT, PROJECT_MANAGER, or HR can search leaves");
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            if (!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
+                return errorResponse("Unauthorized: Only PROJECT_MANAGER, or HR can search leaves");
             }
 
             if("HR".equalsIgnoreCase(role)){
-                Page<LeaveResponse> results = leaveService.searchLeaves(leaveType, reason,pageable);
+                Page<LeaveResult> results = leaveService.searchLeaves(jwtToken,leaveType, reason,pageable);
                 return ResponseEntity.ok(results);
             }else{
-                Page<LeaveResponse> results = leaveService.searchLeaves(userId,leaveType, reason,pageable);
+                Page<LeaveResult> results = leaveService.searchLeavesForManager(jwtToken,userId,leaveType, reason,pageable);
                 return ResponseEntity.ok(results);
             }
             
@@ -128,23 +158,37 @@ public class LeaveController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<?> filterLeaves(@RequestParam String leaveType,
-                                          @RequestParam LeaveStatus leaveStatus,
+    public ResponseEntity<?> filterLeaves(@RequestParam(required = false) String leaveType,
+                                          @RequestParam(required = false) LeaveStatus leaveStatus,
                                           HttpServletRequest request,
                                           Pageable pageable) {
         try {
             String role = (String) request.getAttribute("role");
             Long userId = (Long) request.getAttribute("userId");
 
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
             if (!"PROJECT_MANAGER".equalsIgnoreCase(role) && !"HR".equalsIgnoreCase(role)) {
                 return errorResponse("Unauthorized: PROJECT_MANAGER, or HR can filter leaves");
             }
 
             if("HR".equalsIgnoreCase(role)){
-                Page<LeaveResponse> results = leaveService.filterLeavesByTypeAndStatus(leaveType, leaveStatus,pageable);
+                Page<LeaveResult> results = leaveService.filterLeavesByTypeAndStatus(jwtToken,leaveType, leaveStatus,pageable);
                 return ResponseEntity.ok(results);
             }else{
-                Page<LeaveResponse> results = leaveService.filterLeavesByTypeAndStatus(userId,leaveType, leaveStatus,pageable);
+                Page<LeaveResult> results = leaveService.filterLeavesByTypeAndStatus(jwtToken,userId,leaveType, leaveStatus,pageable);
                 return ResponseEntity.ok(results);
             }
 

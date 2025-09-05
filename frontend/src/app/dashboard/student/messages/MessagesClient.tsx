@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import type React from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,6 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
@@ -26,9 +26,12 @@ import {
   PaginationNext,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
-import {
-  Room,
-  User,
+import type {
+  WebSocketMessageDTO,
+  EditMessageRequest,
+  DeleteMessageRequest,
+} from "@/types/websocket";
+import type {
   SearchUser,
   RoomUserUnreadDTO,
   Message as MessageType,
@@ -47,20 +50,13 @@ interface MessagesClientProps {
   userId: number;
   accessToken: string;
   initialRoomId?: number;
-  onSendMessage: (
-    roomId: number,
-    content: string,
-    receiverId: number
-  ) => Promise<{ success: boolean; data?: MessageType; error?: string }>;
+
   onMarkAsRead: (
     roomId: number
   ) => Promise<{ success: boolean; error?: string }>;
   onSearchUsers: (
     name: string
   ) => Promise<{ success: boolean; data?: SearchUser[]; error?: string }>;
-  onCreateRoom: (
-    otherUserId: number
-  ) => Promise<{ success: boolean; data?: RoomUserUnreadDTO; error?: string }>;
 }
 
 export default function MessagesClient({
@@ -70,10 +66,8 @@ export default function MessagesClient({
   userId,
   accessToken,
   initialRoomId,
-  onSendMessage,
   onMarkAsRead,
   onSearchUsers,
-  onCreateRoom,
 }: MessagesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -91,6 +85,10 @@ export default function MessagesClient({
   );
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -126,6 +124,44 @@ export default function MessagesClient({
           variant: "destructive",
         });
       },
+      onRoomCreated: (tempRoomId, realRoomId) => {
+        console.log(`Room created: temp=${tempRoomId}, real=${realRoomId}`);
+
+        // Update the room with the real ID
+        setRooms((prev) =>
+          prev.map((room) =>
+            room.room.id === tempRoomId
+              ? { ...room, room: { ...room.room, id: realRoomId } }
+              : room
+          )
+        );
+
+        // Update selected room if it's the one being created
+        if (selectedRoom?.room.id === tempRoomId) {
+          setSelectedRoom((prev) =>
+            prev ? { ...prev, room: { ...prev.room, id: realRoomId } } : null
+          );
+        }
+
+        // Update messages with the real room ID
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.roomId === tempRoomId ? { ...msg, roomId: realRoomId } : msg
+          )
+        );
+
+        // Update URL if this is the current room
+        if (selectedRoom?.room.id === tempRoomId) {
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("roomId", realRoomId.toString());
+          router.replace(`/dashboard/student/messages?${params.toString()}`, {
+            scroll: false,
+          });
+        }
+      },
+      onMessage: (message) => {
+        handleIncomingMessage(message);
+      },
     });
 
     return () => {
@@ -133,27 +169,43 @@ export default function MessagesClient({
     };
   }, [accessToken]);
 
-  // Subscribe to room messages when selected room changes
-  useEffect(() => {
-    if (selectedRoom && isWebSocketConnected) {
-      // Unsubscribe from previous room if any
-      webSocketService.unsubscribeFromRoom(selectedRoom.room.id);
+  const handleIncomingMessage = (message: any) => {
+    // Handle room creation confirmation
+    if (message.roomCreated) {
+      const { tempRoomId, realRoomId, message: newMessage } = message;
 
-      // Subscribe to new room
-      webSocketService.subscribeToRoom(selectedRoom.room.id, (message) => {
-        handleIncomingMessage(message);
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.room.id === tempRoomId
+            ? { ...room, room: { ...room.room, id: realRoomId } }
+            : room
+        )
+      );
+
+      if (selectedRoom?.room.id === tempRoomId) {
+        setSelectedRoom((prev) =>
+          prev ? { ...prev, room: { ...prev.room, id: realRoomId } } : null
+        );
+
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("roomId", realRoomId.toString());
+        router.replace(`/dashboard/student/messages?${params.toString()}`, {
+          scroll: false,
+        });
+      }
+
+      // Add the actual message from server
+      setMessages((prev) => {
+        const filtered = prev.filter(
+          (msg) => msg.id !== newMessage.id && msg.id > 0
+        );
+        return [...filtered, newMessage];
       });
+
+      return;
     }
 
-    return () => {
-      if (selectedRoom) {
-        webSocketService.unsubscribeFromRoom(selectedRoom.room.id);
-      }
-    };
-  }, [selectedRoom, isWebSocketConnected]);
-
-  const handleIncomingMessage = (message: any) => {
-    // Check if this is a deleted message
+    // Handle deleted messages
     if (message.deletedMessageId) {
       setMessages((prev) =>
         prev.filter((msg) => msg.id !== message.deletedMessageId)
@@ -161,7 +213,7 @@ export default function MessagesClient({
       return;
     }
 
-    // Handle regular message
+    // Handle regular messages
     const newMessage: MessageType = {
       id: message.id,
       senderId: message.senderId,
@@ -173,18 +225,21 @@ export default function MessagesClient({
       updatedAt: message.updatedAt,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => {
+      // Remove any temporary message with the same content
+      const filtered = prev.filter(
+        (msg) => !(msg.id < 0 && msg.content === newMessage.content)
+      );
+      return [...filtered, newMessage];
+    });
 
-    // Update room list with new message
+    // Update room list
     setRooms((prev) =>
       prev.map((room) =>
-        room.room.id === message.roomId
+        room.room.id === newMessage.roomId
           ? {
               ...room,
-              room: {
-                ...room.room,
-                lastMessageAt: new Date().toISOString(),
-              },
+              room: { ...room.room, lastMessageAt: new Date().toISOString() },
               unreadCount:
                 room.room.id === selectedRoom?.room.id
                   ? 0
@@ -238,89 +293,122 @@ export default function MessagesClient({
     e.preventDefault();
     if (!newMessage.trim() || !selectedRoom) return;
 
-    // Try to send via WebSocket first
-    if (isWebSocketConnected) {
-      const success = webSocketService.sendMessage({
-        senderId: userId,
-        receiverId: parseInt(selectedRoom.user.id),
-        content: newMessage.trim(),
-        roomId: selectedRoom.room.id,
-      });
+    const tempRoomId = selectedRoom.room.id;
+    const isNewRoom = tempRoomId < 0;
 
-      if (success) {
-        // Optimistically update UI
-        const tempMessage: MessageType = {
-          id: Date.now(), // Temporary ID
-          senderId: userId,
-          roomId: selectedRoom.room.id,
-          receiverId: parseInt(selectedRoom.user.id),
-          content: newMessage.trim(),
-          status: "SENT",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+    // Create optimistic message
+    const tempMessage: MessageType = {
+      id: -Date.now(),
+      senderId: userId,
+      roomId: tempRoomId,
+      receiverId: Number(selectedRoom.user.id),
+      content: newMessage.trim(),
+      status: "SENT",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-        setMessages((prev) => [...prev, tempMessage]);
-        setNewMessage("");
+    setMessages((prev) => [...prev, tempMessage]);
+    setNewMessage("");
 
-        // Update room list
-        setRooms((prev) =>
-          prev.map((room) =>
-            room.room.id === selectedRoom.room.id
-              ? {
-                  ...room,
-                  room: {
-                    ...room.room,
-                    lastMessageAt: new Date().toISOString(),
-                  },
-                  unreadCount: 0,
-                }
-              : room
-          )
-        );
-        return;
-      }
-    }
+    // Prepare WebSocket message
+    const wsMessage: WebSocketMessageDTO = {
+      senderId: userId,
+      receiverId: Number(selectedRoom.user.id),
+      content: tempMessage.content,
+      roomId: isNewRoom ? tempRoomId : selectedRoom.room.id,
+    };
 
-    // Fallback to HTTP if WebSocket fails
-    try {
-      const receiverId = parseInt(selectedRoom.user.id);
-      const response = await onSendMessage(
-        selectedRoom.room.id,
-        newMessage,
-        receiverId
-      );
+    const success = webSocketService.sendMessage(wsMessage);
 
-      if (!response.success) {
-        throw new Error(response.error);
-      }
-
-      setMessages([...messages, response.data!]);
-      setNewMessage("");
-
-      // Update the room's last message
-      setRooms((prevRooms) =>
-        prevRooms.map((room) =>
-          room.room.id === selectedRoom.room.id
-            ? {
-                ...room,
-                room: {
-                  ...room.room,
-                  lastMessageAt: new Date().toISOString(),
-                },
-                unreadCount: 0,
-              }
-            : room
-        )
-      );
-    } catch (error: any) {
+    if (!success) {
+      // Revert optimistic update if WebSocket fails
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+      setNewMessage(tempMessage.content);
       toast({
-        title: "Error",
-        description: error.message || "Failed to send message",
+        title: "Failed to send",
+        description: "Please check your connection and try again",
         variant: "destructive",
       });
     }
   };
+
+  const handleEditMessage = (message: MessageType) => {
+    setEditingMessageId(message.id);
+    setEditContent(message.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMessageId || !editContent.trim()) return;
+
+    const success = webSocketService.editMessage(
+      editingMessageId,
+      editContent.trim()
+    );
+
+    if (success) {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === editingMessageId
+            ? {
+                ...msg,
+                content: editContent.trim(),
+                updatedAt: new Date().toISOString(),
+              }
+            : msg
+        )
+      );
+      setEditingMessageId(null);
+      setEditContent("");
+      toast({
+        title: "Message updated",
+        description: "Your message has been edited successfully",
+      });
+    } else {
+      toast({
+        title: "Failed to edit",
+        description: "Please check your connection and try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteMessage = (messageId: number, roomId: number) => {
+    const success = webSocketService.deleteMessage(messageId, roomId);
+
+    if (success) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      toast({
+        title: "Message deleted",
+        description: "Your message has been deleted successfully",
+      });
+    } else {
+      toast({
+        title: "Failed to delete",
+        description: "Please check your connection and try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // const handleMarkAsRead = async (room: RoomUserUnreadDTO) => {
+  //   if (room.unreadCount > 0) {
+  //     try {
+  //       const response = await onMarkAsRead(room.room.id);
+  //       if (response.success) {
+  //         setRooms((prev) =>
+  //           prev.map((r) =>
+  //             r.room.id === room.room.id ? { ...r, unreadCount: 0 } : r
+  //           )
+  //         );
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to mark messages as read:", error);
+  //     }
+  //   }
+  // };
+
+  // ... existing code for room selection, search, etc. ...
 
   const handleRoomSelect = async (room: RoomUserUnreadDTO) => {
     setSelectedRoom(room);
@@ -399,7 +487,6 @@ export default function MessagesClient({
       return;
     }
 
-    // No room exists: set up a temporary room state for UI, but don't create room yet
     const tempRoom: RoomUserUnreadDTO = {
       room: {
         id: -1, // Temporary ID, backend will assign real ID on send
@@ -417,11 +504,6 @@ export default function MessagesClient({
     setSelectedRoom(tempRoom);
     setRooms((prev) => [tempRoom, ...prev]);
 
-    // Update URL with temp roomId (optional, or skip until real room is created)
-    // const params = new URLSearchParams(searchParams.toString());
-    // params.set("roomId", "-1");
-    // router.push(`/dashboard/company/messages?${params.toString()}`);
-
     setSearchResults([]);
     setSearchValue("");
     setShowSearch(false);
@@ -431,6 +513,8 @@ export default function MessagesClient({
       description: `Type your first message to start a conversation with ${user.firstName} ${user.lastName}`,
     });
   };
+
+  // ... rest of the component remains the same ...
 
   const filteredRooms = rooms.filter(
     (room) =>
@@ -479,8 +563,8 @@ export default function MessagesClient({
       items.push(<PaginationEllipsis key="ellipsis-start" />);
     }
 
-    let start = Math.max(2, current - 1);
-    let end = Math.min(totalPages - 1, current + 1);
+    const start = Math.max(2, current - 1);
+    const end = Math.min(totalPages - 1, current + 1);
 
     for (let i = start; i <= end; i++) {
       if (i > 1 && i < totalPages) {
@@ -736,7 +820,7 @@ export default function MessagesClient({
                         msg.senderId === userId
                           ? "bg-blue-600 text-white"
                           : "bg-white border border-gray-200 text-gray-900"
-                      }`}
+                      } ${msg.id < 0 ? "opacity-70" : ""}`} // Show pending messages with reduced opacity
                     >
                       {msg.senderId !== userId && (
                         <span className="text-xs font-medium text-gray-600 block mb-1">
@@ -754,6 +838,7 @@ export default function MessagesClient({
                         }`}
                       >
                         {formatTime(msg.createdAt)}
+                        {msg.id < 0 && " • Sending..."}
                       </p>
                     </div>
                   </div>

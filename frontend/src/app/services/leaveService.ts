@@ -1,3 +1,4 @@
+// services/leaveService.ts
 import { leaveApi } from "@/api/axios";
 import {
   CreateLeaveRequest,
@@ -7,73 +8,98 @@ import {
 } from "@/types/entities";
 import { cookies } from "next/headers";
 
-export const fetchLeaves = async (
-  page: number = 0,
-  size: number = 10,
-  search?: string,
-  status?: string,
-  type?: string
-): Promise<LeaveResponse> => {
+// Get access token helper
+const getAccessToken = async (): Promise<string> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
     throw new Error("Access token is missing");
   }
+  return accessToken;
+};
+
+// Get all leaves (with optional pagination)
+export const fetchLeaves = async (
+  page: number = 0,
+  size: number = 10
+): Promise<LeaveResponse> => {
+  const accessToken = await getAccessToken();
 
   try {
-    let url = "/leaves";
-    const params: Record<string, string | number> = { page, size };
-
-    // Handle search endpoint
-    if (search) {
-      url = "/leaves/search";
-      params.reason = search;
-      if (type && type !== "all") params.leaveType = type;
+    const response = await leaveApi.get<LeaveResponse>("/leaves", {
+      params: { page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
+    console.log("Fetched leaves:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch leaves:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
     }
-    // Handle filter endpoint (status and/or type)
-    else if (status || type) {
-      url = "/leaves/filter";
-      if (status && status !== "all") params.leaveStatus = status.toUpperCase();
-      if (type && type !== "all") params.leaveType = type;
-    }
+    throw new Error(error.response?.data?.message || "Failed to fetch leaves");
+  }
+};
 
-    const response = await leaveApi.get<LeaveResponse>(url, {
-      params,
+// Search leaves by reason
+export const searchLeaves = async (
+  reason: string,
+  page: number = 0,
+  size: number = 10
+): Promise<LeaveResponse> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await leaveApi.get<LeaveResponse>("/leaves/search", {
+      params: { reason, page, size },
       headers: {
         Cookie: `access_token=${accessToken}`,
       },
       withCredentials: true,
     });
     return response.data;
-  } catch (error) {
-    console.error("Failed to fetch leaves:", error);
-    return {
-      content: [],
-      pageable: {
-        pageNumber: 0,
-        pageSize: size,
-        sort: { sorted: false, empty: true, unsorted: true },
-        offset: 0,
-        paged: true,
-        unpaged: false,
-      },
-      last: true,
-      totalPages: 0,
-      totalElements: 0,
-      size: size,
-      number: 0,
-      sort: { sorted: false, empty: true, unsorted: true },
-      first: true,
-      numberOfElements: 0,
-      empty: true,
-    };
+  } catch (error: any) {
+    console.error("Failed to search leaves:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to search leaves");
   }
 };
 
-export const fetchStatusCounts = async (): Promise<StatusCounts> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
+// Filter leaves by status and/or type
+export const filterLeaves = async (
+  leaveStatus?: string,
+  leaveType?: string,
+  page: number = 0,
+  size: number = 10
+): Promise<LeaveResponse> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    console.log("huh", { leaveStatus, leaveType, page, size });
+    const response = await leaveApi.get<LeaveResponse>("/leaves/filter", {
+      params: { leaveStatus, leaveType, page, size },
+      headers: {
+        Cookie: `access_token=${accessToken}`,
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to filter leaves:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to filter leaves");
   }
+};
+
+// Get leave status counts
+export const fetchStatusCounts = async (): Promise<StatusCounts> => {
+  const accessToken = await getAccessToken();
 
   try {
     const response = await leaveApi.get<StatusCounts>("/leaves/status-counts", {
@@ -83,24 +109,22 @@ export const fetchStatusCounts = async (): Promise<StatusCounts> => {
       withCredentials: true,
     });
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to fetch status counts:", error);
-    return {
-      total: 0,
-      approved: 0,
-      rejected: 0,
-      pending: 0,
-    };
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch status counts"
+    );
   }
 };
 
+// Create leave
 export const createLeave = async (
   leaveData: CreateLeaveRequest
 ): Promise<LeaveRequest> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
+  const accessToken = await getAccessToken();
 
   try {
     const response = await leaveApi.post<LeaveRequest>("/leaves", leaveData, {
@@ -110,17 +134,18 @@ export const createLeave = async (
       withCredentials: true,
     });
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to create leave:", error);
-    throw error;
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to create leave");
   }
 };
 
+// Delete leave
 export const deleteLeave = async (leaveId: number): Promise<void> => {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    throw new Error("Access token is missing");
-  }
+  const accessToken = await getAccessToken();
 
   try {
     await leaveApi.delete(`/leaves/${leaveId}`, {
@@ -129,8 +154,42 @@ export const deleteLeave = async (leaveId: number): Promise<void> => {
       },
       withCredentials: true,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to delete leave:", error);
-    throw error;
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to delete leave");
+  }
+};
+
+// Update leave status
+export const updateLeaveStatus = async (
+  leaveId: number,
+  newStatus: "APPROVED" | "REJECTED",
+  rejectionReason?: string
+): Promise<LeaveRequest> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await leaveApi.patch<LeaveRequest>(
+      `/leaves/${leaveId}/status?newStatus=${newStatus}`,
+      rejectionReason ? { rejectionReason } : {},
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to update leave status:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to update leave status"
+    );
   }
 };

@@ -1,6 +1,6 @@
 // app/services/messageService.ts
 import { messageApi } from "@/api/axios";
-import {
+import type {
   MessagesResponse,
   RoomsResponse,
   UsersSearchResponse,
@@ -8,8 +8,8 @@ import {
 import { cookies } from "next/headers";
 
 export const fetchRooms = async (
-  page: number = 0,
-  size: number = 20
+  page = 0,
+  size = 20
 ): Promise<RoomsResponse> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
@@ -53,8 +53,8 @@ export const fetchRooms = async (
 
 export const fetchRoomMessages = async (
   roomId: number,
-  page: number = 0,
-  size: number = 50
+  page = 0,
+  size = 50
 ): Promise<MessagesResponse> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
@@ -101,8 +101,8 @@ export const fetchRoomMessages = async (
 
 export const searchUsersByName = async (
   name: string,
-  page: number = 0,
-  size: number = 10
+  page = 0,
+  size = 10
 ): Promise<UsersSearchResponse> => {
   const accessToken = (await cookies()).get("access_token")?.value;
   if (!accessToken) {
@@ -147,20 +147,33 @@ export const searchUsersByName = async (
   }
 };
 
-// These functions are kept for backward compatibility but will not be used
-// in the client component since we're using WebSocket for these operations
-export const sendMessage = async (
-  roomId: number,
-  content: string,
-  receiverId: number
-): Promise<any> => {
-  throw new Error("Use WebSocket for sending messages");
-};
+// The backend automatically creates rooms when the first message is sent
+// No need for explicit room creation or mark as read via REST API
+// Add this function to your messageService.ts
+export const createRoom = async (
+  userId: number,
+  otherUserId: number
+): Promise<{ roomId: number }> => {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  if (!accessToken) {
+    throw new Error("Access token is missing");
+  }
 
-export const markMessagesAsRead = async (roomId: number): Promise<void> => {
-  throw new Error("Use WebSocket for marking messages as read");
-};
-
-export const createRoom = async (participantId: number): Promise<any> => {
-  throw new Error("Use WebSocket for creating rooms");
+  try {
+    // This endpoint should be created in your backend
+    const response = await messageApi.post<{ roomId: number }>(
+      "/messages/rooms",
+      { userId, otherUserId },
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create room:", error);
+    throw new Error("Failed to create conversation");
+  }
 };

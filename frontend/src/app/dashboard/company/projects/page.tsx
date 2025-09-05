@@ -6,16 +6,13 @@ import {
   fetchProjects,
   fetchProjectStats,
   createProject,
-  updateProject,
   deleteProject,
   searchProjects,
   createMilestone,
-  fetchMilestones,
-  updateMilestoneStatus,
   deleteMilestone,
+  updateProjectAndMilestonesStatus,
 } from "@/app/services/projectService";
 import { revalidatePath } from "next/cache";
-import { Project } from "@/types/project";
 
 async function getUser() {
   const accessToken = (await cookies()).get("access_token")?.value;
@@ -28,6 +25,13 @@ async function getUser() {
   return { userId: Number(userId) };
 }
 
+interface ProjectResponse {
+  project: any;
+  teams: any[];
+  teamMembers: any[];
+  milestones: any[];
+}
+
 export default async function CompanyProjectsPage({
   searchParams,
 }: {
@@ -38,21 +42,20 @@ export default async function CompanyProjectsPage({
   const page = parseInt(searchParamsAwaited.page || "1", 10);
   const search = searchParamsAwaited.search || "";
   const status = searchParamsAwaited.status || "all";
-  const pageSize = 3;
+  const pageSize = 6; // Increased page size for better UX
 
-  // ✅ CREATE PROJECT WITH MILESTONES
+  // ✅ CREATE PROJECT
   async function handleCreateProject(formData: FormData) {
     "use server";
     try {
-      const milestonesInput = (formData.get("milestones") as string)
-        .split(",")
-        .map((m) => m.trim())
-        .filter((m) => m);
-
       const projectData = {
         name: formData.get("name") as string,
         description: formData.get("description") as string,
-        status: (formData.get("status") as string).toUpperCase() as Project["status"],
+        status: formData.get("status")?.toString().toUpperCase() as
+          | "ACTIVE"
+          | "COMPLETED"
+          | "PLANNING"
+          | "ONHOLD",
         startDate: formData.get("startDate") as string,
         endDate: formData.get("endDate") as string,
         budget: parseFloat(formData.get("budget") as string) || 0,
@@ -62,86 +65,54 @@ export default async function CompanyProjectsPage({
           .filter(Boolean),
       };
 
-      // Create project
       const createdProject = await createProject(projectData);
 
-      // ✅ Create milestones with projectId included in body
-      const milestones = await Promise.all(
-        milestonesInput.map(async (milestone) => {
-          const milestoneData = await createMilestone({
-            projectId: createdProject.id,
-            title: milestone,
-            description: milestone,
-            status: "IN_PROGRESS",
-            dueDate: projectData.endDate,
-          });
-          return {
-            id: milestoneData.id,
-            name: milestoneData.title,
-            completed: milestoneData.status === "COMPLETED",
-            dueDate: milestoneData.dueDate,
-            description: milestoneData.description,
-          };
-        })
-      );
+      // Create milestones if provided
+      const milestonesInput = (formData.get("milestones") as string)
+        .split(",")
+        .map((m) => m.trim())
+        .filter((m) => m);
+
+      for (const milestone of milestonesInput) {
+        await createMilestone({
+          projectId: createdProject.id,
+          title: milestone,
+          description: milestone,
+          status: "IN_PROGRESS",
+          dueDate: projectData.endDate,
+        });
+      }
 
       revalidatePath("/dashboard/company/projects");
-      return { project: { ...createdProject, milestones, teamMembers: [], teams: [], progress: 0 } };
+      return { success: true, project: createdProject };
     } catch (error) {
       console.error("Failed to create project:", error);
       return { error: "Failed to create project" };
     }
   }
 
-  // ✅ UPDATE PROJECT
-  async function handleUpdateProject(id: number, data: Project) {
+  // ✅ UPDATE PROJECT STATUS AND MILESTONES
+  async function handleUpdateProjectStatus(
+    projectId: number,
+    projectStatus: string,
+    milestoneUpdates: Array<{
+      milestoneId: number;
+      status: string;
+    }>
+  ) {
     "use server";
     try {
-      const updatedProject = await updateProject(id, {
-        description: data.description,
-        status: data.status?.toUpperCase() as Project["status"],
-      });
-
-      if (data.milestones) {
-        await Promise.all(
-          data.milestones.map(async (milestone) => {
-            if (milestone.id) {
-              await updateMilestoneStatus(
-                milestone.id,
-                milestone.completed ? "COMPLETED" : "IN_PROGRESS"
-              );
-            }
-          })
-        );
-      }
-
-      const updatedMilestones = await fetchMilestones(id);
+      const updatedProject = await updateProjectAndMilestonesStatus(
+        projectId,
+        projectStatus,
+        milestoneUpdates
+      );
 
       revalidatePath("/dashboard/company/projects");
-      return {
-        project: {
-          ...updatedProject,
-          milestones: updatedMilestones.map((m) => ({
-            id: m.id,
-            name: m.title || m.name,
-            completed: m.status === "COMPLETED",
-            dueDate: m.dueDate,
-            description: m.description,
-          })),
-          teamMembers: data.teamMembers || [],
-          teams: data.teams || [],
-          progress: updatedMilestones.length
-            ? Math.round(
-                (updatedMilestones.filter((m) => m.status === "COMPLETED").length /
-                  updatedMilestones.length) *
-                  100
-              )
-            : 0,
-        },
-      };
+      return { success: true, project: updatedProject };
     } catch (error) {
-      console.error("Failed to update project:", error);
-      return { error: "Failed to update project" };
+      console.error("Failed to update project status:", error);
+      return { error: "Failed to update project status" };
     }
   }
 
@@ -158,7 +129,7 @@ export default async function CompanyProjectsPage({
     }
   }
 
-  // ✅ CREATE MILESTONE DIRECTLY
+  // ✅ CREATE MILESTONE
   async function handleCreateMilestone(
     projectId: number,
     milestoneData: { title: string; description: string; dueDate: string }
@@ -173,28 +144,8 @@ export default async function CompanyProjectsPage({
         dueDate: milestoneData.dueDate,
       });
 
-      const updatedMilestones = await fetchMilestones(projectId);
-
       revalidatePath("/dashboard/company/projects");
-      return {
-        project: {
-          id: projectId,
-          milestones: updatedMilestones.map((m) => ({
-            id: m.id,
-            name: m.title || m.name,
-            completed: m.status === "COMPLETED",
-            dueDate: m.dueDate,
-            description: m.description,
-          })),
-          progress: updatedMilestones.length
-            ? Math.round(
-                (updatedMilestones.filter((m) => m.status === "COMPLETED").length /
-                  updatedMilestones.length) *
-                  100
-              )
-            : 0,
-        },
-      };
+      return { success: true };
     } catch (error) {
       console.error("Failed to create milestone:", error);
       return { error: "Failed to create milestone" };
@@ -202,69 +153,53 @@ export default async function CompanyProjectsPage({
   }
 
   // ✅ DELETE MILESTONE
-  async function handleDeleteMilestone(projectId: number, milestoneId: number) {
+  async function handleDeleteMilestone(milestoneId: number) {
     "use server";
     try {
       await deleteMilestone(milestoneId);
-      const updatedMilestones = await fetchMilestones(projectId);
-
       revalidatePath("/dashboard/company/projects");
-      return {
-        project: {
-          id: projectId,
-          milestones: updatedMilestones.map((m) => ({
-            id: m.id,
-            name: m.title || m.name,
-            completed: m.status === "COMPLETED",
-            dueDate: m.dueDate,
-            description: m.description,
-          })),
-          progress: updatedMilestones.length
-            ? Math.round(
-                (updatedMilestones.filter((m) => m.status === "COMPLETED").length /
-                  updatedMilestones.length) *
-                  100
-              )
-            : 0,
-        },
-      };
+      return { success: true };
     } catch (error) {
       console.error("Failed to delete milestone:", error);
       return { error: "Failed to delete milestone" };
     }
   }
 
-  // ✅ FETCH PROJECTS
-  async function handleFetchData(page: number, size: number, search: string, status: string) {
+  // ✅ FETCH PROJECTS (OPTIMIZED)
+  async function handleFetchData(
+    page: number,
+    size: number,
+    search: string,
+    status: string
+  ) {
     "use server";
     try {
       const projectsData = search.trim()
         ? await searchProjects(search, page - 1, size)
         : await fetchProjects(page - 1, size);
 
-      const projects = await Promise.all(
-        projectsData.content.map(async (item) => {
-          const milestones = await fetchMilestones(item.project.id);
-          return {
-            ...item.project,
-            teams: item.teams,
-            teamMembers: item.teamMembers,
-            milestones: milestones.map((m) => ({
-              id: m.id,
-              name: m.title || m.name,
-              completed: m.status === "COMPLETED",
-              dueDate: m.dueDate,
-              description: m.description,
-            })),
-            progress: milestones.length
-              ? Math.round(
-                  (milestones.filter((m) => m.status === "COMPLETED").length / milestones.length) *
-                    100
-                )
-              : 0,
-          };
-        })
-      );
+      // Transform the response to match the expected format
+      const projects = projectsData.content.map((item: ProjectResponse) => {
+        const completedMilestones = item.milestones.filter(
+          (m: any) => m.status === "COMPLETED"
+        ).length;
+
+        return {
+          ...item.project,
+          teams: item.teams,
+          teamMembers: item.teamMembers,
+          milestones: item.milestones.map((m: any) => ({
+            id: m.id,
+            name: m.title,
+            completed: m.status === "COMPLETED",
+            dueDate: m.dueDate,
+            description: m.description,
+          })),
+          progress: item.milestones.length
+            ? Math.round((completedMilestones / item.milestones.length) * 100)
+            : 0,
+        };
+      });
 
       const statsData = await fetchProjectStats();
       return {
@@ -305,7 +240,7 @@ export default async function CompanyProjectsPage({
         initialStatus={status}
         userId={userId}
         onCreateProject={handleCreateProject}
-        onUpdateProject={handleUpdateProject}
+        onUpdateProjectStatus={handleUpdateProjectStatus}
         onDeleteProject={handleDeleteProject}
         onCreateMilestone={handleCreateMilestone}
         onDeleteMilestone={handleDeleteMilestone}

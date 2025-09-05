@@ -130,7 +130,6 @@ const sidebarItems = {
   admin: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/admin" },
     { icon: Users, label: "User Management", href: "/dashboard/admin/users" },
-    { icon: Shield, label: "Role Management", href: "/dashboard/admin/roles" },
     {
       icon: Settings,
       label: "System Settings",

@@ -2,7 +2,20 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
 import CompanyTeamsClient from "./teamClient";
-import { fetchTeams, fetchProjects, addMemberByEmail, createTeam, addMember, removeMember, assignProject, deleteTeam } from "@/app/services/teamService";
+import {
+  fetchTeams,
+  searchProjects,
+  searchUsers,
+  createTeam,
+  addMember,
+  removeMember,
+  assignProject,
+  deleteTeam,
+  TeamResponseItem,
+  Project,
+  UserSearchResult,
+  removeProjectFromTeam,
+} from "@/app/services/teamService";
 
 interface AvailableProject {
   id: number;
@@ -27,16 +40,19 @@ async function getUser() {
   return { userId: Number(userId), accessToken };
 }
 
-function mapTeams(rawTeams: any[]): FrontendTeam[] {
+function mapTeams(rawTeams: TeamResponseItem[]): FrontendTeam[] {
   return rawTeams.map((t) => ({
     id: t.teams?.id || 0,
     name: t.teams?.name || "Unnamed Team",
-    project: t.project ? t.project.name || `Project ${t.project.id || 'unknown'}` : "",
-    members: t.teamMembers?.map((tm: any) => ({
-      name: tm.fullName || `User ${tm.memberId || 'unknown'}`,
-      teamMemberId: tm.id || 0,
-      role: tm.role || "Unknown",
-    })) || [],
+    project: t.project
+      ? t.project.name || `Project ${t.project.id || "unknown"}`
+      : "",
+    members:
+      t.teamMembers?.map((tm) => ({
+        name: tm.fullName || `User ${tm.memberId || "unknown"}`,
+        teamMemberId: tm.id || 0,
+        role: tm.role || "Unknown",
+      })) || [],
   }));
 }
 
@@ -45,46 +61,47 @@ export default async function CompanyTeamsPage({
 }: {
   searchParams: { page?: string; search?: string; hasProject?: string };
 }) {
-  const { userId, accessToken } = await getUser();
+  const { userId } = await getUser();
 
   const searchParamsAwaited = await searchParams;
   const page = parseInt(searchParamsAwaited.page || "0");
 
   let teamsData;
   try {
-    teamsData = await fetchTeams(page, 3, accessToken);
+    teamsData = await fetchTeams(page, 20);
   } catch (error: any) {
     console.error("Failed to fetch teams:", error);
     if (error.message === "Unauthorized access. Please log in again.") {
       redirect("/login");
     }
-    teamsData = {
-      content: [],
-      number: 0,
-      totalPages: 0,
-      totalElements: 0,
-      size: 3,
-    };
+    // Return error component instead of empty data
+    return (
+      <DashboardLayout requiredRole="company">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-red-600 mb-2">
+              Failed to load teams
+            </h2>
+            <p className="text-gray-600">
+              {error.message || "Please try again later"}
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
-  let projectsData;
+  // Get initial projects for dropdown
+  let initialProjects: Project[] = [];
   try {
-    projectsData = await fetchProjects(0, 100, accessToken);
-  } catch (error: any) {
-    console.error("Failed to fetch projects:", error);
-    if (error.message === "Unauthorized access. Please log in again.") {
-      redirect("/login");
-    }
-    projectsData = {
-      content: [],
-      number: 0,
-      totalPages: 0,
-      totalElements: 0,
-      size: 100,
-    };
+    const projectsData = await searchProjects("", 0, 100);
+    initialProjects = projectsData.content;
+  } catch (error) {
+    console.error("Failed to fetch initial projects:", error);
+    // Continue with empty projects array
   }
 
-  const availableProjects: AvailableProject[] = projectsData.content
+  const availableProjects: AvailableProject[] = initialProjects
     .filter((p) => p.id != null)
     .map((p) => ({
       id: p.id,
@@ -93,87 +110,182 @@ export default async function CompanyTeamsPage({
 
   const initialTeams = mapTeams(teamsData.content);
 
-  const handleCreateTeam = async (data: { name: string; projectId: number | null; memberEmail?: string }) => {
+  // Server actions with proper error handling
+  const handleCreateTeam = async (data: {
+    name: string;
+    projectId: number | null;
+    members?: { userId: number; role: string }[];
+  }) => {
     "use server";
     try {
-      await createTeam({ name: data.name, projectId: data.projectId, memberEmail: data.memberEmail, managerId: Number(userId) }, accessToken);
+      const membersObject: Record<string, string> = {};
+      if (data.members) {
+        data.members.forEach((member) => {
+          membersObject[member.userId.toString()] = member.role;
+        });
+      }
+
+      const requestData = {
+        name: data.name,
+        managerId: userId,
+        projectId: data.projectId,
+        members: membersObject,
+      };
+
+      await createTeam(requestData);
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/teams");
       return { success: true };
     } catch (error: any) {
       console.error("handleCreateTeam error:", error);
-      return { success: false, error: error.message || "Failed to create team" };
+      return {
+        success: false,
+        error: error.message || "Failed to create team",
+      };
     }
   };
 
-  const handleAddMember = async (data: { teamId: number; memberId: number; role: string }) => {
+  const handleAddMember = async (data: {
+    teamId: number;
+    memberId: number;
+    role: string;
+  }) => {
     "use server";
     try {
-      await addMember(data, accessToken);
+      await addMember(data);
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/teams");
       return { success: true };
     } catch (error: any) {
       console.error("handleAddMember error:", error);
-      return { success: false, error: error.message || "Failed to add member" };
-    }
-  };
-
-  const handleAddMemberByEmail = async (email: string) => {
-    "use server";
-    try {
-      const response = await addMemberByEmail(email, accessToken);
-      return { success: true, user: { id: response.userId, fullName: response.fullName } };
-    } catch (error: any) {
-      console.error("handleAddMemberByEmail error:", error);
-      return { success: false, error: error.message || "Failed to add member by email", user: null };
+      return {
+        success: false,
+        error: error.message || "Failed to add member",
+      };
     }
   };
 
   const handleRemoveMember = async (teamMemberId: number) => {
     "use server";
     try {
-      await removeMember(teamMemberId, accessToken);
+      await removeMember(teamMemberId);
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/teams");
       return { success: true };
     } catch (error: any) {
       console.error("handleRemoveMember error:", error);
-      return { success: false, error: error.message || "Failed to remove member" };
+      return {
+        success: false,
+        error: error.message || "Failed to remove member",
+      };
+    }
+  };
+
+  const handleSearchUsers = async (name: string) => {
+    "use server";
+    try {
+      const response = await searchUsers(name, 0, 10);
+      return {
+        success: true,
+        users: response.content.map((user) => ({
+          id: user.id,
+          name: `${user.firstName} ${user.lastName}`,
+          details: `${user.fieldOfStudy} • ${user.university}`,
+        })),
+      };
+    } catch (error: any) {
+      console.error("handleSearchUsers error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to search users",
+        users: [],
+      };
+    }
+  };
+
+  const handleSearchProjects = async (keyword: string) => {
+    "use server";
+    try {
+      const response = await searchProjects(keyword, 0, 10);
+      return {
+        success: true,
+        projects: response.content.map((project) => ({
+          id: project.id,
+          name: project.name,
+          description: project.description,
+        })),
+      };
+    } catch (error: any) {
+      console.error("handleSearchProjects error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to search projects",
+        projects: [],
+      };
     }
   };
 
   const handleAssignProject = async (teamId: number, projectId: number) => {
     "use server";
     try {
-      await assignProject(teamId, projectId, accessToken);
+      await assignProject(teamId, projectId);
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/teams");
       return { success: true };
     } catch (error: any) {
       console.error("handleAssignProject error:", error);
-      return { success: false, error: error.message || "Failed to assign project" };
+      return {
+        success: false,
+        error: error.message || "Failed to assign project",
+      };
+    }
+  };
+
+  const handleRemoveProject = async (teamId: number) => {
+    "use server";
+    try {
+      await removeProjectFromTeam(teamId);
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/dashboard/company/teams");
+      return { success: true };
+    } catch (error: any) {
+      console.error("handleRemoveProject error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to remove project",
+      };
     }
   };
 
   const handleDeleteTeam = async (teamId: number) => {
     "use server";
+    console.log("handleDeleteTeam called with teamId:", teamId);
     try {
-      await deleteTeam(teamId, accessToken);
+      console.log("Deleting team with IDDDD:");
+      await deleteTeam(teamId);
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/dashboard/company/teams");
       return { success: true };
     } catch (error: any) {
-      console.error("handleDeleteTeam error:", error);
-      return { success: false, error: error.message || "Failed to delete team" };
+      console.error("handleDeleteTeam error:", `teamId ${teamId}`, error);
+      return {
+        success: false,
+        error: error.message || "Failed to delete team",
+      };
     }
   };
 
-  const handleFetchData = async (page: number, size: number, search: string, hasProject: string) => {
+  const handleFetchData = async (
+    page: number,
+    size: number,
+    search: string,
+    hasProject: string
+  ) => {
     "use server";
     try {
-      const teamsData = await fetchTeams(page, size, accessToken);
+      const teamsData = await fetchTeams(page, size);
       let teams = mapTeams(teamsData.content);
+
       if (search.trim()) {
         const s = search.toLowerCase();
         teams = teams.filter(
@@ -183,17 +295,19 @@ export default async function CompanyTeamsPage({
             t.members.some((m) => m.name.toLowerCase().includes(s))
         );
       }
+
       if (hasProject !== "all") {
         teams = teams.filter((t) =>
           hasProject === "with-project" ? t.project : !t.project
         );
       }
+
       return {
         teams,
         pagination: {
           currentPage: teamsData.number,
-          totalPages: Math.ceil(teams.length / size) || 1,
-          totalItems: teams.length,
+          totalPages: teamsData.totalPages,
+          totalItems: teamsData.totalElements,
           pageSize: size,
         },
       };
@@ -223,12 +337,14 @@ export default async function CompanyTeamsPage({
           pageSize: teamsData.size,
         }}
         availableProjects={availableProjects}
-        managerId={Number(userId)}
+        managerId={userId}
         onCreateTeam={handleCreateTeam}
         onAddMember={handleAddMember}
-        onAddMemberByEmail={handleAddMemberByEmail}
+        onSearchUsers={handleSearchUsers}
+        onSearchProjects={handleSearchProjects}
         onRemoveMember={handleRemoveMember}
         onAssignProject={handleAssignProject}
+        onRemoveProject={handleRemoveProject}
         onDeleteTeam={handleDeleteTeam}
         onFetchData={handleFetchData}
       />

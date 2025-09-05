@@ -26,6 +26,7 @@ import {
   X,
   Search,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -113,6 +114,8 @@ export default function LeaveClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [leaves, setLeaves] = useState<LeaveRequest[]>(initialLeaves);
+  const [currentStatusCounts, setCurrentStatusCounts] =
+    useState<StatusCounts>(statusCounts);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     leaveType: "",
@@ -126,6 +129,10 @@ export default function LeaveClient({
     initialStatus || "all"
   );
   const [typeFilter, setTypeFilter] = useState<string>(initialType || "all");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // Initialize current page from URL `page` param when available, otherwise fall back to server-provided pagination
   const getInitialPage = () => {
     try {
@@ -161,12 +168,13 @@ export default function LeaveClient({
   // Update leaves when initialLeaves change
   useEffect(() => {
     setLeaves(initialLeaves);
+    setCurrentStatusCounts(statusCounts);
     // If there is no explicit `page` param in the URL, ensure we reflect the server pagination
     const pageParam = searchParams?.get("page");
     if (!pageParam) {
       setCurrentPage(pagination.currentPage);
     }
-  }, [initialLeaves, pagination.currentPage]);
+  }, [initialLeaves, pagination.currentPage, statusCounts]);
 
   // Keep local pageSize in sync when the URL query `size` param changes
   useEffect(() => {
@@ -211,6 +219,8 @@ export default function LeaveClient({
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     try {
       const fromDate = new Date(form.fromDate);
       const toDate = new Date(form.toDate);
@@ -221,6 +231,7 @@ export default function LeaveClient({
           description: "End date must be after start date",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -239,7 +250,18 @@ export default function LeaveClient({
         throw new Error(response.error);
       }
 
-      setLeaves([response.data!, ...leaves]);
+      // Update local state with the new leave request
+      if (response.data) {
+        setLeaves([response.data, ...leaves]);
+
+        // Update status counts
+        setCurrentStatusCounts({
+          ...currentStatusCounts,
+          total: (currentStatusCounts.total || 0) + 1,
+          pending: (currentStatusCounts.pending || 0) + 1,
+        });
+      }
+
       setDialogOpen(false);
       setForm({
         leaveType: "",
@@ -248,6 +270,7 @@ export default function LeaveClient({
         reason: "",
         receiverID: 3,
       });
+
       toast({
         title: "Success",
         description: "Leave request submitted successfully",
@@ -258,16 +281,37 @@ export default function LeaveClient({
         description: error.message || "Failed to submit leave request",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (leaveId: number) => {
+    setIsDeleting(leaveId);
     try {
       const response = await onDeleteLeave(leaveId);
       if (!response.success) {
         throw new Error(response.error);
       }
+
+      // Update local state by removing the deleted leave
+      const deletedLeave = leaves.find((leave) => leave.leaveId === leaveId);
       setLeaves(leaves.filter((leave) => leave.leaveId !== leaveId));
+
+      // Update status counts
+      if (deletedLeave) {
+        setCurrentStatusCounts({
+          ...currentStatusCounts,
+          total: (currentStatusCounts.total || 1) - 1,
+          [deletedLeave.leaveStatus?.toLowerCase() || "pending"]: Math.max(
+            0,
+            ((currentStatusCounts[
+              deletedLeave.leaveStatus?.toLowerCase() as keyof StatusCounts
+            ] as number) || 1) - 1
+          ),
+        });
+      }
+
       toast({
         title: "Success",
         description: "Leave request deleted successfully",
@@ -278,6 +322,8 @@ export default function LeaveClient({
         description: error.message || "Failed to delete leave request",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -503,14 +549,23 @@ export default function LeaveClient({
                 <Button
                   type="submit"
                   className="bg-black text-white hover:bg-gray-900 px-6"
+                  disabled={isSubmitting}
                 >
-                  Submit
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit"
+                  )}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   className="border-black text-black px-6"
                   onClick={() => setDialogOpen(false)}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
@@ -529,7 +584,9 @@ export default function LeaveClient({
                 <p className="text-sm font-medium text-gray-600">
                   Total Requests
                 </p>
-                <p className="text-2xl font-bold">{statusCounts.total || 0}</p>
+                <p className="text-2xl font-bold">
+                  {currentStatusCounts.total || 0}
+                </p>
               </div>
               <Calendar className="h-8 w-8 text-blue-600" />
             </div>
@@ -541,7 +598,7 @@ export default function LeaveClient({
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {statusCounts.pending || 0}
+                  {currentStatusCounts.pending || 0}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-yellow-600" />
@@ -554,7 +611,7 @@ export default function LeaveClient({
               <div>
                 <p className="text-sm font-medium text-gray-600">Approved</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {statusCounts.approved || 0}
+                  {currentStatusCounts.approved || 0}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -567,7 +624,7 @@ export default function LeaveClient({
               <div>
                 <p className="text-sm font-medium text-gray-600">Rejected</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {statusCounts.rejected || 0}
+                  {currentStatusCounts.rejected || 0}
                 </p>
               </div>
               <X className="h-8 w-8 text-red-600" />
@@ -575,57 +632,6 @@ export default function LeaveClient({
           </CardContent>
         </Card>
       </div>
-
-      {/* Search and Filter */}
-      <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by leave reason..."
-                  className="pl-10 rounded-md bg-white border border-gray-200 w-full"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-            {/* <div className="flex gap-4">
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value)}
-              >
-                <SelectTrigger className="min-w-[140px] border border-gray-200 bg-white text-gray-700 rounded-md">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={typeFilter}
-                onValueChange={(value) => setTypeFilter(value)}
-              >
-                <SelectTrigger className="min-w-[140px] border border-gray-200 bg-white text-gray-700 rounded-md">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Annual">Annual</SelectItem>
-                  <SelectItem value="Sick">Sick</SelectItem>
-                  <SelectItem value="Personal">Personal</SelectItem>
-                  <SelectItem value="Vacation">Vacation</SelectItem>
-                  <SelectItem value="Study">Study</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Leave Requests List */}
       <div className="space-y-4">
@@ -702,8 +708,13 @@ export default function LeaveClient({
                         size="sm"
                         className="text-red-600 hover:text-red-800"
                         onClick={() => handleDelete(request.leaveId)}
+                        disabled={isDeleting === request.leaveId}
                       >
-                        <Trash2 className="h-5 w-5" />
+                        {isDeleting === request.leaveId ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-5 w-5" />
+                        )}
                       </Button>
                     )}
                   </div>

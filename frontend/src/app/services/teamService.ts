@@ -1,172 +1,208 @@
+import { messageApi, projectApi } from "@/api/axios";
 import { cookies } from "next/headers";
-import { projectApi, messageApi } from "@/api/axios";
 
-interface PagedResponse<T> {
-  content: T[];
-  number: number;
-  totalPages: number;
-  totalElements: number;
-  size: number;
+export interface TeamMember {
+  id: number;
+  teamId: number;
+  memberId: number;
+  role: string;
+  joinedAt: string;
+  fullName?: string;
 }
 
-interface ProjectResponse {
+export interface Team {
+  id: number;
+  projectId: number | null;
+  name: string;
+  managerId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Project {
   id: number;
   name: string;
+  description: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  budget: number;
+  technologies: string[];
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface MemberResponse {
+export interface TeamResponseItem {
+  project: Project | null;
+  teams: Team;
+  teamMembers: TeamMember[];
+}
+
+export interface PagedResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      sorted: boolean;
+      empty: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface UserSearchResult {
   id: number;
-  fullName: string;
+  firstName: string;
+  lastName: string;
+  fieldOfStudy: string;
+  university: string;
+  status: string;
+  role: string;
 }
 
-interface TeamResponseItem {
-  teams: { id: number; name: string };
-  project: { id: number; name: string } | null;
-  teamMembers: { id: number; memberId: number; role: string; fullName?: string }[];
+export interface CreateTeamRequest {
+  name: string;
+  managerId: number;
+  projectId?: number | null;
+  members?: Record<string, string>;
 }
 
-interface AddMemberByEmailResponse {
-  userId: number;
-  fullName: string;
+export interface AddMemberRequest {
+  teamId: number;
+  memberId: number;
+  role: string;
 }
 
-export const addMemberByEmail = async (email: string, accessToken: string): Promise<AddMemberByEmailResponse> => {
+// Get access token helper
+const getAccessToken = async (): Promise<string> => {
+  const accessToken = (await cookies()).get("access_token")?.value;
+  if (!accessToken) {
+    throw new Error("Access token is missing");
+  }
+  return accessToken;
+};
+
+// Fetch teams with pagination
+export const fetchTeams = async (
+  page: number = 0,
+  size: number = 20
+): Promise<PagedResponse<TeamResponseItem>> => {
+  const accessToken = await getAccessToken();
+
   try {
-    const response = await messageApi.post<AddMemberByEmailResponse>(
-      "/users/by-email",
-      { email },
+    const response = await projectApi.get<PagedResponse<TeamResponseItem>>(
+      "/projects/teams",
       {
+        params: { page, size },
         headers: {
           Cookie: `access_token=${accessToken}`,
         },
+        withCredentials: true,
       }
     );
     return response.data;
-  } catch (error: any) {
-    console.error("Failed to add member by email:", error);
-    if (error.response?.status === 403) {
-      throw new Error("Unauthorized access. Please log in again.");
-    }
-    if (error.response?.status === 404) {
-      throw new Error("User with this email not found");
-    }
-    throw new Error(error.response?.data?.message || "Failed to add member by email");
-  }
-};
-
-export const fetchProjects = async (
-  page: number = 0,
-  size: number = 100,
-  accessToken: string
-): Promise<PagedResponse<ProjectResponse>> => {
-  try {
-    const response = await projectApi.get<PagedResponse<any>>("/projects", {
-      params: { page, size },
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-    });
-    const content = response.data.content
-      .filter((p: any) => p != null && p.id != null)
-      .map((p: any, index: number) => ({
-        id: p.id || index + 1,
-        name: p.name || `Project ${p.id || index + 1}`,
-      }));
-    return {
-      content,
-      number: response.data.number ?? page,
-      totalPages: response.data.totalPages ?? 1,
-      totalElements: response.data.totalElements ?? content.length,
-      size: response.data.size ?? size,
-    };
-  } catch (error: any) {
-    console.error("Failed to fetch projects:", error);
-    if (error.response?.status === 403) {
-      throw new Error("Unauthorized access. Please log in again.");
-    }
-    return {
-      content: [],
-      number: page,
-      totalPages: 0,
-      totalElements: 0,
-      size: size,
-    };
-  }
-};
-
-export const fetchTeams = async (
-  page: number = 0,
-  size: number = 3,
-  accessToken: string
-): Promise<PagedResponse<TeamResponseItem>> => {
-  try {
-    const response = await projectApi.get<PagedResponse<TeamResponseItem>>("/projects/teams", {
-      params: { page, size },
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-    });
-    const content = response.data.content
-      .filter((t: any) => t != null && t.teams != null && t.teams.id != null)
-      .map((t: any) => ({
-        teams: {
-          id: t.teams?.id || 0,
-          name: t.teams?.name || "Unnamed Team",
-        },
-        project: t.project
-          ? {
-              id: t.project.id || 0,
-              name: t.project.name || `Project ${t.project.id || 'unknown'}`,
-            }
-          : null,
-        teamMembers: t.teamMembers?.map((tm: any) => ({
-          id: tm.id || 0,
-          memberId: tm.memberId || 0,
-          role: tm.role || "Unknown",
-          fullName: tm.fullName || `User ${tm.memberId || 'unknown'}`,
-        })) || [],
-      }));
-    return {
-      content,
-      number: response.data.number ?? page,
-      totalPages: response.data.totalPages ?? 1,
-      totalElements: response.data.totalElements ?? content.length,
-      size: response.data.size ?? size,
-    };
   } catch (error: any) {
     console.error("Failed to fetch teams:", error);
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
-    return {
-      content: [],
-      number: page,
-      totalPages: 0,
-      totalElements: 0,
-      size: size,
-    };
+    throw new Error(error.response?.data?.message || "Failed to fetch teams");
   }
 };
 
-export const createTeam = async (data: { name: string; projectId: number | null; memberEmail?: string; managerId: number }, accessToken: string) => {
+// Search projects
+export const searchProjects = async (
+  keyword: string,
+  page: number = 0,
+  size: number = 20
+): Promise<PagedResponse<Project>> => {
+  const accessToken = await getAccessToken();
+
   try {
-    const members: Record<string, string> = {};
-    if (data.memberEmail) {
-      const user = await addMemberByEmail(data.memberEmail, accessToken);
-      members[user.userId.toString()] = "Developer";
-    }
-    const response = await projectApi.post(
-      "/projects/teams",
+    const response = await projectApi.get<PagedResponse<Project>>(
+      "/projects/search",
       {
-        name: data.name,
-        projectId: data.projectId,
-        members,
-        managerId: data.managerId,
-      },
+        params: { keyword, page, size },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to search projects:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to search projects"
+    );
+  }
+};
+
+// Search users by name
+export const searchUsers = async (
+  name: string,
+  page: number = 0,
+  size: number = 10
+): Promise<PagedResponse<UserSearchResult>> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await messageApi.get<PagedResponse<UserSearchResult>>(
+      "/messages/users/search",
+      {
+        params: { name, page, size },
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to search users:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(error.response?.data?.message || "Failed to search users");
+  }
+};
+
+// Create team
+export const createTeam = async (
+  data: CreateTeamRequest
+): Promise<TeamResponseItem> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await projectApi.post<TeamResponseItem>(
+      "/projects/teams",
+      data,
       {
         headers: {
           Cookie: `access_token=${accessToken}`,
         },
+        withCredentials: true,
       }
     );
     return response.data;
@@ -179,19 +215,21 @@ export const createTeam = async (data: { name: string; projectId: number | null;
   }
 };
 
-export const addMember = async (data: { teamId: number; memberId: number; role: string }, accessToken: string) => {
+// Add member to team
+export const addMember = async (
+  data: AddMemberRequest
+): Promise<TeamMember[]> => {
+  const accessToken = await getAccessToken();
+
   try {
-    const response = await projectApi.post(
+    const response = await projectApi.post<TeamMember[]>(
       "/projects/teams/members",
-      {
-        teamId: data.teamId,
-        memberId: data.memberId,
-        role: data.role,
-      },
+      data,
       {
         headers: {
           Cookie: `access_token=${accessToken}`,
         },
+        withCredentials: true,
       }
     );
     return response.data;
@@ -204,35 +242,48 @@ export const addMember = async (data: { teamId: number; memberId: number; role: 
   }
 };
 
-export const removeMember = async (teamMemberId: number, accessToken: string) => {
+// Remove member from team
+export const removeMember = async (
+  teamMemberId: number
+): Promise<{ message: string }> => {
+  const accessToken = await getAccessToken();
+
   try {
-    const response = await projectApi.delete(`/projects/teams/members/${teamMemberId}`, {
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-    });
+    const response = await projectApi.delete<{ message: string }>(
+      `/projects/teams/members/${teamMemberId}`,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error: any) {
     console.error("Failed to remove member:", error);
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
-    if (error.response?.status === 400) {
-      throw new Error(error.response?.data?.message || "Invalid request to remove member");
-    }
     throw new Error(error.response?.data?.message || "Failed to remove member");
   }
 };
 
-export const assignProject = async (teamId: number, projectId: number, accessToken: string) => {
+// Assign project to team
+export const assignProject = async (
+  teamId: number,
+  projectId: number
+): Promise<TeamResponseItem> => {
+  const accessToken = await getAccessToken();
+
   try {
-    const response = await projectApi.patch(
+    const response = await projectApi.patch<TeamResponseItem>(
       `/projects/teams/${teamId}/assign-project/${projectId}`,
       {},
       {
         headers: {
           Cookie: `access_token=${accessToken}`,
         },
+        withCredentials: true,
       }
     );
     return response.data;
@@ -241,17 +292,57 @@ export const assignProject = async (teamId: number, projectId: number, accessTok
     if (error.response?.status === 403) {
       throw new Error("Unauthorized access. Please log in again.");
     }
-    throw new Error(error.response?.data?.message || "Failed to assign project");
+    throw new Error(
+      error.response?.data?.message || "Failed to assign project"
+    );
   }
 };
 
-export const deleteTeam = async (teamId: number, accessToken: string) => {
+// Remove project from team
+export const removeProjectFromTeam = async (
+  teamId: number
+): Promise<TeamResponseItem> => {
+  const accessToken = await getAccessToken();
+
   try {
-    const response = await projectApi.delete(`/teams/${teamId}`, {
-      headers: {
-        Cookie: `access_token=${accessToken}`,
-      },
-    });
+    const response = await projectApi.patch<TeamResponseItem>(
+      `/projects/teams/${teamId}/remove-project`,
+      {},
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to remove project:", error);
+    if (error.response?.status === 403) {
+      throw new Error("Unauthorized access. Please log in again.");
+    }
+    throw new Error(
+      error.response?.data?.message || "Failed to remove project"
+    );
+  }
+};
+
+// Delete team
+export const deleteTeam = async (
+  teamId: number
+): Promise<{ message: string }> => {
+  const accessToken = await getAccessToken();
+
+  try {
+    const response = await projectApi.delete<{ message: string }>(
+      `/projects/teams/${teamId}`,
+      {
+        headers: {
+          Cookie: `access_token=${accessToken}`,
+        },
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error: any) {
     console.error("Failed to delete team:", error);

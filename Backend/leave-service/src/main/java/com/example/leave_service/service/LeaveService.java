@@ -1,13 +1,18 @@
 package com.example.leave_service.service;
 
 import com.example.leave_service.client.ActivityGrpcClient;
+import com.example.leave_service.client.UserGrpcClient;
 import com.example.leave_service.dto.LeaveRequest;
 import com.example.leave_service.dto.LeaveResponse;
+import com.example.leave_service.dto.LeaveResult;
 import com.example.leave_service.model.Leave;
 import com.example.leave_service.model.LeaveStatus;
 import com.example.leave_service.model.User;
 import com.example.leave_service.repository.InternManagerReposInterface;
 import com.example.leave_service.repository.LeaveReposInterface;
+import com.example.userservice.gRPC.UserResponse;
+import com.example.userservice.gRPC.UsersResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,15 +27,18 @@ public class LeaveService {
     private final LeaveReposInterface leaveRepository;
     private final InternManagerReposInterface internManagerRepos;
     private final ActivityGrpcClient activityGrpcClient;
+    private final UserGrpcClient userGrpcClient;
 
 
     @Autowired
     public LeaveService(LeaveReposInterface leaveRepository,
                         InternManagerReposInterface internManagerRepos,
-                        ActivityGrpcClient activityGrpcClient) {
+                        ActivityGrpcClient activityGrpcClient,
+                        UserGrpcClient userGrpcClient) {
         this.leaveRepository = leaveRepository;
         this.internManagerRepos = internManagerRepos;
         this.activityGrpcClient = activityGrpcClient;
+        this.userGrpcClient = userGrpcClient;
     }
 
     // Create a leave
@@ -100,30 +108,106 @@ public class LeaveService {
 
 
     // Search leaves by type and/or reason
-    public Page<LeaveResponse> searchLeaves(String leaveType, String reason, Pageable pageable) {
+    public Page<LeaveResult> searchLeaves(String jwtToken,String leaveType, String reason, Pageable pageable) {
         Page<Leave> leavesPage = leaveRepository.searchLeaves(leaveType, reason, pageable);
-        return leavesPage.map(this::mapToResponse);
+        //collect user ids into a list
+        List<Long> userIds = leavesPage.getContent().stream()
+                .map(leave -> leave.getUser().getId())
+                .distinct()
+                .toList();  
+        
+        //get all users from userGrpc service
+        UsersResponse response = userGrpcClient.getAllUsers(jwtToken, userIds); 
+        Map<Long, UserResponse> userMap = new HashMap<>();
+        if (response != null) {
+            for (UserResponse user : response.getUsersList()) {
+                userMap.put(user.getUserId(), user);
+            }
+        }
+
+        //map leaves to LeaveResult including user details
+        Page<LeaveResult> resultPage = leavesPage.map(leave -> {
+            UserResponse user = userMap.get(leave.getUser().getId());
+            return mapToLeaveResult(leave, user);
+        });
+        return resultPage;
     }
 
-    public Page<LeaveResponse> searchLeaves(Long userID,String leaveType, String reason,Pageable pageable) {
+    public Page<LeaveResult> searchLeavesForManager(String jwtToken,Long userID,String leaveType, String reason,Pageable pageable) {
         Page<Leave> leavesPage = leaveRepository.searchLeaves(userID,leaveType, reason, pageable);
-        return leavesPage.map(this::mapToResponse);
+
+        List<Long> userIds = leavesPage.getContent().stream()
+                .map(leave -> leave.getUser().getId())
+                .distinct()
+                .toList();
+                
+        System.out.println("User IDs: " + userIds); // Debugging line
+        
+        //get all users from userGrpc service
+        UsersResponse response = userGrpcClient.getAllUsers(jwtToken, userIds); 
+        Map<Long, UserResponse> userMap = new HashMap<>();
+        if (response != null) {
+            for (UserResponse user : response.getUsersList()) {
+                userMap.put(user.getUserId(), user);
+            }
+        }
+
+        //map leaves to LeaveResult including user details
+        Page<LeaveResult> resultPage = leavesPage.map(leave -> {
+            UserResponse user = userMap.get(leave.getUser().getId());
+            return mapToLeaveResult(leave, user);
+        });
+        return resultPage;
     }
 
     // Filter leaves by type and status
-    public Page<LeaveResponse> filterLeavesByTypeAndStatus(String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
+    public Page<LeaveResult> filterLeavesByTypeAndStatus(String jwtToken,String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
         Page<Leave> leavesPage = leaveRepository.filterLeavesByTypeAndStatus(leaveType, leaveStatus, pageable);
-        Page<LeaveResponse> responsePage = leavesPage.map(this::mapToResponse);
+        List<Long> userIds = leavesPage.getContent().stream()
+                .map(leave -> leave.getUser().getId())
+                .distinct()
+                .toList();  
+        
+        //get all users from userGrpc service
+        UsersResponse response = userGrpcClient.getAllUsers(jwtToken, userIds); 
+        Map<Long, UserResponse> userMap = new HashMap<>();
+        if (response != null) {
+            for (UserResponse user : response.getUsersList()) {
+                userMap.put(user.getUserId(), user);
+            }
+        }
 
-        return responsePage;
+        //map leaves to LeaveResult including user details
+        Page<LeaveResult> resultPage = leavesPage.map(leave -> {
+            UserResponse user = userMap.get(leave.getUser().getId());
+            return mapToLeaveResult(leave, user);
+        });
+        return resultPage;
     }
 
-    public Page<LeaveResponse> filterLeavesByTypeAndStatus(Long receiverId, String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
+    public Page<LeaveResult> filterLeavesByTypeAndStatus(String jwtToken,Long receiverId, String leaveType, LeaveStatus leaveStatus, Pageable pageable) {
 
         Page<Leave> leavesPage = leaveRepository.filterLeavesByTypeAndStatus(receiverId, leaveType, leaveStatus, pageable);
-        Page<LeaveResponse> responsePage = leavesPage.map(this::mapToResponse);
+        List<Long> userIds = leavesPage.getContent().stream()
+                .map(leave -> leave.getUser().getId())
+                .distinct()
+                .toList();  
+        
+        //get all users from userGrpc service
+        UsersResponse response = userGrpcClient.getAllUsers(jwtToken, userIds); 
+        Map<Long, UserResponse> userMap = new HashMap<>();
+        if (response != null) {
+            for (UserResponse user : response.getUsersList()) {
+                userMap.put(user.getUserId(), user);
+            }
+        }
 
-        return responsePage;
+        //map leaves to LeaveResult including user details
+        Page<LeaveResult> resultPage = leavesPage.map(leave -> {
+            UserResponse user = userMap.get(leave.getUser().getId());
+            return mapToLeaveResult(leave, user);
+        });
+        return resultPage;
     }
 
 
@@ -182,15 +266,59 @@ public class LeaveService {
     }
 
     //get leaves by recevier id 
-    public Page<LeaveResponse> getLeavesByManager(Long userId, Pageable pageable) {
+    public Page<LeaveResult> getLeavesByManager(String jwtToken,Long userId, Pageable pageable) {
         Page<Leave> leavesPage = leaveRepository.findByReceiverId(userId, pageable);
-        return leavesPage.map(this::mapToResponse);
+
+        //collect user ids into a list
+        List<Long> userIds = leavesPage.getContent().stream()
+                .map(leave -> leave.getUser().getId())
+                .distinct()
+                .toList();
+
+        //get all users from userGrpc service 
+        UsersResponse response = userGrpcClient.getAllUsers(jwtToken, userIds);
+
+        Map<Long, UserResponse> userMap = new HashMap<>();
+        if (response != null) {
+            for (UserResponse user : response.getUsersList()) {
+                userMap.put(user.getUserId(), user);
+            }
+        }
+
+        //map leaves to LeaveResult including user details
+        Page<LeaveResult> resultPage = leavesPage.map(leave -> {
+            UserResponse user = userMap.get(leave.getUser().getId());
+            return mapToLeaveResult(leave, user);
+        });
+
+        return resultPage;
     }
 
     //get all leaves
-    public Page<LeaveResponse> getAllLeaves(Pageable pageable) {
+    public Page<LeaveResult> getAllLeaves(String jwtToken,Pageable pageable) {
         Page<Leave> leavesPage = leaveRepository.getAllLeaves(pageable);
-        return leavesPage.map(this::mapToResponse);
+        
+        //collect user ids into a list
+        List<Long> userIds = leavesPage.getContent().stream()
+                .map(leave -> leave.getUser().getId())
+                .distinct()
+                .toList();  
+        
+        //get all users from userGrpc service
+        UsersResponse response = userGrpcClient.getAllUsers(jwtToken , userIds); 
+        Map<Long, UserResponse> userMap = new HashMap<>();
+        if (response != null) {
+            for (UserResponse user : response.getUsersList()) {
+                userMap.put(user.getUserId(), user);
+            }
+        }
+
+        //map leaves to LeaveResult including user details
+        Page<LeaveResult> resultPage = leavesPage.map(leave -> {
+            UserResponse user = userMap.get(leave.getUser().getId());
+            return mapToLeaveResult(leave, user);
+        });
+        return resultPage;
     }
 
     
@@ -216,6 +344,24 @@ public class LeaveService {
         response.setLeaveStatus(leave.getLeaveStatus());
         response.setReceiverID(leave.getReceiver().getId());
         response.setCreatedAt(leave.getCreatedAt());
+        return response;
+    }
+
+    private LeaveResult mapToLeaveResult(Leave leave,UserResponse user) {
+        LeaveResult response = new LeaveResult();
+        response.setLeaveId(leave.getLeaveId());
+        response.setUserId(leave.getUser() != null ? leave.getUser().getId() : null);
+        response.setLeaveType(leave.getLeaveType());
+        response.setFromDate(leave.getFromDate());
+        response.setToDate(leave.getToDate());
+        response.setReason(leave.getReason());
+        response.setLeaveStatus(leave.getLeaveStatus());
+        response.setReceiverID(leave.getReceiver().getId());
+        response.setCreatedAt(leave.getCreatedAt());
+        response.setFristName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setUniversity(user.getUniversity());
+        response.setFeildOfStudy(user.getFieldOfStudy());
         return response;
     }
 }

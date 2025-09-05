@@ -1,10 +1,15 @@
-// app/dashboard/company/page.tsx
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { User } from "@/types/entities";
 import { api } from "@/api/axios";
 import DashboardLayout from "@/app/layout/dashboard-layout";
-import CompanyDashboardClient from "./companyDashboardClient";
+import CompanyDashboardClient from "./DashboardClient";
+import {
+  fetchCompanyDashboardV1,
+  fetchCompanyDashboardV2,
+  RecentActivity,
+  Task,
+} from "@/app/services/companyDashboardService";
 
 async function getUser(): Promise<User> {
   const accessToken = (await cookies()).get("access_token")?.value;
@@ -13,7 +18,7 @@ async function getUser(): Promise<User> {
   if (!accessToken || !userId) {
     redirect("/login");
   }
-  
+
   try {
     const response = await api.get<User>(`/users/me`, {
       headers: {
@@ -30,93 +35,118 @@ async function getUser(): Promise<User> {
 async function getDashboardData() {
   const accessToken = (await cookies()).get("access_token")?.value;
 
+  if (!accessToken) {
+    redirect("/login");
+  }
+
   try {
-    const [companyStats, recentActivity, tasks, topInterns] = await Promise.all([
-      api.get("/company/dashboard/stats", {
-        headers: { Cookie: `access_token=${accessToken}` },
-        withCredentials: true,
-      }),
-      api.get("/company/notifications", {
-        headers: { Cookie: `access_token=${accessToken}` },
-        withCredentials: true,
-      }),
-      api.get("/company/tasks/upcoming", {
-        headers: { Cookie: `access_token=${accessToken}` },
-        withCredentials: true,
-      }),
-      api.get("/company/interns/top", {
-        headers: { Cookie: `access_token=${accessToken}` },
-        withCredentials: true,
-      }),
+    const [dashboardV1, dashboardV2] = await Promise.all([
+      fetchCompanyDashboardV1(),
+      fetchCompanyDashboardV2(),
     ]);
 
+    // Transform the API data to match the expected format
+    const stats = {
+      applications: dashboardV1.Application,
+      activeInterns: dashboardV1.ActiveIntern,
+      activeProjects: dashboardV1.project,
+      pendingReports: dashboardV1.report,
+    };
+
+    const recentActivity: RecentActivity[] = dashboardV1.recentActivities;
+
+    // const upcomingTasks = [
+    //   {
+    //     id: 1,
+    //     task: dashboardV1.tasks.tasksForApps.description,
+    //     count: dashboardV1.tasks.tasksForApps.totalPending,
+    //     priority:
+    //       dashboardV1.tasks.tasksForApps.priority === "coming soon"
+    //         ? "medium"
+    //         : "high",
+    //   },
+    //   {
+    //     id: 2,
+    //     task: dashboardV1.tasks.tasksForReports.description,
+    //     count: dashboardV1.tasks.tasksForReports.totalPending,
+    //     priority:
+    //       dashboardV1.tasks.tasksForReports.priority === "coming soon"
+    //         ? "medium"
+    //         : "high",
+    //   },
+    // ];
+
+    const topInterns = dashboardV2.map((intern, index) => ({
+      id: intern.user.id,
+      name: `${intern.user.firstName} ${intern.user.lastName}`,
+      position: intern.user.fieldOfStudy || "Intern",
+      progress:
+        intern.milestoneStats.total > 0
+          ? Math.round(
+              (intern.milestoneStats.completed / intern.milestoneStats.total) *
+                100
+            )
+          : 0,
+      rating: intern.rating,
+      university: intern.user.university,
+    }));
+
     return {
-      stats: companyStats.data,
-      recentActivity: recentActivity.data,
-      upcomingTasks: tasks.data,
-      topInterns: topInterns.data,
+      stats,
+      recentActivity,
+      // upcomingTasks,
+      topInterns,
     };
   } catch (error) {
+    console.error("Failed to fetch dashboard data:", error);
+
     // Fallback to mock data if API fails
     return {
       stats: {
-        applications: 8,
-        activeInterns: 5,
-        activeProjects: 3,
-        pendingReports: 2,
+        applications: 25,
+        activeInterns: 14,
+        activeProjects: 5,
+        pendingReports: 10,
       },
       recentActivity: [
         {
-          id: 1,
-          type: "application",
-          message: "New application from Marie Dubois for Software Developer position",
-          time: "1 hour ago",
+          id: 52,
+          userId: 3,
+          title: "Project created",
+          description: "Project Duressa created successfully.",
+          createdAt: "2025-08-14T22:50:10.005735",
         },
         {
-          id: 2,
-          type: "report",
-          message: "Weekly report submitted by John Smith",
-          time: "3 hours ago",
-        },
-        {
-          id: 3,
-          type: "intern",
-          message: "Alice Brown started her internship today",
-          time: "1 day ago",
-        },
-        {
-          id: 4,
-          type: "project",
-          message: "E-commerce Platform project milestone completed",
-          time: "2 days ago",
+          id: 48,
+          userId: 3,
+          title: "ADD_TEAM_MEMBER",
+          description:
+            "Member with ID 3 added to team 'Backend Team' with role 'Developer'.",
+          createdAt: "2025-08-12T11:17:41.051915",
         },
       ],
-      upcomingTasks: [
-        { id: 1, task: "Review pending applications", count: 3, priority: "high" },
-        { id: 2, task: "Evaluate weekly reports", count: 2, priority: "medium" },
-        { id: 3, task: "Schedule mentor meetings", count: 1, priority: "low" },
-      ],
+      //   upcomingTasks: [
+      //     {
+      //       id: 1,
+      //       task: "Review pending applications",
+      //       count: 10,
+      //       priority: "medium",
+      //     },
+      //     {
+      //       id: 2,
+      //       task: "Evaluate weekly reports",
+      //       count: 10,
+      //       priority: "medium",
+      //     },
+      //   ],
       topInterns: [
         {
-          id: 1,
-          name: "John Smith",
-          position: "Software Developer",
-          progress: 85,
-          rating: 4.8,
-        },
-        {
-          id: 2,
-          name: "Alice Brown",
-          position: "Data Analyst",
-          progress: 78,
-          rating: 4.6,
-        },
-        {
-          id: 3,
-          name: "Mike Johnson",
-          position: "UI/UX Designer",
-          progress: 92,
-          rating: 4.9,
+          id: 7,
+          name: "John Doe",
+          position: "Computer Science",
+          progress: 0, // No milestones completed
+          rating: 4.0,
+          university: "ASTU",
         },
       ],
     };
@@ -125,8 +155,7 @@ async function getDashboardData() {
 
 export default async function CompanyDashboardPage() {
   const user = await getUser();
-  const { stats, recentActivity, upcomingTasks, topInterns } = await getDashboardData();
-  console.log("User Data:", user);
+  const { stats, recentActivity, topInterns } = await getDashboardData();
 
   return (
     <DashboardLayout requiredRole="company">
@@ -134,7 +163,7 @@ export default async function CompanyDashboardPage() {
         user={user}
         stats={stats}
         recentActivity={recentActivity}
-        upcomingTasks={upcomingTasks}
+        // upcomingTasks={upcomingTasks}
         topInterns={topInterns}
       />
     </DashboardLayout>

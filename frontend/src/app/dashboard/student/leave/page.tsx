@@ -44,13 +44,7 @@ export default async function LeavesPage({
 
   // Fetch leaves with search and filter params
   const [leavesData, statusCountsData] = await Promise.all([
-    fetchLeaves(
-      page,
-      size,
-      search || undefined,
-      status || undefined,
-      type || undefined
-    ),
+    fetchLeaves(page, size),
     fetchStatusCounts(),
   ]);
 

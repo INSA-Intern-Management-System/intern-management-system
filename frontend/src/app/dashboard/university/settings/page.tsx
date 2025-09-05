@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
-import ProfileClient from "./ProfileClient";
+import HRPMClient from "./ProfileClient";
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -19,7 +19,7 @@ async function getUser() {
   return { userId: Number(userId) };
 }
 
-export default async function ProfilePage() {
+export default async function HRPMPage() {
   const { userId } = await getUser();
 
   // Fetch user profile
@@ -41,7 +41,7 @@ export default async function ProfilePage() {
 
   return (
     <DashboardLayout requiredRole="university">
-      <ProfileClient
+      <HRPMClient
         initialProfile={userProfile}
         onUpdateProfile={handleUpdateProfile}
       />

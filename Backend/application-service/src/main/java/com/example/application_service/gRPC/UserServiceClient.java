@@ -22,9 +22,10 @@ public class UserServiceClient {
     }
 
     public CreateUserResponse registerUser(CreateUserRequest request, String jwtToken) {
+
         // Create metadata with a custom key for the token
         Metadata metadata = new Metadata();
-        Metadata.Key<String> cookieTokenKey = Metadata.Key.of("access-token", Metadata.ASCII_STRING_MARSHALLER);
+        Metadata.Key<String> cookieTokenKey = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
         metadata.put(cookieTokenKey, jwtToken.trim());
 
         // Attach metadata to stub
@@ -34,7 +35,7 @@ public class UserServiceClient {
     }
     public MaxInternResponse getMaxIntern(MaxInternRequest request, String jwtToken){
         Metadata metadata = new Metadata();
-        Metadata.Key<String> cookieTokenKey = Metadata.Key.of("access-token", Metadata.ASCII_STRING_MARSHALLER);
+        Metadata.Key<String> cookieTokenKey = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
         metadata.put(cookieTokenKey, jwtToken.trim());
 
         // Attach metadata to stub

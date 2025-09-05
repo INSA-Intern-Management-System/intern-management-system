@@ -28,6 +28,7 @@ public class GrpcClientConfig {
     @Value("${grpc.server.user-port}")
     private int user_port;
 
+
     @Bean
     public ActivityGrpcClient activityGrpcClient() {
         return new ActivityGrpcClient(activity_host, activity_port);

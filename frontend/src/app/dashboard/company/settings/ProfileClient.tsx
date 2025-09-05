@@ -20,40 +20,46 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import {
   UserProfile,
   UpdateProfileRequest,
 } from "@/app/services/profileService";
 import {
-  User,
   Mail,
   Phone,
   MapPin,
   Building,
-  BookOpen,
+  Users,
   Linkedin,
-  Github,
-  FileText,
   Calendar,
   Shield,
   BadgeCheck,
+  FileText,
+  Target,
+  BookOpen,
+  GitBranch,
+  Bell,
 } from "lucide-react";
 
-interface ProfileClientProps {
+interface HRPMClientProps {
   initialProfile: UserProfile;
   onUpdateProfile: (
     profileData: UpdateProfileRequest
   ) => Promise<{ success: boolean; data?: UserProfile; error?: string }>;
 }
 
-export default function ProfileClient({
+export default function HRPMClient({
   initialProfile,
   onUpdateProfile,
-}: ProfileClientProps) {
+}: HRPMClientProps) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isHR = profile.roles.name.toLowerCase() === 'hr_manager';
+  const isPM = profile.roles.name.toLowerCase() === 'project_manager';
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -64,6 +70,10 @@ export default function ProfileClient({
 
   const handleSelectChange = (name: string, value: string) => {
     setProfile((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSwitchChange = (name: string, checked: boolean) => {
+    setProfile((prev) => ({ ...prev, [name]: checked }));
   };
 
   const handleSaveProfile = async () => {
@@ -81,6 +91,7 @@ export default function ProfileClient({
         linkedInUrl: profile.linkedInUrl || undefined,
         githubUrl: profile.githubUrl || undefined,
         cvUrl: profile.cvUrl || undefined,
+        notifyEmail: profile.notifyEmail !== null ? profile.notifyEmail : undefined,
       };
 
       const response = await onUpdateProfile(updateData);
@@ -106,10 +117,8 @@ export default function ProfileClient({
     }
   };
 
-  const getInitials = (firstName?: string, lastName?: string) => {
-    const first = firstName?.charAt(0) ?? "";
-    const last = lastName?.charAt(0) ?? "";
-    return `${first}${last}`.toUpperCase() || "U";
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   const formatDate = (dateString: string) => {
@@ -125,9 +134,11 @@ export default function ProfileClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isHR ? "HR Manager" : "Project Manager"} Profile
+          </h1>
           <p className="text-gray-600">
-            Manage your personal information and profile details
+            Manage your professional information and details
           </p>
         </div>
         {!isEditing ? (
@@ -191,48 +202,87 @@ export default function ProfileClient({
                     <Calendar className="h-4 w-4" />
                     <span>Joined {formatDate(profile.createdAt)}</span>
                   </div>
+                  {isHR && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span>HR Management Specialist</span>
+                    </div>
+                  )}
+                  {isPM && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Target className="h-4 w-4" />
+                      <span>Project Management Professional</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Supervisor Info */}
-          {profile.supervisor && (
-            <Card className="border border-gray-200 rounded-lg bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg">Supervisor</CardTitle>
-                <CardDescription>Your assigned supervisor</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">
-                        {profile.supervisor.firstName}{" "}
-                        {profile.supervisor.lastName}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {profile.supervisor.email}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <BookOpen className="h-4 w-4" />
-                      <span>{profile.supervisor.fieldOfStudy}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Building className="h-4 w-4" />
-                      <span>{profile.supervisor.institution}</span>
-                    </div>
-                  </div>
+          {/* Notification Settings */}
+          <Card className="border border-gray-200 rounded-lg bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notification Settings
+              </CardTitle>
+              <CardDescription>
+                Manage your email notification preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="notifyEmail" className="text-base">
+                    Email Notifications
+                  </Label>
+                  <p className="text-sm text-gray-500">
+                    Receive important updates via email
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+<Switch
+  id="notifyEmail"
+  checked={profile.notifyEmail === true}
+  onCheckedChange={(checked) => handleSwitchChange("notifyEmail", checked)}
+  disabled={!isEditing}
+  className="data-[state=checked]:bg-blue-500 data-[state=checked]:hover:bg-blue-600"
+/>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Role Specific Information */}
+          {/* <Card className="border border-gray-200 rounded-lg bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Crown className="h-5 w-5" />
+                {isHR ? "HR Manager" : "Project Manager"} Details
+              </CardTitle>
+              <CardDescription>
+                Your professional role information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Role</h4>
+                  <p className="text-sm text-gray-600">{profile.roles.displayName}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Institution/Company</h4>
+                  <p className="text-sm text-gray-600">{profile.institution}</p>
+                </div>
+                {profile.fieldOfStudy && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">
+                      {isHR ? "Specialization" : "Field of Expertise"}
+                    </h4>
+                    <p className="text-sm text-gray-600">{profile.fieldOfStudy}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card> */}
         </div>
 
         {/* Main Profile Content */}
@@ -341,12 +391,12 @@ export default function ProfileClient({
             </CardContent>
           </Card>
 
-          {/* Academic Information */}
+          {/* Professional Information */}
           <Card className="border border-gray-200 rounded-lg bg-white">
             <CardHeader>
-              <CardTitle>Academic Information</CardTitle>
+              <CardTitle>Professional Information</CardTitle>
               <CardDescription>
-                Your educational background and field of study
+                Your professional background and expertise
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -356,7 +406,7 @@ export default function ProfileClient({
                   className="flex items-center gap-2"
                 >
                   <Building className="h-4 w-4" />
-                  Institution
+                  Institution/Company
                 </Label>
                 <Input
                   id="institution"
@@ -373,7 +423,7 @@ export default function ProfileClient({
                   className="flex items-center gap-2"
                 >
                   <BookOpen className="h-4 w-4" />
-                  Field of Study
+                  {isHR ? "Specialization" : "Field of Expertise"}
                 </Label>
                 <Input
                   id="fieldOfStudy"
@@ -381,19 +431,19 @@ export default function ProfileClient({
                   value={profile.fieldOfStudy || ""}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  placeholder="Enter your field of study"
+                  placeholder={isHR ? "e.g., Talent Acquisition, HR Analytics" : "e.g., Software Development, Product Management"}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
+                <Label htmlFor="bio">Professional Bio</Label>
                 <Textarea
                   id="bio"
                   name="bio"
                   value={profile.bio}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  placeholder="Tell us about yourself..."
+                  placeholder="Tell us about your professional background and experience..."
                   rows={3}
                 />
               </div>
@@ -430,7 +480,7 @@ export default function ProfileClient({
 
               <div className="space-y-2">
                 <Label htmlFor="githubUrl" className="flex items-center gap-2">
-                  <Github className="h-4 w-4" />
+                  <GitBranch className="h-4 w-4" />
                   GitHub URL
                 </Label>
                 <Input

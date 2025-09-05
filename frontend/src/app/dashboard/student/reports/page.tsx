@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
 import ReportsClient from "./ReportsClient";
-import { fetchReports, createReport } from "@/app/services/reportService";
+import {
+  fetchReports,
+  createReport,
+  getReportStats,
+} from "@/app/services/reportService";
 import { Report } from "@/types/entities";
 
 async function getUser() {
@@ -54,6 +58,8 @@ export default async function ReportsPage({
     period
   );
 
+  const reportStats = await getReportStats();
+
   const handleCreateReport = async (
     reportData: Omit<
       Report,
@@ -95,6 +101,7 @@ export default async function ReportsPage({
         initialStatus={status}
         initialPeriod={period}
         totalSubmittedReports={reportsData.totalElements}
+        reportStats={reportStats}
       />
     </DashboardLayout>
   );

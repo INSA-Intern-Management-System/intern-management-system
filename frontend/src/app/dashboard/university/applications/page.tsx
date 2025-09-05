@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import DashboardLayout from "@/app/layout/dashboard-layout";
 import ApplicationsClient from "./ApplicationsClient";
 import {
-  fetchApplications,
+  fetchUniversityApplications,
   createApplication,
   batchImportApplications,
   CreateApplicationRequest,
@@ -35,13 +35,12 @@ export default async function ApplicationsPage({
   const search = searchParamsAwaited.search || "";
   const status = searchParamsAwaited.status || "";
 
-  // Fetch applications with search and filter params
-  const applicationsData = await fetchApplications(
+  // Fetch university applications with search and filter params
+  const applicationsData = await fetchUniversityApplications(
     page,
-    10, // Page size
-    search || undefined,
-    status || undefined
+    10 // Page size
   );
+  console.log("Fetched applications data:", applicationsData);
 
   const handleCreateApplication = async (
     applicationData: CreateApplicationRequest
@@ -49,6 +48,8 @@ export default async function ApplicationsPage({
     "use server";
     try {
       const application = await createApplication(applicationData);
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/dashboard/university/applications");
       return { success: true, data: application };
     } catch (error: any) {
       console.error("Server action error:", error);

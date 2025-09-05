@@ -1,10 +1,17 @@
 import { Client } from "@stomp/stompjs";
+import type {
+  WebSocketMessageDTO,
+  EditMessageRequest,
+  EditMessageStatusRequest,
+  DeleteMessageRequest,
+} from "@/types/websocket";
 
 interface WebSocketCallbacks {
   onConnect?: () => void;
   onError?: (error: any) => void;
   onDisconnect?: () => void;
   onMessage?: (message: any) => void;
+  onRoomCreated?: (tempRoomId: number, realRoomId: number) => void;
 }
 
 class WebSocketService {
@@ -12,11 +19,11 @@ class WebSocketService {
   private subscriptions: Map<number, any> = new Map();
   private callbacks: WebSocketCallbacks = {};
   private isConnected = false;
+  private pendingRoomMappings: Map<number, number> = new Map(); // tempRoomId -> realRoomId
 
   connect(token: string, callbacks: WebSocketCallbacks = {}) {
     this.callbacks = callbacks;
 
-    // Disconnect if already connected
     if (this.client && this.isConnected) {
       this.disconnect();
     }
@@ -38,11 +45,20 @@ class WebSocketService {
       console.log("WebSocket connected:", frame);
       this.isConnected = true;
       this.callbacks.onConnect?.();
+
+      // Resubscribe to all previous rooms
+      this.subscriptions.forEach((_, roomId) => {
+        if (roomId > 0) {
+          // Only resubscribe to real rooms
+          this.subscribeToRoom(roomId, (message) => {
+            this.callbacks.onMessage?.(message);
+          });
+        }
+      });
     };
 
     this.client.onStompError = (frame) => {
       console.error("STOMP error:", frame);
-      this.isConnected = false;
       this.callbacks.onError?.(frame);
     };
 
@@ -54,7 +70,6 @@ class WebSocketService {
 
     this.client.onWebSocketError = (error) => {
       console.error("WebSocket error:", error);
-      this.isConnected = false;
       this.callbacks.onError?.(error);
     };
 
@@ -63,16 +78,13 @@ class WebSocketService {
 
   disconnect() {
     if (this.client) {
-      // Unsubscribe from all rooms
-      this.subscriptions.forEach((subscription, roomId) => {
+      this.subscriptions.forEach((subscription) => {
         subscription.unsubscribe();
       });
       this.subscriptions.clear();
-
       this.client.deactivate();
       this.client = null;
       this.isConnected = false;
-      this.callbacks.onDisconnect?.();
     }
   }
 
@@ -82,7 +94,6 @@ class WebSocketService {
       return false;
     }
 
-    // Unsubscribe if already subscribed
     if (this.subscriptions.has(roomId)) {
       this.unsubscribeFromRoom(roomId);
     }
@@ -91,6 +102,15 @@ class WebSocketService {
     const subscription = this.client.subscribe(destination, (message) => {
       try {
         const parsedMessage = JSON.parse(message.body);
+
+        // Check if this is a room creation confirmation
+        if (parsedMessage.roomCreated) {
+          const { tempRoomId, realRoomId } = parsedMessage;
+          this.pendingRoomMappings.set(tempRoomId, realRoomId);
+          this.callbacks.onRoomCreated?.(tempRoomId, realRoomId);
+          return;
+        }
+
         callback(parsedMessage);
         this.callbacks.onMessage?.(parsedMessage);
       } catch (error) {
@@ -99,7 +119,6 @@ class WebSocketService {
     });
 
     this.subscriptions.set(roomId, subscription);
-    console.log(`Subscribed to room ${roomId}`);
     return true;
   }
 
@@ -108,18 +127,10 @@ class WebSocketService {
     if (subscription) {
       subscription.unsubscribe();
       this.subscriptions.delete(roomId);
-      console.log(`Unsubscribed from room ${roomId}`);
     }
   }
 
-  sendMessage(message: {
-    senderId: number;
-    receiverId: number;
-    content: string;
-    roomId?: number;
-    type?: string;
-    attachment?: any;
-  }): boolean {
+  sendMessage(message: WebSocketMessageDTO): boolean {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
       return false;
@@ -128,10 +139,10 @@ class WebSocketService {
     try {
       this.client.publish({
         destination: "/app/send-message",
-        body: JSON.stringify({
-          ...message,
-          type: message.type || "TEXT",
-        }),
+        body: JSON.stringify(message),
+        headers: {
+          "content-type": "application/json",
+        },
       });
       return true;
     } catch (error) {
@@ -140,69 +151,78 @@ class WebSocketService {
     }
   }
 
-  createRoom(roomData: { userId: number; otherUserId: number }): boolean {
+  editMessage(messageId: number, newContent: string): boolean {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
       return false;
     }
 
     try {
+      const request: EditMessageRequest = { messageId, newContent };
       this.client.publish({
-        destination: "/app/create-room",
-        body: JSON.stringify(roomData),
+        destination: "/app/edit-message",
+        body: JSON.stringify(request),
+        headers: {
+          "content-type": "application/json",
+        },
       });
       return true;
     } catch (error) {
-      console.error("Failed to create room:", error);
+      console.error("Failed to edit message:", error);
       return false;
     }
   }
 
-  sendTypingIndicator(
-    roomId: number,
-    userId: number,
-    isTyping: boolean
-  ): boolean {
+  editMessageStatus(messageId: number, newStatus: string): boolean {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
       return false;
     }
 
     try {
+      const request: EditMessageStatusRequest = { messageId, newStatus };
       this.client.publish({
-        destination: "/app/typing-indicator",
-        body: JSON.stringify({
-          roomId,
-          userId,
-          type: isTyping ? "TYPING_START" : "TYPING_STOP",
-        }),
+        destination: "/app/edit-message-status",
+        body: JSON.stringify(request),
+        headers: {
+          "content-type": "application/json",
+        },
       });
       return true;
     } catch (error) {
-      console.error("Failed to send typing indicator:", error);
+      console.error("Failed to edit message status:", error);
       return false;
     }
   }
 
-  markAsRead(roomId: number, userId: number): boolean {
+  deleteMessage(messageId: number, roomId: number): boolean {
     if (!this.client || !this.isConnected) {
       console.error("WebSocket not connected");
       return false;
     }
 
     try {
+      const request: DeleteMessageRequest = { messageId, roomId };
       this.client.publish({
-        destination: "/app/mark-as-read",
-        body: JSON.stringify({
-          roomId,
-          userId,
-        }),
+        destination: "/app/delete-message",
+        body: JSON.stringify(request),
+        headers: {
+          "content-type": "application/json",
+        },
       });
       return true;
     } catch (error) {
-      console.error("Failed to mark messages as read:", error);
+      console.error("Failed to delete message:", error);
       return false;
     }
+  }
+
+  getRealRoomId(tempRoomId: number): number | undefined {
+    return this.pendingRoomMappings.get(tempRoomId);
+  }
+
+  clearRoomMapping(tempRoomId: number) {
+    this.pendingRoomMappings.delete(tempRoomId);
   }
 
   getIsConnected(): boolean {

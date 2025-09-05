@@ -138,6 +138,16 @@ export interface Review {
   rating: number;
   createdAt: string;
 }
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  totalPages: number;
+  totalElements: number;
+}
 export interface Report {
   id: number;
   managerId: number;
@@ -154,6 +164,11 @@ export interface Report {
     projectID: number;
     projectName: string;
     projectDescription: string;
+  };
+  intern: {
+    id: number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -308,6 +323,10 @@ export interface LeaveRequest {
   leaveStatus: string;
   receiverID: number;
   createdAt: string;
+  fristName?: string | null;
+  lastName?: string | null;
+  university: string | null;
+  feildOfStudy: string | null;
   approvedBy?: string | null;
   rejectionReason?: string | null;
 }

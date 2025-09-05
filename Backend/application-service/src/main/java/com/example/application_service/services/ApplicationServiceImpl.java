@@ -1,5 +1,6 @@
 package com.example.application_service.services;
 
+import com.example.application_service.client.UserGrpcClientForApplication;
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.CreateUserRequest;
@@ -52,6 +53,9 @@ public class ApplicationServiceImpl implements ApplicationService{
     @Autowired
     private UserServiceClient userServiceClient;
 
+    @Autowired
+    private UserGrpcClientForApplication userGrpcClientForApplication;
+
 
     @Value("${user.service.url}") // e.g., http://user-service/api/users
     private String userServiceUrl;
@@ -63,10 +67,12 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     public ApplicationServiceImpl(ApplicantRepository applicantRepository,
                               ApplicationRepository applicationRepository,
-                              CloudinaryService cloudinaryService) {
+                              CloudinaryService cloudinaryService,
+                              UserGrpcClientForApplication userGrpcClientForApplication) {
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
         this.cloudinaryService = cloudinaryService;
+        this.userGrpcClientForApplication = userGrpcClientForApplication;
     }
 
     @Override
@@ -77,7 +83,6 @@ public class ApplicationServiceImpl implements ApplicationService{
             cvUrl = cloudinaryService.uploadFile(cvFile);
         }
         dto.setCvUrl(cvUrl);
-        System.out.println(cvUrl);
 
         Applicant applicant = Applicant.builder()
                 .id(dto.getId())
@@ -215,25 +220,12 @@ public class ApplicationServiceImpl implements ApplicationService{
             Applicant applicant = application.getApplicant();
             String generatedPassword = generateRandomPassword(10);
 
-            // Build gRPC request
-            com.example.userservice.gRPC.CreateUserRequest grpcRequest = com.example.userservice.gRPC.CreateUserRequest.newBuilder()
-                    .setFirstName(applicant.getFirstName())
-                    .setLastName(applicant.getLastName())
-                    .setEmail(applicant.getEmail())
-                    .setPhoneNumber(applicant.getPhoneNumber())
-                    .setFieldOfStudy(applicant.getFieldOfStudy())
-                    .setInstitution(applicant.getInstitution())
-                    .setGender(applicant.getGender())
-                    .setDuration(applicant.getDuration())
-                    .setLinkedInUrl(applicant.getLinkedInUrl())
-                    .setGithubUrl(applicant.getGithubUrl())
-                    .setCvUrl(applicant.getCvUrl())
-                    .setRole("STUDENT")
-                    .build();
-
             try {
 //                UserServiceClient client = new UserServiceClient();
-                CreateUserResponse response = userServiceClient.registerUser(grpcRequest, jwtToken);
+                CreateUserResponse response = userGrpcClientForApplication.RegisterUser(jwtToken,applicant);
+                if (response == null) {
+                    throw new RuntimeException("User service did not respond.");
+                }
                 System.out.println("✅ Created new user with ID: " + response.getUserId());
 
                 // 🟢 The email logic must be here
@@ -268,16 +260,28 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public Page<Application> searchApplicants(String query, Pageable pageable) {
-        return applicationRepository
-                .findByApplicant_FirstNameContainingIgnoreCaseOrApplicant_InstitutionContainingIgnoreCaseOrApplicant_FieldOfStudyContainingIgnoreCase(
-                        query, query, query, pageable);
+    public Page<Application> searchApplicants(String query, String institution, Pageable pageable) {
+
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCaseAndApplicant_FirstNameEqualsIgnoreCaseOrApplicant_InstitutionEqualsIgnoreCaseAndApplicant_FieldOfStudyEqualsIgnoreCase(
+                    institution, query, institution, query, pageable);
+        } else {
+            return applicationRepository.findByApplicant_FirstNameEqualsIgnoreCaseOrApplicant_InstitutionEqualsIgnoreCaseOrApplicant_FieldOfStudyEqualsIgnoreCase(
+                    query, query, query, pageable);
+        }
 
     }
 
     @Override
-    public Page<Application> filterByStatus(ApplicationStatus status, Pageable pageable) {
-        return applicationRepository.findByStatus(status, pageable);
+    public Page<Application> filterByStatus(ApplicationStatus status, String institution, Pageable pageable) {
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCaseAndStatus(
+                    institution, status, pageable
+            );
+        } else {
+            return applicationRepository.findByStatus(status, pageable);
+        }
+
     }
 
     @Override
