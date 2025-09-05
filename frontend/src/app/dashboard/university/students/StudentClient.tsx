@@ -64,7 +64,6 @@ interface StudentsClientProps {
 
 export default function StudentsClient({
   initialStudents,
-  initialPagination,
   initialSupervisors,
   onAssignSupervisor,
   onFetchData,
@@ -87,7 +86,6 @@ export default function StudentsClient({
   const pageSize = 3;
   const router = useRouter();
 
-  // Get unique supervisors to avoid duplicate keys
   const uniqueSupervisors = useMemo(() => {
     return Array.from(new Set(supervisorsList));
   }, [supervisorsList]);
@@ -125,7 +123,6 @@ export default function StudentsClient({
       } else {
         setStudents(data.students || []);
         
-        // Safe access to students data - get unique supervisors
         const allSupervisors = (data.students || [])
           .filter((student) => student.supervisor?.email)
           .map((student) => student.supervisor?.email)
@@ -238,9 +235,9 @@ export default function StudentsClient({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return <Badge className="bg-blue-100 text-blue-800">Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case "COMPLETED":
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
       case "PENDING":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case "REJECTED":
@@ -264,7 +261,6 @@ export default function StudentsClient({
 
   return (
     <div className="space-y-6">
-      {/* Header & Assign Supervisor */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Students</h1>
@@ -280,7 +276,7 @@ export default function StudentsClient({
                 setSelectedStudent(null);
                 setShowStudentDropdown(false);
               }}
-              className="text-white bg-black"
+              className="text-white bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="h-4 w-4 mr-2" />
               Assign Supervisor
@@ -360,7 +356,7 @@ export default function StudentsClient({
                       )
                       .map((sup) => (
                         <div
-                          key={sup} // Now using unique supervisor emails
+                          key={sup} 
                           className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
                           onMouseDown={(e) => {
                             e.preventDefault();
@@ -380,6 +376,7 @@ export default function StudentsClient({
                 <Button
                   type="submit"
                   disabled={!selectedStudent || !supervisorInput || isSubmitting}
+                  className="hover:bg-blue-50 text-blue-500"
                 >
                   {isSubmitting && (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -391,6 +388,7 @@ export default function StudentsClient({
                   variant="outline"
                   onClick={() => setShowAssign(false)}
                   disabled={isSubmitting}
+                  className="hover:bg-red-50 text-red-500"
                 >
                   Cancel
                 </Button>
@@ -486,12 +484,14 @@ export default function StudentsClient({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300"
                       onClick={() => setViewStudent(student)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm" onClick={goMessage}>
+                    <Button variant="outline" size="sm" onClick={goMessage}
+                    className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300">
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Message
                     </Button>
@@ -590,7 +590,6 @@ export default function StudentsClient({
                   </div>
                 )}
 
-                {/* External Links */}
                 <div className="flex gap-4 pt-3 border-t">
                   {viewStudent.linkedInUrl && (
                     <a
@@ -607,7 +606,7 @@ export default function StudentsClient({
                       href={viewStudent.githubUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-gray-600 hover:text-gray-800 text-sm"
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
                     >
                       GitHub
                     </a>

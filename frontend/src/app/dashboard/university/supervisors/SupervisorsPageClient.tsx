@@ -1,4 +1,3 @@
-// app/dashboard/university/supervisors/SupervisorsPageClient.tsx
 "use client";
 
 import {
@@ -11,13 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { GraduationCap, Search, Plus, MessageSquare } from "lucide-react";
 import {
   Pagination,
@@ -88,8 +81,6 @@ export default function SupervisorsPageClient({
   initialStats,
   pagination,
   searchParams,
-  fieldsList,
-  userId,
   onFetchData,
   onAddSupervisor,
   onEditSupervisor,
@@ -370,7 +361,7 @@ export default function SupervisorsPageClient({
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
             <Button
-              className="bg-black text-white flex items-center"
+              className="bg-blue-600 text-white hover:bg-blue-700 flex items-center"
               onClick={() => setShowAdd(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
