@@ -248,7 +248,7 @@ public class ApplicationServiceImpl implements ApplicationService{
 
                 sendEmail(applicant.getEmail(), subject, message); // 👈 Call the sendEmail function
             } catch (Exception ex) {
-                throw new RuntimeException("Failed to create user in user service: " + ex.getMessage());
+                System.out.println("❌ Failed to create user or send email: " + ex.getMessage());
             }
         }
 

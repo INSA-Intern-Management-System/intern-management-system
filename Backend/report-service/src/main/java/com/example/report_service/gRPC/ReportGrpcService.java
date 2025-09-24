@@ -149,6 +149,12 @@ public class ReportGrpcService extends ReportServiceGrpc.ReportServiceImplBase {
     public void getUserUniversityStats(UserUniversityStatsRequest request,StreamObserver<UserUniversityStatsResponse> responseObserver) {
 
         List<Long> userIds = request.getUserIdsList();
+        if (userIds == null || userIds.isEmpty()) {
+            responseObserver.onError(new RuntimeException("User IDs must be provided"));
+            return;
+        }
+        System.out.println("userIds================================: " + userIds);
+
 
         // Call your service method to get the combined stats
         List<UserUniversityStatsDTO> statsList = service.getUniversityStatsOfUsers(userIds);

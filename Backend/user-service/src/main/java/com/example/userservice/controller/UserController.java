@@ -85,6 +85,7 @@ public class UserController {
     public ResponseEntity<?> computeFilter(HttpServletRequest request,@RequestParam String filter, Pageable pageable) {
         try {
             String role = (String) request.getAttribute("role");
+            Long userId = (Long) request.getAttribute("userId");
             if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
                 return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
@@ -106,13 +107,26 @@ public class UserController {
             }
 
             // 1. Fetch paginated users
-            Page<User> usersPage = userService.findByRoleAndInstitutionAndSupervisorName(institution,filter,pageable);
-            List<User> users = usersPage.getContent();
+            Page<User> usersPage;
+            try{
+               usersPage = userService.findForUniversityOrSupervisor(role,institution,filter,userId,pageable); 
+            }catch(Exception e){
+                usersPage= Page.empty();
 
+            }
+            List<User> users = usersPage.getContent();
             List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
 
             // 2. Call gRPC to get stats for all users in this page
-            UserUniversityStatsResponse userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+            UserUniversityStatsResponse userStatsList;
+            try{
+                userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+            }catch (Exception e){
+                // If gRPC call fails, return empty stats
+                userStatsList = UserUniversityStatsResponse.newBuilder().build();
+                System.err.println("gRPC call failed: " + e.getMessage());
+            }
+            
 
             // Map stats by userId
             Map<Long, UserUniversityStats> statsMap = userStatsList.getStatsList().stream()
@@ -172,11 +186,15 @@ public class UserController {
     public ResponseEntity<?> computeSearch(HttpServletRequest request,@RequestParam String keyword, Pageable pageable) {
         try {
             String role = (String) request.getAttribute("role");
+            Long userId = (Long) request.getAttribute("userId");
             if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
                 return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
 
             String institution = (String) request.getAttribute("institution");
+            institution = institution != null ? institution.trim() : null;
+
+
 
             // 0. get data from cookie
             String jwtToken = null;
@@ -194,14 +212,35 @@ public class UserController {
             }
 
 
-            // 1. Fetch paginated users
-            Page<User> usersPage = userService.searchByRoleInstitutionAndKeyword(institution, keyword,pageable);
-            List<User> users = usersPage.getContent();
+            if (keyword == null || keyword.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Keyword must be provided for search");
+            }
 
+            System.out.println("================================"+institution+keyword);
+
+
+            // 1. Fetch paginated users
+            Page<User> usersPage;
+
+            try{
+                usersPage = userService.searchByRoleInstitutionAndKeywordOrSupervisor(role,userId,institution, keyword,pageable);
+            }catch(Exception e){
+                usersPage= Page.empty();
+
+            }
+            List<User> users = usersPage.getContent();
             List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
+            System.out.println("========================"+userIds);
+
 
             // 2. Call gRPC to get stats for all users in this page
-            UserUniversityStatsResponse userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+            UserUniversityStatsResponse userStatsList;
+            try{
+                userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+            }catch (Exception e){
+                userStatsList = UserUniversityStatsResponse.newBuilder().build();
+                System.err.println("gRPC call failed: " + e.getMessage());
+            }
 
             // Map stats by userId
             Map<Long, UserUniversityStats> statsMap = userStatsList.getStatsList().stream()
@@ -266,6 +305,7 @@ public class UserController {
     ) {
         try {
             String role = (String) request.getAttribute("role");
+            Long userId = (Long) request.getAttribute("userId");
             if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
                 return errorResponse("Unauthorized: Only supervisor and uni can access university.");
             }
@@ -291,14 +331,30 @@ public class UserController {
 
 
             // 1. Fetch paginated users
-            Page<User> usersPage = userService.getInternsForUniveristy(institution, pageable);
+            Page<User> usersPage;
+            try{
+                if(role.equalsIgnoreCase("supervisor"))
+                    usersPage = userService.filterBySupervisor(userId, pageable);
+                else{
+                    usersPage = userService.getInternsForUniveristy(institution, pageable);
+                }
+                
+            }catch(Exception e){
+                usersPage=Page.empty();
+            }
             List<User> users = usersPage.getContent();
 
             // 2. Collect user IDs
             List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
 
             // 3. Fetch intern-manager info
-            List<InternManager> internManagers = internManagerService.getInfos(userIds);
+             List<InternManager> internManagers;
+             try{
+                    internManagers = internManagerService.getInfos(userIds);
+             }catch (Exception e){
+                 internManagers = new ArrayList<>();
+                 System.err.println("Failed to fetch intern-manager info: " + e.getMessage());
+             }
 
             // 4. Collect project IDs
             List<Long> projectIds = internManagers.stream()
@@ -306,10 +362,24 @@ public class UserController {
                 .filter(Objects::nonNull) // remove nulls
                 .collect(Collectors.toList());
 
-            // 5. Call gRPC clients to fetch milestone stats & report stats
-            MilestoneStats milestoneStats = projectManagerGrpcClient.getMilestoneStatsForUnivseristy(jwtToken,projectIds);
-            ReportStatsResponse reportStats = reportGrpcClient.getReportStatsForUniversity(jwtToken, userIds);
+            // 5. Call gRPC clients to fetch milestone stats & report 
+            MilestoneStats milestoneStats;
+            try{
+                milestoneStats = projectManagerGrpcClient.getMilestoneStatsForUnivseristy(jwtToken,projectIds);
+            }catch (Exception e){
+                milestoneStats = MilestoneStats.newBuilder().build();
+                System.err.println("gRPC call failed: " + e.getMessage());
+            }
 
+            ReportStatsResponse reportStats;
+            try{
+                reportStats = reportGrpcClient.getReportStatsForUniversity(jwtToken, userIds);
+            }catch (Exception e){
+                reportStats = ReportStatsResponse.newBuilder().build();
+                System.err.println("gRPC call failed: " + e.getMessage());
+
+            }
+           
             // 6. Build final DTO
             DashboardStatDTO dashboardStat = new DashboardStatDTO();
             dashboardStat.setTotalReports(reportStats.getTotalReports());
@@ -334,6 +404,7 @@ public class UserController {
     public ResponseEntity<?> computePerformance(HttpServletRequest request, Pageable pageable) {
         try {
             String role = (String) request.getAttribute("role");
+            Long userId = (Long) request.getAttribute("userId");
 
             if (role == null || (!"supervisor".equalsIgnoreCase(role) && !"university".equalsIgnoreCase(role))) {
                 return errorResponse("Unauthorized: Only supervisor and uni can access university.");
@@ -357,16 +428,32 @@ public class UserController {
 
 
             // 1. Fetch paginated users
-            Page<User> usersPage = userService.filterByInstitution(institution, pageable);
-            System.out.println("========================"+usersPage);
+            Page<User> usersPage;
+            try{
+                if(role.equalsIgnoreCase("university")){
+                    usersPage = userService.filterByInstitution(institution, pageable);
+                }else{
+                    usersPage = userService.filterBySupervisor(userId, pageable);
+                }
+            }
+            catch(Exception e){
+                usersPage= Page.empty();
+
+            }
             List<User> users = usersPage.getContent();
 
             List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
             System.out.println("========================"+userIds);
 
             // 2. Call gRPC to get stats for all users in this page
-            UserUniversityStatsResponse userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
-
+            UserUniversityStatsResponse userStatsList;
+            try{
+                userStatsList = reportGrpcClient.getUserUniversityStats(jwtToken, userIds);
+            }catch (Exception e){
+                userStatsList = UserUniversityStatsResponse.newBuilder().build();
+                System.err.println("gRPC call failed: " + e.getMessage());
+            }
+        
             // Map stats by userId
             Map<Long, UserUniversityStats> statsMap = userStatsList.getStatsList().stream()
                     .collect(Collectors.toMap(UserUniversityStats::getUserId, s -> s));
@@ -1027,9 +1114,9 @@ public class UserController {
 
         String role = (String) request.getAttribute("role");
 
-        if(!"UNIVERSITY".equalsIgnoreCase(role)){
+        if(!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Only University can get university dashboard."));
+                    .body(Map.of("error", "only University and Supervisor can access this resource."));
         }
 
         // 2️⃣ Get userId from request attribute
@@ -1158,9 +1245,9 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
 
-            if (!"UNIVERSITY".equalsIgnoreCase(role)  ){
+            if (!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only University can access this resource."));
+                        .body(Map.of("error", "only University and Supervisor can access this resource"));
             }
 
             String institution = (String) request.getAttribute("role");
@@ -1395,9 +1482,9 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
 
-            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+            if (!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)  ){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only HR and PM can access this resource"));
+                        .body(Map.of("error", "Only University and Supervisor can access this resource") );
             }
             Pageable pageable = PageRequest.of(page, size);
             Page<User> pageResult = userService.filterSupervisorByStatus(query, pageable);
@@ -1432,9 +1519,9 @@ public class UserController {
 
             String role = (String) request.getAttribute("role");
 
-            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+            if (!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only HR and PM can access this resource"));
+                        .body(Map.of("error", "Only University and Supervisor can access this resource"));
             }
             Pageable pageable = PageRequest.of(page, size);
             Page<User> pageResult = userService.filterSupervisorByFieldOfStudy(query, pageable);
@@ -1470,9 +1557,9 @@ public class UserController {
             String role = (String) request.getAttribute("role");
             String institution = (String) request.getAttribute("institution");
 
-            if (!"UNIVERSITY".equalsIgnoreCase(role)){
+            if (!"UNIVERSITY".equalsIgnoreCase(role) && !"SUPERVISOR".equalsIgnoreCase(role)){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Only HR and PM can access this resource"));
+                        .body(Map.of("error", "Only University and Supervisor can access this resource"));
             }
 
             Pageable pageable = PageRequest.of(page, size);

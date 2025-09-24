@@ -31,7 +31,9 @@ public class Notification {
     @Column(name = "role")
     private Set<RecipientRole> roles;
 
-//    private boolean is_read = false;
+    @Column(name = "is_read", nullable = false)
+    private boolean read = false;
+
 
     @OneToMany(mappedBy = "notification", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -62,4 +64,6 @@ public class Notification {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public boolean isRead() { return read; }
+    public void setisRead(boolean read) { this.read = read; }
 }

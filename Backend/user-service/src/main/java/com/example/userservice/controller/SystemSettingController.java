@@ -1,6 +1,8 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.dto.SystemStatus;
 import com.example.userservice.model.SystemSetting;
+import com.example.userservice.service.SystemHealthService;
 import com.example.userservice.service.SystemSettingService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -8,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -15,9 +18,11 @@ import java.util.Map;
 public class SystemSettingController {
 
     private final SystemSettingService systemSettingService;
+    private final SystemHealthService systemHealthService;
 
-    public SystemSettingController(SystemSettingService systemSettingService){
+    public SystemSettingController(SystemSettingService systemSettingService, SystemHealthService systemHealthService) {
         this.systemSettingService = systemSettingService;
+        this.systemHealthService = systemHealthService;
     }
 
     @GetMapping
@@ -85,6 +90,21 @@ public class SystemSettingController {
             return ResponseEntity.status(400).body(error);
         }
     }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> getSystemHealth() {
+        try {
+            List<SystemStatus> healthStatus = systemHealthService.getSystemHealth();
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "System health fetched successfully");
+            response.put("health", healthStatus);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return errorResponse("Failed to fetch system health: " + e.getMessage());
+        }
+    }
+
+
 
 
     private ResponseEntity<?> errorResponse(String message) {

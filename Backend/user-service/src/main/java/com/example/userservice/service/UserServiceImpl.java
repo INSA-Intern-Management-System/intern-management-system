@@ -462,22 +462,29 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<User> getInternsForUniveristy(String where, Pageable pageable){
+    public Page<User> getInternsForUniveristy(String institution, Pageable pageable){
         Role studentRole = roleRepo.findByName("STUDENT");
-        return userRepo.findByRoleAndInstitution(studentRole, where, pageable);
+        return userRepo.findByRoleAndInstitution(studentRole, institution, pageable);
 
     }
 
     @Override
-    public Page<User> searchByRoleInstitutionAndKeyword(String institution, String keyword, Pageable pageable){
+    public Page<User> searchByRoleInstitutionAndKeywordOrSupervisor(String role,Long SupervisorID, String institution, String keyword, Pageable pageable){
         Role studentRole = roleRepo.findByName("STUDENT");
-        return userRepo.searchByRoleInstitutionAndKeyword(studentRole,institution,keyword,pageable);
+        if(role.equalsIgnoreCase("SUPERVISOR")){
+            return userRepo.searchByRoleInstitutionAndSupervisor(studentRole, institution, SupervisorID, keyword, pageable);
+        }
+        return userRepo.searchByRoleInstitution(studentRole,institution,keyword,pageable);
     }
 
+
     @Override
-    public Page<User> findByRoleAndInstitutionAndSupervisorName(String institution, String supervisorName, Pageable pageable){
+    public Page<User> findForUniversityOrSupervisor(String role,String institution, String supervisorName,Long id, Pageable pageable){
         Role studentRole = roleRepo.findByName("STUDENT");
-        return userRepo.findByRoleAndInstitutionAndSupervisorName(studentRole,institution,supervisorName,pageable);
+        if(role.equalsIgnoreCase("SUPERVISOR")){
+            return userRepo.findByRoleInstitutionSupervisorNameAndId(studentRole,institution,supervisorName,id,pageable);
+        }
+        return userRepo.findByRoleAndInstitution(studentRole,institution,pageable);
     }
 
     @Override

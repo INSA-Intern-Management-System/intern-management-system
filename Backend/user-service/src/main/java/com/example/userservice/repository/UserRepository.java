@@ -73,16 +73,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findBySupervisor_IdIn(List<Long> supervisorIds, Pageable pageable);
 
     @Query("SELECT u FROM User u " +
-       "LEFT JOIN u.supervisor s " +
+       "JOIN u.supervisor s " +
        "WHERE u.role = :role " +
        "AND u.institution = :institution " +
+       "AND s.id = :supervisorId " + // ✅ filter by supervisor
        "AND (:keyword IS NULL OR :keyword = '' OR (" +
        "LOWER(TRIM(u.firstName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%')) " +
        "OR LOWER(TRIM(u.lastName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%')) " +
-       "OR (s IS NOT NULL AND LOWER(TRIM(s.firstName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))) " +
-       "OR (s IS NOT NULL AND LOWER(TRIM(s.lastName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))) " +
+       "OR LOWER(TRIM(s.firstName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%')) " +
+       "OR LOWER(TRIM(s.lastName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%')) " +
        "))")
-        Page<User> searchByRoleInstitutionAndKeyword(Role role, String institution, String keyword, Pageable pageable);
+        Page<User> searchByRoleInstitutionAndSupervisor(Role role,
+                                                        String institution,
+                                                        Long supervisorId,
+                                                        String keyword,
+                                                        Pageable pageable);
+
 
 
     @Query("SELECT u FROM User u " +
@@ -94,6 +100,42 @@ public interface UserRepository extends JpaRepository<User, Long> {
        "OR LOWER(TRIM(s.lastName)) LIKE LOWER(CONCAT('%', TRIM(:supervisorName), '%')) " +
        "))")
         Page<User> findByRoleAndInstitutionAndSupervisorName(Role role, String institution, String supervisorName, Pageable pageable);
+
+
+        @Query("SELECT u FROM User u " +
+        "JOIN u.supervisor s " +
+        "WHERE u.role = :role " +
+        "AND u.institution = :institution " +
+        "AND (:supervisorName IS NULL OR :supervisorName = '' OR (" +
+        "LOWER(TRIM(s.firstName)) LIKE LOWER(CONCAT('%', TRIM(:supervisorName), '%')) " +
+        "OR LOWER(TRIM(s.lastName)) LIKE LOWER(CONCAT('%', TRIM(:supervisorName), '%')) " +
+        ")) " +
+        "AND (:supervisorId IS NULL OR s.id = :supervisorId)")
+        Page<User> findByRoleInstitutionSupervisorNameAndId(
+                Role role,
+                String institution,
+                String supervisorName,
+                Long supervisorId,
+                Pageable pageable
+        );
+
+
+
+    //Page<User> findByRoleAndInstitution(Role role, String institution, Pageable pageable);
+
+    @Query("SELECT u FROM User u " +
+       "WHERE u.role = :role " +
+       "AND u.institution = :institution " +
+       "AND (:keyword IS NULL OR :keyword = '' OR (" +
+       "LOWER(TRIM(u.firstName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%')) " +
+       "OR LOWER(TRIM(u.lastName)) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))" +
+       "))")
+        Page<User> searchByRoleInstitution(Role role,
+                                        String institution,
+                                        String keyword,
+                                        Pageable pageable);
+
+
 
 }
 
