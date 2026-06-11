@@ -1,1 +1,26 @@
+# Environment
 .env
+*.env
+!.env.example
+
+# Commit history generator (local only)
+create_commits.sh
+
+# Maven build output
+target/
+
+# IDE & editor files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & misc
+*.log
+*.class
+*.temp
