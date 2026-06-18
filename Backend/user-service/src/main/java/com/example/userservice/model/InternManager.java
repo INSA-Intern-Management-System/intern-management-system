@@ -20,6 +20,11 @@ public class InternManager {
     @JoinColumn(name = "manager_id")
     private User manager;
 
+    // Many users can have the same manager
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id")
+    private User supervisor;
+
     // Project mapping (nullable)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
@@ -37,9 +42,10 @@ public class InternManager {
 
     public InternManager() {}
 
-    public InternManager(User user, User manager, Project project, User mentor, Team team) {
+    public InternManager(User user, User manager, User supervisor, Project project, User mentor, Team team) {
         this.user = user;
         this.manager = manager;
+        this.supervisor = supervisor;
         this.project = project;
         this.mentor = mentor;
         this.team = team;
@@ -68,6 +74,14 @@ public class InternManager {
 
     public void setManager(User manager) {
         this.manager = manager;
+    }
+
+    public User getSupervisor() {
+        return supervisor;
+    }
+
+    public void setSupervisor(User supervisor) {
+        this.supervisor = supervisor;
     }
 
     public Project getProject() {

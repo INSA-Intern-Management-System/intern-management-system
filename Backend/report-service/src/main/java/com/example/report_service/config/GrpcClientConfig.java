@@ -43,4 +43,5 @@ public class GrpcClientConfig {
     public ProjectManagerGrpcClient projectManagerGrpcClient() {
         return new ProjectManagerGrpcClient(project_host, project_port);
     }
+
 }

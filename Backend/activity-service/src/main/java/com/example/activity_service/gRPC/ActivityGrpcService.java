@@ -109,4 +109,48 @@ public class ActivityGrpcService extends ActivityServiceImplBase {
             responseObserver.onError(Status.INTERNAL.withDescription("Failed to get recent activities").withCause(ex).asRuntimeException());
         }
     }
+
+
+    @Override
+    public void getAllActivities(GetAllActivitiesRequest request, StreamObserver<GetAllActivitiesResponse> responseObserver) {
+        try {
+
+            // Validate pagination
+            int page = Math.max(0, request.getPage());
+            int size = Math.max(1, request.getSize());
+
+            // Query DB
+            Page<Activity> activities = repository.findAll(PageRequest.of(page,size ));
+
+            // Build response
+            GetAllActivitiesResponse.Builder responseBuilder = GetAllActivitiesResponse.newBuilder()
+                    .setTotalPages(activities.getTotalPages())
+                    .setTotalElements(activities.getTotalElements())
+                    .setCurrentPage(activities.getNumber());
+
+            for (Activity activity : activities.getContent()) {
+                ActivityResponse activityResponse = ActivityResponse.newBuilder()
+                        .setId(activity.getId())
+                        .setTitle(activity.getTitle())
+                        .setDescription(activity.getDescription())
+                        .setCreatedAt(activity.getCreatedAt().toString())
+                        .build();
+                responseBuilder.addActivities(activityResponse);
+            }
+
+            responseObserver.onNext(responseBuilder.build());
+            responseObserver.onCompleted();
+
+            logger.info("✅ Returned {} activities for userId={}", activities.getNumberOfElements());
+
+        } catch (Exception ex) {
+            logger.error("❌ Failed to get recent activities", ex);
+            responseObserver.onError(Status.INTERNAL.withDescription("Failed to get recent activities").withCause(ex).asRuntimeException());
+        }
+    }
+
+
+
 }
+
+

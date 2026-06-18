@@ -1,11 +1,15 @@
 package com.example.application_service.services;
 
+import com.example.application_service.client.UserGrpcClientForApplication;
 import com.example.application_service.dto.ApplicantDTO;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.CreateUserRequest;
+import com.example.application_service.gRPC.NotificationGrpcClient;
+import com.example.application_service.gRPC.UserServiceClient;
 import com.example.application_service.model.*;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
+import com.example.userservice.gRPC.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.userservice.gRPC.CreateUserResponse;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,7 +33,10 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -35,6 +46,15 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+    @Autowired
+    private UserGrpcClientForApplication userGrpcClientForApplication;
 
 
     @Value("${user.service.url}") // e.g., http://user-service/api/users
@@ -47,10 +67,12 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     public ApplicationServiceImpl(ApplicantRepository applicantRepository,
                               ApplicationRepository applicationRepository,
-                              CloudinaryService cloudinaryService) {
+                              CloudinaryService cloudinaryService,
+                              UserGrpcClientForApplication userGrpcClientForApplication) {
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
         this.cloudinaryService = cloudinaryService;
+        this.userGrpcClientForApplication = userGrpcClientForApplication;
     }
 
     @Override
@@ -128,8 +150,9 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public List<ApplicantDTO> batchApplication(MultipartFile file) throws IOException {
-        List<ApplicantDTO> applicantDTOs = new ArrayList<>();
+    @Transactional
+    public List<Application> batchApplication(MultipartFile file) throws IOException {
+        List<Application> savedApplications = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             String line;
@@ -142,87 +165,88 @@ public class ApplicationServiceImpl implements ApplicationService{
                 }
 
                 String[] data = line.split(",");
+                if (data.length < 10) continue; // skip invalid rows
 
-                if (data.length < 10) continue; // adjust based on your columns
+                try {
+                    // 1️⃣ Save Applicant
+                    Applicant savedApplicant = applicantRepository.save(
+                            Applicant.builder()
+                                    .firstName(data[0].trim())
+                                    .lastName(data[1].trim())
+                                    .email(data[2].trim())
+                                    .phoneNumber(data[3].trim())
+                                    .institution(data[4].trim())
+                                    .fieldOfStudy(data[5].trim())
+                                    .gender(data[6].trim())
+                                    .duration(data[7].trim())
+                                    .linkedInUrl(data[8].trim())
+                                    .githubUrl(data[9].trim())
+                                    .cvUrl(data.length > 10 ? data[10].trim() : null)
+                                    .build()
+                    );
 
-                Applicant applicant = Applicant.builder()
-                        .firstName(data[0].trim())
-                        .lastName(data[1].trim())
-                        .email(data[2].trim())
-                        .phoneNumber(data[3].trim())
-                        .institution(data[4].trim())
-                        .fieldOfStudy(data[5].trim())
-                        .gender(data[6].trim())
-                        .duration(data[7].trim())
-                        .linkedInUrl(data[8].trim())
-                        .githubUrl(data[9].trim())
-                        .cvUrl(data.length > 10 ? data[10].trim() : null)
-                        .build();
+                    // 2️⃣ Save Application
+                    Application savedApplication = applicationRepository.save(
+                            Application.builder()
+                                    .applicant(savedApplicant)
+                                    .status(ApplicationStatus.Pending)
+                                    .createdAt(LocalDateTime.now())
+                                    .build()
+                    );
 
-                Applicant saved = applicantRepository.save(applicant);
+                    // 3️⃣ Add to return list
+                    savedApplications.add(savedApplication);
 
-                ApplicantDTO dto = ApplicantDTO.builder()
-                        .id(saved.getId()) // ✅ include this
-                        .firstName(saved.getFirstName())
-                        .lastName(saved.getLastName())
-                        .email(saved.getEmail())
-                        .phoneNumber(saved.getPhoneNumber())
-                        .institution(saved.getInstitution())
-                        .fieldOfStudy(saved.getFieldOfStudy())
-                        .gender(saved.getGender())
-                        .duration(saved.getDuration())
-                        .linkedInUrl(saved.getLinkedInUrl())
-                        .githubUrl(saved.getGithubUrl())
-                        .cvUrl(saved.getCvUrl())
-                        .createdAt(saved.getCreatedAt())
-                        .build();
-
-                applicantDTOs.add(dto);
+                } catch (Exception e) {
+                    System.err.println("Failed to process row: " + Arrays.toString(data));
+                    e.printStackTrace();
+                }
             }
         }
 
-        return applicantDTOs;
+        return savedApplications;
     }
 
     @Override
-    public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status, String authHeader) {
+    public ApplicationDTO updateApplicationStatus(Long applicationId, ApplicationStatus status, String jwtToken) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
         application.setStatus(status);
         applicationRepository.save(application);
 
+
         if (status == ApplicationStatus.Accepted) {
             Applicant applicant = application.getApplicant();
-
             String generatedPassword = generateRandomPassword(10);
-            System.out.println("Generated password for new Accepted user(Intern): " + generatedPassword);
-
-            CreateUserRequest userRequest = new CreateUserRequest();
-            userRequest.setFirstName(applicant.getFirstName());
-            userRequest.setLastName(applicant.getLastName());
-            userRequest.setEmail(applicant.getEmail());
-            userRequest.setPhoneNumber(applicant.getPhoneNumber());
-            userRequest.setFieldOfStudy(applicant.getFieldOfStudy());
-            userRequest.setInstitution(applicant.getInstitution());
-            userRequest.setGender(applicant.getGender());
-            userRequest.setDuration(applicant.getDuration());
-            userRequest.setLinkedInUrl(applicant.getLinkedInUrl());
-            userRequest.setGithubUrl(applicant.getGithubUrl());
-            userRequest.setCvUrl(applicant.getCvUrl());
-            userRequest.setPassword(generatedPassword);
-            userRequest.setUserStatus(UserStatus.ACTIVE);
-            userRequest.setRole(UserRole.STUDENT);
-
-            // ✅ Build headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", authHeader);  // ⬅️ Pass the token
-            headers.set("internal-source", "application-service"); // optional for tracking
-
-            HttpEntity<CreateUserRequest> requestEntity = new HttpEntity<>(userRequest, headers);
 
             try {
-                restTemplate.postForEntity(userServiceUrl, requestEntity, Void.class);
+//                UserServiceClient client = new UserServiceClient();
+                CreateUserResponse response = userGrpcClientForApplication.RegisterUser(jwtToken,applicant);
+                if (response == null) {
+                    throw new RuntimeException("User service did not respond.");
+                }
+                System.out.println("✅ Created new user with ID: " + response.getUserId());
+
+                // 🟢 The email logic must be here
+                String subject = "Welcome to INSA Internship Management System - Your Account Details";
+                String message = String.format("""
+                Hello %s,
+
+                Your account has been successfully created.
+
+                Here are your login details:
+
+                Email: %s
+                Temporary Password: %s
+
+                Please log in to your account and change your password immediately for security reasons.
+
+                Thank you,
+                INSA Internship Management Team
+                """, applicant.getFirstName(), applicant.getEmail(), generatedPassword);
+
+                sendEmail(applicant.getEmail(), subject, message); // 👈 Call the sendEmail function
             } catch (Exception ex) {
                 throw new RuntimeException("Failed to create user in user service: " + ex.getMessage());
             }
@@ -236,16 +260,28 @@ public class ApplicationServiceImpl implements ApplicationService{
     }
 
     @Override
-    public Page<Application> searchApplicants(String query, Pageable pageable) {
-        return applicationRepository
-                .findByApplicant_FirstNameContainingIgnoreCaseOrApplicant_InstitutionContainingIgnoreCaseOrApplicant_FieldOfStudyContainingIgnoreCase(
-                        query, query, query, pageable);
+    public Page<Application> searchApplicants(String query, String institution, Pageable pageable) {
+
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCaseAndApplicant_FirstNameEqualsIgnoreCaseOrApplicant_InstitutionEqualsIgnoreCaseAndApplicant_FieldOfStudyEqualsIgnoreCase(
+                    institution, query, institution, query, pageable);
+        } else {
+            return applicationRepository.findByApplicant_FirstNameEqualsIgnoreCaseOrApplicant_InstitutionEqualsIgnoreCaseOrApplicant_FieldOfStudyEqualsIgnoreCase(
+                    query, query, query, pageable);
+        }
 
     }
 
     @Override
-    public Page<Application> filterByStatus(ApplicationStatus status, Pageable pageable) {
-        return applicationRepository.findByStatus(status, pageable);
+    public Page<Application> filterByStatus(ApplicationStatus status, String institution, Pageable pageable) {
+        if (!"INSA".equalsIgnoreCase(institution)) {
+            return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCaseAndStatus(
+                    institution, status, pageable
+            );
+        } else {
+            return applicationRepository.findByStatus(status, pageable);
+        }
+
     }
 
     @Override
@@ -255,10 +291,21 @@ public class ApplicationServiceImpl implements ApplicationService{
 
     @Override
     public Page<Application> filterByUniversity(String university, Pageable pageable) {
-        return applicationRepository.findByApplicant_InstitutionContainingIgnoreCase(university, pageable);
+        return applicationRepository.findByApplicant_InstitutionEqualsIgnoreCase(university, pageable);
     }
 
+    @Override
+    @Transactional
+    public HashMap<String, Long> getStats() {
+        HashMap<String,Long> stats = new HashMap<>();
+        stats.put("total",applicationRepository.count());
+        stats.put("pending",applicationRepository.countByStatus(ApplicationStatus.Pending));
+        stats.put("accepted",applicationRepository.countByStatus(ApplicationStatus.Accepted));
+        stats.put("rejected",applicationRepository.countByStatus(ApplicationStatus.Rejected));
+        return stats;
 
+
+    }
     private String generateRandomPassword(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
         SecureRandom random = new SecureRandom();
@@ -272,6 +319,21 @@ public class ApplicationServiceImpl implements ApplicationService{
         return password.toString();
     }
 
+    private void sendEmail(String to, String subject, String text) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("your_app_email@example.com");
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            mailSender.send(message);
+            System.out.println("Email sent to " + to + " with subject: " + subject);
+        } catch (Exception e) {
+            System.err.println("Error sending email to " + to + ": " + e.getMessage());
+            throw new RuntimeException("Failed to send verification email.", e);
+        }
+
+    }
 
 
 }

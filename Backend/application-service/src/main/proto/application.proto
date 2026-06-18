@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package com.example.application_service.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.application_service.gRPC";
+option java_outer_classname = "ApplicationProto";
+
+service ApplicationService {
+  rpc getApplicationCount (ApplicationCountRequest) returns (ApplicationCountResponse);
+}
+
+message ApplicationCountRequest {
+  // If you want in future to filter by companyId, but since you only have one company, keep it empty
+}
+
+message ApplicationCountResponse {
+  int64 count = 1;
+  int64 pending = 2;
+  int64 accepted = 3;
+  int64 rejected = 4;
+}

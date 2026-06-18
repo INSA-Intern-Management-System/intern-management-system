@@ -1,10 +1,10 @@
 package com.example.notification_service.model;
 
 public enum RecipientRole {
-    Student,
-    Project_Manager,
+    STUDENT,
+    PROJECT_MANAGER,
     HR,
-    University,
-    Supervisor,
-    Admin
+    UNIVERSITY,
+    SUPERVISOR,
+    ADMIN
 }
