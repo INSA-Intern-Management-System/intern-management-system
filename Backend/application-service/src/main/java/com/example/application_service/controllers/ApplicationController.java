@@ -5,15 +5,20 @@ import com.example.application_service.gRPC.NotificationGrpcClient;
 import com.example.application_service.dto.ApplicationDTO;
 import com.example.application_service.dto.ApplicationResponseDTO;
 import com.example.application_service.dto.UserResponseDTO;
+import com.example.application_service.gRPC.UserServiceClient;
 import com.example.application_service.model.Applicant;
 import com.example.application_service.model.Application;
 import com.example.application_service.model.ApplicationStatus;
 import com.example.application_service.repository.ApplicantRepository;
 import com.example.application_service.repository.ApplicationRepository;
+import com.example.application_service.security.JwtUtil;
 import com.example.application_service.services.ApplicationService;
-//import com.example.application_service.services.UserServiceClient;
+import com.example.grpc.NotificationType;
 import com.example.grpc.RecipientRole;
+import com.example.userservice.gRPC.MaxInternRequest;
+import com.example.userservice.gRPC.MaxInternResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,20 +46,30 @@ public class ApplicationController {
 //    private final UserServiceClient userServiceClient;
     private final ApplicantRepository applicantRepository;
     private final ApplicationRepository applicationRepository;
+    private final JwtUtil jwtUtil;
 
     @Autowired
     private NotificationGrpcClient notificationGrpcClient;
 
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+
+
+
     public ApplicationController(ApplicationService applicationService,
                                  ApplicantRepository applicantRepository,
+                                 JwtUtil jwtUtil,
+                                 UserServiceClient userServiceClient,
                                  ApplicationRepository applicationRepository,
                                  NotificationGrpcClient notificationGrpcClient
                                  ) {
         this.applicationService = applicationService;
-//        this.userServiceClient = userServiceClient;
+        this.userServiceClient = userServiceClient;
         this.applicantRepository = applicantRepository;
         this.applicationRepository = applicationRepository;
         this.notificationGrpcClient = notificationGrpcClient;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping(value = "/applicant/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -155,10 +170,34 @@ public class ApplicationController {
             @RequestPart(value = "cvFile", required = false) MultipartFile cvFile
     ) throws IOException {
 
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
         String role = (String) request.getAttribute("role");
         if (!"UNIVERSITY".equalsIgnoreCase(role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("message", "Unauthorized: Only University can apply"));
+        }
+
+        // ✅ Check if application limit is reached
+        MaxInternResponse maxInternResponse = userServiceClient.getMaxIntern(MaxInternRequest.newBuilder().build(), token);
+        int maxIntern = maxInternResponse.getMaxIntern();
+
+        long currentApplications = applicantRepository.count();
+
+        if (currentApplications >= maxIntern) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("message", "Application limit reached. No more interns can be added."));
         }
 
         // ✅ Check if email already exists
@@ -198,35 +237,100 @@ public class ApplicationController {
         response.put("message", "Applied successfully");
         response.put("application", responseDTO);
 
-        // Send notification to UNIVERSITY and COMPANY (example)
-        // notificationGrpcClient.sendNotification(
-        //         Set.of(RecipientRole.HR),
-        //         "New Internship Application",
-        //         "A new internship application has been submitted.",
-        //         Instant.now()
-        // );
+//         Send notification to UNIVERSITY and COMPANY (example)
+        String message = String.format(
+                "A new internship application has been submitted by student %s %s (%s) from %s in the field of %s.",
+                createdApplication.getApplicant().getFirstName(),
+                createdApplication.getApplicant().getLastName(),
+                createdApplication.getApplicant().getEmail(),
+                (createdApplication.getApplicant().getInstitution() != null ? createdApplication.getApplicant().getInstitution() : "N/A"),
+                (createdApplication.getApplicant().getFieldOfStudy() != null ? createdApplication.getApplicant().getFieldOfStudy() : "N/A")
+        );
+
+        try {
+            notificationGrpcClient.sendNotification(
+                    Set.of(RecipientRole.HR),
+                    "New Internship Application Submitted",
+                    message,
+                    Instant.now(),
+                    NotificationType.SUCCESS
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occured while sending notification");
+        }
 
         return ResponseEntity.status(201).body(response);
     }
 
 
     @GetMapping("/applications/all")
-    public ResponseEntity<Page<ApplicationResponseDTO>> getAllApplications(
+    public ResponseEntity<?> getAllApplications(
+            HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
             ) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Application> applicationsPage = applicationService.getAllApplications(pageable);
 
-        Page<ApplicationResponseDTO> responsePage = applicationsPage.map(this::mapToDTO);
+        try{
+            // 🔑 Get JWT from cookie
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+            // 🔑 Extract role & id from token
+            String role = jwtUtil.extractUserRole(token);
 
-        return ResponseEntity.ok(responsePage);
+            if (!"HR".equalsIgnoreCase(role) ) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only HR can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Application> applicationsPage = applicationService.getAllApplications(pageable);
+
+            Page<ApplicationResponseDTO> responsePage = applicationsPage.map(this::mapToDTO);
+
+            return ResponseEntity.ok(responsePage);
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
     @GetMapping("/applications/{id}")
-    public ResponseEntity<?> getApplicationById(@PathVariable Long id) {
+    public ResponseEntity<?> getApplicationById(HttpServletRequest request,@PathVariable Long id) {
+
+        // 🔑 Get JWT from cookie
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (token == null) {
+            return ResponseEntity.status(401).body("Missing access_token cookie");
+        }
+
+        // 🔑 Extract role & id from token
+        String role = (String) request.getAttribute("role");
+
+        if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only HR and University can access this resource"));
+        }
+
+
         Application application = applicationService.getApplicationById(id);
 
         // ✅ Convert to DTO with applicant data
@@ -247,17 +351,45 @@ public class ApplicationController {
             HttpServletRequest request) {
 
         try {
+            // 🔑 Get JWT from cookie
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            // 🔑 Extract role & id from token
             String role = (String) request.getAttribute("role");
 
             if (!"UNIVERSITY".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only University can create batch application");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only universities can access this resource"));
             }
 
-            List<ApplicantDTO> savedApplicants = applicationService.batchApplication(file);
+            List<Application> savedApplicants = applicationService.batchApplication(file);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Batch import created successfully");
-            response.put("applicants", savedApplicants);
+            response.put("application", savedApplicants);
+
+            try {
+                notificationGrpcClient.sendNotification(
+                        Set.of(RecipientRole.HR),
+                        "New Internship Application Submitted",
+                        "Batch internship application has been submitted!",
+                        Instant.now(),
+                        NotificationType.SUCCESS
+                );
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occured while sending notification");
+            }
 
             return ResponseEntity.status(201).body(response);
 
@@ -276,18 +408,28 @@ public class ApplicationController {
             HttpServletRequest request) {
 
         try {
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
             String role = (String) request.getAttribute("role");
 
             if (!"HR".equalsIgnoreCase(role)) {
-                return errorResponse("Unauthorized: Only HR can update application status.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Only HR can update application status."));
             }
 
-            // ✅ Extract token from Authorization header
-            String authHeader = request.getHeader("Authorization");
-
-            // ✅ Update the application status and pass token to service
             ApplicationDTO updated = applicationService.updateApplicationStatus(
-                    id, ApplicationStatus.valueOf(status), authHeader
+                    id, ApplicationStatus.valueOf(status), token
             );
 
             // ✅ Fetch application + applicant
@@ -296,24 +438,26 @@ public class ApplicationController {
 
             Applicant applicant = application.getApplicant();
 
-            // ✅ Send Notification
-            String message = String.format("Application for your student %s %s (%s) has been %s.",
+            // ✅ Send Notification via gRPC
+            String message = String.format("Application for student %s %s (%s) has been %s.",
                     applicant.getFirstName(),
                     applicant.getLastName(),
                     applicant.getEmail(),
-                    status.toUpperCase());
+                    status.toUpperCase()
+            );
 
             try {
                 notificationGrpcClient.sendNotification(
-                        Set.of(RecipientRole.University),
+                        Set.of(RecipientRole.UNIVERSITY), // ✅ send to university
                         "Application Status Update",
-                        message,
-                        Instant.now()
+                        message,                          // ✅ use message as description
+                        Instant.now(),
+                        NotificationType.CHANGE // ✅ use gRPC enum
                 );
             } catch (Exception e) {
-                System.err.println("Failed to send gRPC notification: " + e.getMessage());
-                // optionally log this or send to monitoring
+                System.err.println("⚠️ Failed to send gRPC notification: " + e.getMessage());
             }
+
             return ResponseEntity.ok(updated);
 
         } catch (RuntimeException e) {
@@ -323,7 +467,6 @@ public class ApplicationController {
         }
     }
 
-
     @GetMapping("/applications/search")
     public ResponseEntity<?> searchApplicants(
             @RequestParam String query,
@@ -331,25 +474,46 @@ public class ApplicationController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
 
-        String role = (String) request.getAttribute("role");
+        try{
+            // 🔑 Get JWT from cookie
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+            // 🔑 Extract role & id from token
+            String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
+
+            if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only HR and University can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Application> pageResult = applicationService.searchApplicants(query, institution,pageable);
+
+            List<ApplicationResponseDTO> content = pageResult.getContent().stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", content,
+                    "currentPage", pageResult.getNumber(),
+                    "totalPages", pageResult.getTotalPages(),
+                    "totalElements", pageResult.getTotalElements()
+            ));
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Application> pageResult = applicationService.searchApplicants(query, pageable);
-
-        List<ApplicationResponseDTO> content = pageResult.getContent().stream()
-                .map(this::mapToDTO)
-                .toList();
-
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalElements", pageResult.getTotalElements()
-        ));
     }
 
 
@@ -360,18 +524,39 @@ public class ApplicationController {
                                             @RequestParam(defaultValue = "10") int size,
                                             HttpServletRequest request) {
 
-        String role = (String) request.getAttribute("role");
+        try{
+            // 🔑 Get JWT from cookie
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+            // 🔑 Extract role & id from token
+            String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
+
+            if (!"HR".equalsIgnoreCase(role) && !"UNIVERSITY".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only HR can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Application> result = applicationService.filterByStatus(ApplicationStatus.valueOf(status), institution, pageable);
+
+            List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Application> result = applicationService.filterByStatus(ApplicationStatus.valueOf(status), pageable);
-
-        List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
-
-        return ResponseEntity.ok(response);
     }
 
 
@@ -381,18 +566,39 @@ public class ApplicationController {
                                               @RequestParam(defaultValue = "10") int size,
                                               HttpServletRequest request) {
 
-        String role = (String) request.getAttribute("role");
+        try{
+            // 🔑 Get JWT from cookie
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
 
-        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+            // 🔑 Extract role & id from token
+            String role = (String) request.getAttribute("role");
+
+            if (!"HR".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only HR can access this resource"));
+            }
+
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Application> result = applicationService.filterByPosition(position, pageable);
+
+            List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Application> result = applicationService.filterByPosition(position, pageable);
-
-        List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
-
-        return ResponseEntity.ok(response);
     }
 
 
@@ -402,19 +608,91 @@ public class ApplicationController {
                                                 @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "10") int size,
                                                 HttpServletRequest request) {
+        try{
 
-        String role = (String) request.getAttribute("role");
+            // 🔑 Get JWT from cookie
+            String token = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) { // <-- replace "token" with your cookie name
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
 
-        if (!"HR".equalsIgnoreCase(role) && !"Project_Manager".equalsIgnoreCase(role)) {
-            return errorResponse("Unauthorized: Only HR or Project Manager can search applicants");
+            if (token == null) {
+                return ResponseEntity.status(401).body("Missing access_token cookie");
+            }
+
+            // 🔑 Extract role & id from token
+            String role = (String) request.getAttribute("role");
+
+            if (!"HR".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only HR can access this resource"));
+            }
+
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Application> result = applicationService.filterByUniversity(university, pageable);
+
+            List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
+    }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Application> result = applicationService.filterByUniversity(university, pageable);
 
-        List<ApplicationResponseDTO> response = result.stream().map(this::mapToDTO).toList();
+    @GetMapping("/applications/filter/for-university")
+    public ResponseEntity<?> filterForUniversity(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            // 🔑 Get JWT from cookie
+            String token = Arrays.stream(Optional.ofNullable(request.getCookies())
+                            .orElse(new Cookie[0]))
+                    .filter(c -> "access_token".equals(c.getName()))
+                    .findFirst()
+                    .map(Cookie::getValue)
+                    .orElse(null);
 
-        return ResponseEntity.ok(response);
+            if (token == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Missing authentication token"));
+            }
+
+            // 🔑 Extract role & id from token
+            String role = (String) request.getAttribute("role");
+            String institution = (String) request.getAttribute("institution");
+
+            if (!"UNIVERSITY".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only universities can access this resource"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+
+            // 🔑 Pass institution to service
+            Page<Application> result = applicationService.filterByUniversity(institution, pageable);
+
+            List<ApplicationResponseDTO> response = result.stream()
+                    .map(this::mapToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "content", response,
+                    "currentPage", result.getNumber(),
+                    "totalPages", result.getTotalPages(),
+                    "totalElements", result.getTotalElements()
+            ));
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -424,7 +702,6 @@ public class ApplicationController {
         error.put("error", message);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
-
 
     private ApplicationResponseDTO mapToDTO(Application application) {
         return ApplicationResponseDTO.builder()

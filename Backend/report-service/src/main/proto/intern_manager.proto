@@ -9,6 +9,7 @@ option java_outer_classname = "InternManagerProto";
 service InternManagerService {
   rpc getInternManagerInfo (InternManagerRequest) returns (InternManagerResponse);
   rpc searchByName (UserRequest) returns (UserResponse);
+  rpc getUsersByIdsForReport(UserMultipleIdsRequest) returns (MultiUsersResponse);
 }
 
 
@@ -35,3 +36,23 @@ message UserResponse{
   string last_name = 3;
 
 }
+
+message UserMultipleIdsRequest {
+  repeated int64 user_ids = 1;
+}
+message SingleUserResponse {
+  int64 user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string field_of_study = 4;
+  string university = 5;
+
+}
+
+message MultiUsersResponse {
+  repeated SingleUserResponse users = 1;
+}
+
+
+
+

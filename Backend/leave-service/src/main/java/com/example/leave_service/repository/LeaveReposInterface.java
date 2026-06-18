@@ -48,6 +48,10 @@ public interface LeaveReposInterface {
     // Get leave status counts (total, accepted, rejected, pending)
     HashMap<String, Long> getLeaveStatusCountsPm(Long receiverId);
 
+    //get leave status counts (total, accepted, rejected, pending) for student
+    HashMap<String, Long> getLeaveStatusCounts(Long userId);
+
+
 
 
     // Update leave status

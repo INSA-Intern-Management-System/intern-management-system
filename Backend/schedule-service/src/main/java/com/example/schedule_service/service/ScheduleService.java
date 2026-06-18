@@ -1,12 +1,17 @@
 package com.example.schedule_service.service;
 
+import com.example.project_service.gRPC.AllMilestones;
 import com.example.schedule_service.client.ActivityGrpcClient;
+import com.example.schedule_service.client.InternManagerGrpcClient;
+import com.example.schedule_service.client.ProjectManagerGrpcClient;
+import com.example.schedule_service.dto.MilestoneResponse;
 import com.example.schedule_service.dto.ScheduleRequest;
 import com.example.schedule_service.dto.ScheduleResponse;
 import com.example.schedule_service.model.Schedule;
 import com.example.schedule_service.model.ScheduleStatus;
 import com.example.schedule_service.model.User;
 import com.example.schedule_service.repository.ScheduleRepositoryInterface;
+import com.example.userservice.gRPC.InternManagerResponse;
 
 import jakarta.transaction.Transactional;
 
@@ -15,6 +20,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -22,12 +30,18 @@ public class ScheduleService {
 
     private final ScheduleRepositoryInterface scheduleRepository;
     private final ActivityGrpcClient activityGrpcClient;
+    private final ProjectManagerGrpcClient projectManagerGrpcClient;
+    private final InternManagerGrpcClient  internManagerGrpcClient;
 
     @Autowired
     public ScheduleService(ScheduleRepositoryInterface scheduleRepository,
-                           ActivityGrpcClient activityGrpcClient) {
+                           ActivityGrpcClient activityGrpcClient,
+                           ProjectManagerGrpcClient projectManagerGrpcClient,
+                           InternManagerGrpcClient internManagerGrpcclient) {
         this.scheduleRepository = scheduleRepository;
         this.activityGrpcClient = activityGrpcClient;
+        this.projectManagerGrpcClient=projectManagerGrpcClient;
+        this.internManagerGrpcClient=internManagerGrpcclient;
     }
 
     // Create a schedule
@@ -48,9 +62,49 @@ public class ScheduleService {
     }
 
     // Get schedules with pagination by userId
-    public Page<ScheduleResponse> getSchedulesByUserId(Long userId, Pageable pageable) {
+    @Transactional
+    public HashMap<String,Object> getSchedulesByUserId(String jwtToken,Long userId, Pageable pageable) {
         Page<Schedule> schedulesPage = scheduleRepository.findByUserId(userId, pageable);
-        return schedulesPage.map(this::convertToResponse);
+        InternManagerResponse internDTO = internManagerGrpcClient.getInternManagerByUserId(jwtToken, userId);
+  
+        List<MilestoneResponse> milestoneDTOs = new ArrayList<>();
+        if (internDTO != null && internDTO.getProjectId() != 0) {
+            AllMilestones activeMilestones = projectManagerGrpcClient
+                    .getActiveMilestones(jwtToken, internDTO.getProjectId());
+
+            if (activeMilestones != null) {
+                milestoneDTOs = activeMilestones.getMilestonesList().stream()
+                        .map(m -> new MilestoneResponse(
+                                m.getMilestoneId(),
+                                m.getMilestoneTitle(),
+                                m.getMilestoneDescription(),
+                                m.getMilestoneStatus(),
+                                m.hasMilestoneDueDate()
+                                        ? LocalDateTime.ofInstant(
+                                        Instant.ofEpochSecond(
+                                                m.getMilestoneDueDate().getSeconds(),
+                                                m.getMilestoneDueDate().getNanos()
+                                        ),
+                                        ZoneId.systemDefault()
+                                )
+                                        : null,
+                                m.hasMilestoneCreatedAt()
+                                        ? LocalDateTime.ofInstant(
+                                        Instant.ofEpochSecond(
+                                                m.getMilestoneCreatedAt().getSeconds(),
+                                                m.getMilestoneCreatedAt().getNanos()
+                                        ),
+                                        ZoneId.systemDefault()
+                                )
+                                        : null
+                        ))
+                        .toList();
+                    }
+                }
+        HashMap<String,Object> result=new HashMap<>();
+        result.put("milestones", milestoneDTOs);
+        result.put("tasks", schedulesPage.map(this::convertToResponse));
+        return result;
     }
 
     private ScheduleResponse convertToResponse(Schedule schedule) {

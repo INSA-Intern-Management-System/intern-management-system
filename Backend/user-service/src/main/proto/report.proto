@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package com.example.report_service.gRPC;
+
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+option java_package = "com.example.report_service.gRPC";
+option java_outer_classname = "ReportServiceProto";
+
+service ReportService {
+  rpc getReportStats (ReportStatsRequest) returns (ReportStatsResponse);
+  rpc getTotalReportsForPM (ReportStatsRequest) returns (TotalReportResponse);
+  rpc getTotalReportsForHR (google.protobuf.Empty) returns (TotalReportResponse);
+  rpc getTopInterns (TopInternsRequest) returns (TopInternsResponse);
+  rpc getUserUniversityStats (UserUniversityStatsRequest) returns (UserUniversityStatsResponse);
+  rpc getUniversityReportstats(UserUniversityStatsRequest) returns (ReportStatsResponse);
+  rpc getReportProgress(ReportProgressRequest) returns (ReportProgressResponse);
+}
+
+
+message ReportProgressRequest {
+  repeated int64 user_id = 1;
+}
+
+message SingleProgress{
+  int64 user_id = 1;
+  int64 total_reports=2;
+  double progress = 3;
+}
+
+message ReportProgressResponse {
+  repeated SingleProgress progress = 1;
+}
+
+message ReportStatsRequest {
+  int64 user_id = 1;
+}
+
+message TopInternsRequest{
+  int64 page = 1;
+  int64 size = 2;
+}
+
+message TopInterns{
+  int64 user_id =1;
+  double rating = 2;
+}
+
+message TopInternsResponse {
+  repeated TopInterns interns = 1;
+}
+
+message ReportStatsResponse {
+  int64 totalReports = 1;
+  double averageRating = 2;
+}
+
+message TotalReportResponse {
+  int64 totalPendingReports = 1;
+  int64 totalResolvedReports = 2;
+}
+
+message UserUniversityStats {
+  int64 user_id = 1;
+  double average_rating = 2;
+  int64 total_reports = 3;
+
+  // Last review details
+  ReviewInfo last_review = 4;
+}
+
+message ReviewInfo {
+  int64 review_id = 1;
+  string feedback = 2;
+  int32 rating = 3;
+  string created_at = 4; // ISO string or timestamp
+}
+message UserUniversityStatsRequest {
+  repeated int64 user_ids = 1;
+}
+
+message UserUniversityStatsResponse {
+  repeated UserUniversityStats stats = 1;
+}

@@ -1,6 +1,8 @@
 package com.example.userservice.security;
 
+import com.example.userservice.model.SystemSetting;
 import com.example.userservice.model.User;
+import com.example.userservice.repository.SystemSettingRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -28,15 +30,27 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
+    private final SystemSettingRepository systemSettingRepository;
+    public JwtUtil(SystemSettingRepository systemSettingRepository){
+        this.systemSettingRepository=systemSettingRepository;
+    }
+
+
+
     // Generate token using User
     public String generateToken(User user) {
+        SystemSetting setting = systemSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> new RuntimeException("System settings not found"));
+
+        int sessionTimeoutHours = setting.getSessionTimeoutMinutes(); // e.g., 10 means 10 hours
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("userId", user.getId())  // use getter
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().getName()) // assuming enum or String
+                .claim("institution", user.getInstitution())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hrs
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * sessionTimeoutHours)) // 10 hrs
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -51,6 +65,12 @@ public class JwtUtil {
         public String extractUserRole(String token) {
             Claims claims = extractAllClaims(token);
             return claims.get("role", String.class);
+        }
+
+        // ✅ Extract role from token
+        public String extractUserInstitution(String token) {
+            Claims claims = extractAllClaims(token);
+            return claims.get("institution", String.class);
         }
 
         // ✅ Extract email from token

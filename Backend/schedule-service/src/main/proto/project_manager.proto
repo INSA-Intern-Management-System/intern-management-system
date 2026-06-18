@@ -1,0 +1,54 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package com.example.project_service.gRPC;
+
+option java_multiple_files = true;
+option java_package = "com.example.project_service.gRPC";
+option java_outer_classname = "ProjectManagerProto";
+
+service ProjectManagerService {
+  rpc getProjectInfo (ProjectRequest) returns (ProjectResponse);
+  rpc getProjects (AllProjectRequests) returns (AllProjectResponses);
+  rpc getActiveMilestones(ProjectRequest) returns (AllMilestones);
+}
+
+enum MilestoneStatusProto {
+  MILESTONE_STATUS_UNSPECIFIED = 0; // Default, required first value
+  NOT_STARTED = 1;
+  IN_PROGRESS = 2;
+  COMPLETED = 3;
+  ON_HOLD = 4;
+  CANCELLED = 5;
+}
+
+message ProjectRequest {
+  int64 project_id = 1;
+}
+
+message ProjectResponse {
+  int64 project_id = 1;
+  string project_name = 2;
+  string project_description = 3;
+}
+
+message MilestoneResponseProto {
+  int64 milestone_id = 1;
+  string milestone_title = 2;
+  string milestone_description = 3;
+  MilestoneStatusProto milestone_status = 4;
+  google.protobuf.Timestamp milestone_due_date = 5;
+  google.protobuf.Timestamp milestone_created_at = 6;
+}
+
+message AllMilestones {
+  repeated MilestoneResponseProto milestones = 1;
+}
+
+message AllProjectRequests {
+  repeated int64 project_ids = 1;
+}
+
+message AllProjectResponses {
+  repeated ProjectResponse projects = 1;
+}

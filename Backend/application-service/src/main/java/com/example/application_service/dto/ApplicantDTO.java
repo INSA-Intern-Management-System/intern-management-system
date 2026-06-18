@@ -1,6 +1,5 @@
 package com.example.application_service.dto;
 
-import com.example.application_service.model.ApplicationStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -10,8 +9,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Builder
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicantDTO {
@@ -21,12 +20,30 @@ public class ApplicantDTO {
     @NotBlank
     private String firstName;
 
-    public String getLastName() {
-        return lastName;
+    @NotBlank
+    private String lastName;
+
+    @Email
+    @NotBlank
+    private String email;
+
+    private String phoneNumber;
+    private String institution;
+    private String fieldOfStudy;
+    private String gender;
+    private String duration;
+    private String linkedInUrl;
+    private String githubUrl;
+    private String cvUrl;
+
+    private LocalDateTime createdAt;
+
+    public Long getId() {
+        return id;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getFirstName() {
@@ -37,20 +54,20 @@ public class ApplicantDTO {
         this.firstName = firstName;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getPhoneNumber() {
@@ -124,23 +141,4 @@ public class ApplicantDTO {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
-    @NotBlank
-    private String lastName;
-
-    @Email
-    @NotBlank
-    private String email;
-
-    private String phoneNumber;
-    private String institution;
-    private String fieldOfStudy;
-    private String gender;
-    private String duration;
-    private String linkedInUrl;
-    private String githubUrl;
-    private String cvUrl;
-
-    private LocalDateTime createdAt;
-
 }

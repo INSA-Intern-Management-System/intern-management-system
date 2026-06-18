@@ -26,19 +26,34 @@ public class SystemSetting {
     // Security Settings
     private Integer minimumPasswordLength = 8;
     private Boolean requireSpecialCharacters = true;
-    private Integer sessionTimeoutMinutes = 30;
+    private Integer sessionTimeoutMinutes = 10;
     private Integer maxLoginAttempts = 5;
+    private Integer failedAttempts = 0;
+    private Boolean isAccountLocked = false;
     private String ipWhitelist; // comma-separated
 
-    // Intership
+    // Internship
     private Integer maxInterns;
     private Integer internshipDuration;
     private String reportFrequency = "Weekly";
     private Integer evaluationDeadline = 7;
 
 
+    public Integer getFailedAttempts() {
+        return failedAttempts;
+    }
 
+    public void setFailedAttempts(Integer failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
 
+    public Boolean getAccountLocked() {
+        return isAccountLocked;
+    }
+
+    public void setAccountLocked(Boolean accountLocked) {
+        isAccountLocked = accountLocked;
+    }
 
     public Long getId() {
         return id;
@@ -132,8 +147,8 @@ public class SystemSetting {
         return isMaintenanceMode;
     }
 
-    public void setMaintenanceMode(Boolean maintenanceMode) {
-        isMaintenanceMode = maintenanceMode;
+    public void setMaintenanceMode(Boolean isMaintenanceMode) {
+        this.isMaintenanceMode = isMaintenanceMode;
     }
 
     public Boolean getEmailNotificationEnabled() {
